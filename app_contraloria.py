@@ -211,12 +211,8 @@ st.markdown('<div class="titulo-tablero">📊 Tablero de Control - Planes de Acc
 # RUTAS DE ARCHIVOS CONTRALORÍA
 # ---------------------------------------------------------
 POSIBLES_RUTAS = [
-    r"C:\Users\diego\"TABLERO_PA_C.xlsx"\Escritorio\Tableros de Control\2. Contraloría\TABLERO_PA_C.xlsm",
-    r"C:\Users\diego\"TABLERO_PA_C.xlsx"\Escritorio\Tableros de Control\2. Contraloria\TABLERO_PA_C.xlsm",
-    r"C:\Users\diego\"TABLERO_PA_C.xlsx"\Escritorio\Tableros de Control\2. Contraloría\TABLERO_PA_C (1).xlsx",
-    r"C:\Users\diego\"TABLERO_PA_C.xlsx"\Escritorio\Tableros de Control\2. Contraloria\TABLERO_PA_C (1).xlsx",
-    r"C:\Users\diego\"TABLERO_PA_C.xlsx"\Escritorio\Tableros de Control\2. Contraloría\TABLERO_PA_C.xlsx",
-    r"C:\Users\diego\"TABLERO_PA_C.xlsx"\Escritorio\Tableros de Control\2. Contraloria\TABLERO_PA_C.xlsx",
+    "TABLERO_PA_C.xlsx",
+    "TABLERO_PA_C.xlsm"
 ]
 
 EXCEL_PATH = None

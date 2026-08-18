@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA Y ESTILOS CSS COMPACTOS & RESPONSIVOS
+# CONFIGURACIÓN DE PÁGINA Y ESTILOS CSS COMPACTOS
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="Tablero de Control - Planes de Acción Auditoría Interna",
@@ -19,16 +19,6 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-        /* 0. Ocultar menús nativos y marcas de Streamlit para usuarios finales */
-        #MainMenu {visibility: hidden;}
-        header {visibility: hidden;}
-        footer {visibility: hidden;}
-        .stAppDeployButton {display:none !important;}
-        [data-testid="stHeader"] {display:none !important;}
-        [data-testid="stToolbar"] {display:none !important;}
-        [data-testid="stDecoration"] {display:none !important;}
-        [data-testid="stStatusWidget"] {display:none !important;}
-
         /* 1. Reducir la altura del header transparente de Streamlit */
         header[data-testid="stHeader"] {
             height: 2.5rem !important;
@@ -208,30 +198,6 @@ st.markdown(
             background-color: #218838 !important;
             color: #FFFFFF !important;
         }
-
-        /* --- AJUSTES DE DISEÑO RESPONSIVO PARA MÓVILES (CELULARES) --- */
-        @media (max-width: 768px) {
-            .block-container {
-                padding-left: 0.8rem !important;
-                padding-right: 0.8rem !important;
-                padding-top: 1.5rem !important;
-            }
-            .titulo-tablero {
-                font-size: 1.1rem !important;
-                text-align: center;
-            }
-            .card-box {
-                font-size: 0.95rem !important;
-                padding: 6px 2px !important;
-            }
-            .block-header {
-                font-size: 0.78rem !important;
-            }
-            div[data-testid="stDataFrame"] {
-                width: 100% !important;
-                overflow-x: auto !important;
-            }
-        }
     </style>
 """,
     unsafe_allow_html=True,
@@ -249,16 +215,17 @@ def buscar_excel_inteligente():
     dir_padre = os.path.dirname(dir_script)
 
     rutas_candidatas = [
-        "TABLERO_PA_AI.xlsx",
-        "TABLERO_PA_AI.xlsm",
-        "TABLERO_PA_I.xlsx",
-        "TABLERO_PA_I.xlsm",
-        os.path.join(dir_script, "TABLERO_PA_AI.xlsx"),
+        r"C:\Users\diego\OneDrive\Escritorio\Tableros de Control\1. Auditorías Internas\TABLERO_PA_AI.xlsm",
+        r"C:\Users\diego\OneDrive\Escritorio\Tableros de Control\1. Auditoría Interna\TABLERO_PA_I.xlsm",
+        r"C:\Users\diego\OneDrive\Escritorio\Tableros de Control\1. Auditoria Interna\TABLERO_PA_I.xlsm",
+        r"C:\Users\diego\OneDrive\Escritorio\Tableros de Control\1. Auditorías Internas\TABLERO_PA_AI.xlsx",
+        r"C:\Users\diego\OneDrive\Escritorio\Tableros de Control\1. Auditoría Interna\TABLERO_PA_I.xlsx",
         os.path.join(dir_script, "TABLERO_PA_AI.xlsm"),
-        os.path.join(dir_script, "TABLERO_PA_I.xlsx"),
         os.path.join(dir_script, "TABLERO_PA_I.xlsm"),
-        os.path.join(dir_padre, "TABLERO_PA_AI.xlsx"),
+        os.path.join(dir_script, "TABLERO_PA_AI.xlsx"),
+        os.path.join(dir_script, "TABLERO_PA_I.xlsx"),
         os.path.join(dir_padre, "TABLERO_PA_AI.xlsm"),
+        os.path.join(dir_padre, "TABLERO_PA_I.xlsm"),
     ]
 
     for ruta in rutas_candidatas:
@@ -271,7 +238,7 @@ def buscar_excel_inteligente():
                 if file.endswith((".xlsm", ".xlsx")) and ("TABLERO" in file.upper() or "PA_" in file.upper()) and not file.startswith("~$"):
                     return os.path.join(folder, file)
 
-    return "TABLERO_PA_AI.xlsx"
+    return rutas_candidatas[0]
 
 
 EXCEL_PATH = buscar_excel_inteligente()
@@ -362,20 +329,16 @@ def generar_excel_formateado(df):
 
 
 # ---------------------------------------------------------
-# CARGA DE DATOS (TIEMPO REAL)
+# CARGA DE DATOS
 # ---------------------------------------------------------
 def cargar_datos():
     if not os.path.exists(EXCEL_PATH):
-        st.error(f"No se encontró el archivo Excel en la ruta: {EXCEL_PATH}")
-        return pd.DataFrame()
+        st.error(f"⚠️ No se encontró el archivo Excel en la ruta:\n`{EXCEL_PATH}`")
+        return pd.DataFrame(), pd.DataFrame()
 
     try:
         xls = pd.ExcelFile(EXCEL_PATH)
-        sheet_b = (
-            "Base de datos"
-            if "Base de datos" in xls.sheet_names
-            else ("Base de Datos" if "Base de Datos" in xls.sheet_names else xls.sheet_names[0])
-        )
+        sheet_b = "Base de datos" if "Base de datos" in xls.sheet_names else ("Base de Datos" if "Base de Datos" in xls.sheet_names else xls.sheet_names[0])
         df_base = pd.read_excel(xls, sheet_name=sheet_b)
         df_base.columns = [str(c).strip() for c in df_base.columns]
 
@@ -383,20 +346,26 @@ def cargar_datos():
             if df_base[col].dtype == "object":
                 df_base[col] = df_base[col].astype(str).str.strip()
 
-        return df_base
+        sheet_c = "Calculos" if "Calculos" in xls.sheet_names else ("Cálculos" if "Cálculos" in xls.sheet_names else None)
+        if sheet_c:
+            df_calc = pd.read_excel(xls, sheet_name=sheet_c, header=None)
+        else:
+            df_calc = pd.DataFrame()
+
+        return df_base, df_calc
     except Exception as e:
         st.error(f"Error al cargar el archivo Excel: {e}")
-        return pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame()
 
 
-df_raw = cargar_datos()
+df_raw, df_calc = cargar_datos()
 
 if df_raw.empty:
     st.stop()
 
 
 # ---------------------------------------------------------
-# DETECCIÓN FLEXIBLE DE COLUMNAS
+# DETECCIÓN DE COLUMNAS
 # ---------------------------------------------------------
 def buscar_columna_por_patron(df, patrones):
     for col in df.columns:
@@ -415,29 +384,47 @@ def buscar_columna_por_patron(df, patrones):
     return None
 
 
-col_estado = "Estado" if "Estado" in df_raw.columns else buscar_columna_por_patron(df_raw, ["estado"])
-col_responsable = buscar_columna_por_patron(df_raw, ["area responsable", "responsable", "dependencia"])
-col_auditor_resp = buscar_columna_por_patron(df_raw, ["auditor responsable", "auditor"])
-col_plan_auditoria = buscar_columna_por_patron(df_raw, ["plan de auditoria", "plan auditoria"])
-col_auditoria_esp = buscar_columna_por_patron(df_raw, ["auditoria especifica", "auditoria"])
-col_riesgo = "Riesgo" if "Riesgo" in df_raw.columns else buscar_columna_por_patron(df_raw, ["riesgo"])
+col_estado = buscar_columna_por_patron(df_raw, ["estado del compromiso", "estado compromiso", "estado"])
+col_responsable = buscar_columna_por_patron(df_raw, ["responsable", "area responsable"])
+col_auditor_resp = "Auditor Responsable" if "Auditor Responsable" in df_raw.columns else buscar_columna_por_patron(df_raw, ["auditor responsable", "auditor"])
+col_plan_filtro = "Plan Auditoría" if "Plan Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["plan auditoria", "vigencia"])
+col_plan_accion = "Plan de Acción" if "Plan de Acción" in df_raw.columns else buscar_columna_por_patron(df_raw, ["compromiso", "plan de accion", "accion"])
 
-col_hallazgo = "Titulo del Hallazgo" if "Titulo del Hallazgo" in df_raw.columns else buscar_columna_por_patron(df_raw, ["titulo del hallazgo", "hallazgo", "id"])
-col_plan_accion = "Plan de Acción" if "Plan de Acción" in df_raw.columns else buscar_columna_por_patron(df_raw, ["plan de accion", "accion", "compromiso"])
-col_fecha_cierre = "Fecha Estimada de Cierre" if "Fecha Estimada de Cierre" in df_raw.columns else buscar_columna_por_patron(df_raw, ["fecha estimada de cierre", "vencimiento", "cierre", "fecha cierre"])
-col_fecha_cierre_aud = "Fecha cierre x Auditoría" if "Fecha cierre x Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["fecha cierre x auditoria", "cierre x auditoria"])
-col_obs_audit = "Observación Auditoría" if "Observación Auditoría" in df_raw.columns else (buscar_columna_por_patron(df_raw, ["observacion auditoria", "observacion"]) or "Observación Auditoría")
+if not col_plan_accion:
+    col_plan_accion = col_plan_filtro
 
-col_a5 = "Alerta 5" if "Alerta 5" in df_raw.columns else buscar_columna_por_patron(df_raw, ["alerta 5"])
-col_a10 = "Alerta 10" if "Alerta 10" in df_raw.columns else buscar_columna_por_patron(df_raw, ["alerta 10"])
-col_a20 = "Alerta 20" if "Alerta 20" in df_raw.columns else buscar_columna_por_patron(df_raw, ["alerta 20"])
-col_a30 = "Alerta 30" if "Alerta 30" in df_raw.columns else buscar_columna_por_patron(df_raw, ["alerta 30"])
+col_auditoria = "Auditoría" if "Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["auditoria especifica", "auditoria"])
+
+col_hallazgo = buscar_columna_por_patron(df_raw, ["transcribir", "situacion evidenciada", "del hallazgo", "titulo del hallazgo", "hallazgo"])
+col_nombre = buscar_columna_por_patron(df_raw, ["nombre", "nombre hallazgo", "titulo"])
+
+col_riesgo = buscar_columna_por_patron(df_raw, ["riesgo", "nivel de riesgo"])
+col_fecha_cierre = buscar_columna_por_patron(df_raw, ["cierre", "fecha cierre", "fecha compromiso"])
+col_obs_audit = buscar_columna_por_patron(df_raw, ["observacion auditoria"]) or "Observación Auditoría"
+
+col_a5 = buscar_columna_por_patron(df_raw, ["alerta 5"])
+col_a10 = buscar_columna_por_patron(df_raw, ["alerta 10"])
+col_a20 = buscar_columna_por_patron(df_raw, ["alerta 20"])
+col_a30 = buscar_columna_por_patron(df_raw, ["alerta 30"])
 
 if col_estado:
     df_raw[col_estado] = df_raw[col_estado].astype(str).str.capitalize()
 
+# MESES PESTAÑA FINALIZADAS
+meses_es = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
+conteo_meses = {m: 0 for m in meses_es}
+
+if not df_calc.empty:
+    for idx, row in df_calc.iterrows():
+        val_m = str(row[0]).strip().lower()
+        for idx_m, m_nombre in enumerate(["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]):
+            if m_nombre in val_m:
+                clave_m = meses_es[idx_m]
+                conteo_meses[clave_m] = int(row[1]) if pd.notnull(row[1]) and str(row[1]).isdigit() else 0
+
+
 # ---------------------------------------------------------
-# BARRA LATERAL: FILTROS MULTISELECT (EXCLUYENDO FINALIZADAS)
+# FILTROS LATERALES
 # ---------------------------------------------------------
 st.sidebar.title("🔍 Filtros del Tablero")
 
@@ -449,98 +436,81 @@ if col_estado:
         if str(e).lower() not in ["nan", "none", ""] and not re.search(r"finaliz|cerrad", str(e), re.IGNORECASE)
     ])
     with st.sidebar.expander("📌 Estado del compromiso", expanded=True):
-        estado_sel = st.multiselect("Seleccione uno o varios Estados:", options=estados_vals, default=[], key="multi_estado_ai")
+        estado_sel = st.multiselect("Seleccione Estados:", options=estados_vals, default=[], key="multi_estado")
     if estado_sel:
         df_filtrado = df_filtrado[df_filtrado[col_estado].isin(estado_sel)]
 
 if col_responsable:
     resp_vals = sorted(list(set([r for r in df_raw[col_responsable].dropna().unique() if str(r).lower() not in ["nan", "none", ""]])))
     with st.sidebar.expander("👤 Responsables", expanded=False):
-        resp_sel = st.multiselect("Seleccione uno o varios Responsables:", options=resp_vals, default=[], key="multi_resp_ai")
+        resp_sel = st.multiselect("Seleccione Responsables:", options=resp_vals, default=[], key="multi_resp")
     if resp_sel:
         df_filtrado = df_filtrado[df_filtrado[col_responsable].isin(resp_sel)]
 
 if col_auditor_resp:
-    aud_vals = sorted(list(set([a for a in df_raw[col_auditor_resp].dropna().unique() if str(a).lower() not in ["nan", "none", ""]])))
-    with st.sidebar.expander("👨‍💼 Auditor Responsable", expanded=False):
-        auditor_sel = st.multiselect("Seleccione uno o varios Auditores:", options=aud_vals, default=[], key="multi_auditor_ai")
-    if auditor_sel:
-        df_filtrado = df_filtrado[df_filtrado[col_auditor_resp].isin(auditor_sel)]
+    aud_resp_vals = sorted(list(set([ar for ar in df_raw[col_auditor_resp].dropna().unique() if str(ar).lower() not in ["nan", "none", ""]])))
+    with st.sidebar.expander("🧐 Auditor Responsable", expanded=False):
+        aud_resp_sel = st.multiselect("Seleccione Auditores:", options=aud_resp_vals, default=[], key="multi_auditor_resp")
+    if aud_resp_sel:
+        df_filtrado = df_filtrado[df_filtrado[col_auditor_resp].isin(aud_resp_sel)]
 
-if col_plan_auditoria:
-    plan_vals = sorted(list(set([p for p in df_raw[col_plan_auditoria].dropna().unique() if str(p).lower() not in ["nan", "none", ""]])))
+if col_plan_filtro:
+    plan_vals = sorted(list(set([p for p in df_raw[col_plan_filtro].dropna().unique() if str(p).lower() not in ["nan", "none", ""]])))
     with st.sidebar.expander("📁 Plan Auditoría / Vigencia", expanded=False):
-        plan_sel = st.multiselect("Seleccione uno o varios Planes:", options=plan_sel, default=[], key="multi_plan_ai") if 'plan_sel' in locals() and plan_sel else st.multiselect("Seleccione uno o varios Planes:", options=plan_vals, default=[], key="multi_plan_ai")
+        plan_sel = st.multiselect("Seleccione Planes:", options=plan_vals, default=[], key="multi_plan")
     if plan_sel:
-        df_filtrado = df_filtrado[df_filtrado[col_plan_auditoria].isin(plan_sel)]
+        df_filtrado = df_filtrado[df_filtrado[col_plan_filtro].isin(plan_sel)]
 
-if col_auditoria_esp:
-    esp_vals = sorted(list(set([e for e in df_raw[col_auditoria_esp].dropna().unique() if str(e).lower() not in ["nan", "none", ""]])))
+if col_auditoria:
+    aud_vals = sorted(list(set([a for a in df_raw[col_auditoria].dropna().unique() if str(a).lower() not in ["nan", "none", ""]])))
     with st.sidebar.expander("🔬 Auditoría Específica", expanded=False):
-        esp_sel = st.multiselect("Seleccione una o varias Auditorías:", options=esp_vals, default=[], key="multi_esp_ai")
-    if esp_sel:
-        df_filtrado = df_filtrado[df_filtrado[col_auditoria_esp].isin(esp_sel)]
+        auditoria_sel = st.multiselect("Seleccione Auditorías:", options=aud_vals, default=[], key="multi_auditoria")
+    if auditoria_sel:
+        df_filtrado = df_filtrado[df_filtrado[col_auditoria].isin(auditoria_sel)]
 
 
 # ---------------------------------------------------------
-# CÁLCULO DE MESES PARA PESTAÑA FINALIZADAS
+# MÉTRICAS Y GRÁFICOS
 # ---------------------------------------------------------
-meses_es_map = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAY", 6: "JUN", 7: "JUL", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
-conteo_meses = {m: 0 for m in meses_es_map.values()}
+abiertos = df_filtrado[col_estado].astype(str).str.contains("Abiert", case=False, na=False).sum() if col_estado else 0
+vencidos = df_filtrado[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
+sin_plan = df_filtrado[col_estado].astype(str).str.contains("Sin plan|Sin defin", case=False, na=False).sum() if col_estado else 0
 
-if col_fecha_cierre_aud and col_fecha_cierre_aud in df_filtrado.columns:
-    df_fin = df_filtrado[df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
-    if not df_fin.empty:
-        fechas_dt = pd.to_datetime(df_fin[col_fecha_cierre_aud], errors="coerce")
-        for f in fechas_dt.dropna():
-            m_num = f.month
-            if m_num in meses_es_map:
-                conteo_meses[meses_es_map[m_num]] += 1
-
-
-# ---------------------------------------------------------
-# MÉTRICAS Y FIGURAS EXCLUYENDO FINALIZADAS
-# ---------------------------------------------------------
 df_activos = df_filtrado[~df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else df_filtrado.copy()
 
 if col_hallazgo and col_hallazgo in df_activos.columns:
-    hallazgos_limpios = df_activos[col_hallazgo].dropna().astype(str).str.strip().str.upper()
-    hallazgos_validos = hallazgos_limpios[~hallazgos_limpios.isin(["", "NAN", "NONE", "0"])]
-    total_hallazgos_unicos_pendientes = hallazgos_validos.nunique()
+    total_hallazgos_unicos_pendientes = df_activos[col_hallazgo].dropna().nunique()
 else:
     total_hallazgos_unicos_pendientes = len(df_activos)
+
+total_planes_pendientes = abiertos + vencidos + sin_plan
 
 r_alto = df_activos[col_riesgo].astype(str).str.contains("Alto", case=False, na=False).sum() if col_riesgo else 0
 r_medio = df_activos[col_riesgo].astype(str).str.contains("Medio", case=False, na=False).sum() if col_riesgo else 0
 r_bajo = df_activos[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False).sum() if col_riesgo else 0
 
-abiertos = df_filtrado[col_estado].astype(str).str.contains("Abiert", case=False, na=False).sum() if col_estado else 0
-vencidos = df_filtrado[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
-sin_definir = df_filtrado[col_estado].astype(str).str.contains("Sin definir", case=False, na=False).sum() if col_estado else 0
-
-total_planes_pendientes = abiertos + vencidos + sin_definir
-
 # --- BARRAS ---
-max_val = max([abiertos, vencidos, sin_definir])
-df_bar = pd.DataFrame({"Estado": ["Abiertos", "Vencidos", "Sin definir"], "Cantidad": [abiertos, vencidos, sin_definir]})
+max_val_pend = max([abiertos, vencidos, sin_plan])
+df_bar = pd.DataFrame({
+    "Estado": ["Abiertos", "Vencidos", "Sin definir"], 
+    "Cantidad": [abiertos, vencidos, sin_plan]
+})
 
-fig_bar = px.bar(df_bar, x="Estado", y="Cantidad", text="Cantidad", color="Estado", color_discrete_map={"Abiertos": "#58C57A", "Vencidos": "#FF5252", "Sin definir": "#FFB366"})
+fig_bar = px.bar(df_bar, x="Estado", y="Cantidad", text="Cantidad", color="Estado", color_discrete_map={"Abiertos": "#58C57A", "Vencidos": "#FF5252", "Sin definir": "#F8A583"})
 fig_bar.update_traces(textposition="outside", textfont=dict(size=12, color="var(--text-color)", family="Arial"), cliponaxis=False)
 fig_bar.update_layout(
-    autosize=True,
-    showlegend=False, 
-    height=180, 
-    margin=dict(t=25, b=5, l=5, r=5), 
-    xaxis_title=None, 
-    yaxis_title=None, 
-    xaxis=dict(tickfont=dict(size=11, color="var(--text-color)", family="Arial")), 
-    yaxis=dict(showticklabels=False, range=[0, max_val * 1.25 if max_val > 0 else 10]), 
-    paper_bgcolor="rgba(0,0,0,0)", 
-    plot_bgcolor="rgba(0,0,0,0)"
+    showlegend=False,
+    height=180,
+    margin=dict(t=25, b=5, l=5, r=5),
+    xaxis_title=None,
+    yaxis_title=None,
+    xaxis=dict(tickfont=dict(size=11, color="var(--text-color)", family="Arial")),
+    yaxis=dict(showticklabels=False, range=[0, max_val_pend * 1.25 if max_val_pend > 0 else 10]),
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
 )
 
-# --- LAS 2 DONAS ---
-# 1. En Tiempo (Abiertos)
+# --- DONAS ---
 pct_abiertos = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
 colors_abiertos = ["#00B050" if i < (pct_abiertos / 5) else "#E0E0E0" for i in range(20)]
 
@@ -548,9 +518,8 @@ fig_dona_abiertos = go.Figure(data=[
     go.Pie(values=[1]*20, hole=0.68, marker_colors=colors_abiertos, marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none")
 ])
 fig_dona_abiertos.add_annotation(text=f"<b>{pct_abiertos}%</b>", x=0.5, y=0.5, font=dict(size=28, color="var(--text-color)"), showarrow=False)
-fig_dona_abiertos.update_layout(autosize=True, showlegend=False, height=145, margin=dict(t=2, b=2, l=2, r=2), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+fig_dona_abiertos.update_layout(showlegend=False, height=145, margin=dict(t=2, b=2, l=2, r=2), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
-# 2. Vencidos
 pct_vencidos = round((vencidos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
 colors_vencidos = ["#FF5252" if i < (pct_vencidos / 5) else "#E0E0E0" for i in range(20)]
 
@@ -558,11 +527,82 @@ fig_dona_vencidos = go.Figure(data=[
     go.Pie(values=[1]*20, hole=0.68, marker_colors=colors_vencidos, marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none")
 ])
 fig_dona_vencidos.add_annotation(text=f"<b>{pct_vencidos}%</b>", x=0.5, y=0.5, font=dict(size=28, color="var(--text-color)"), showarrow=False)
-fig_dona_vencidos.update_layout(autosize=True, showlegend=False, height=145, margin=dict(t=2, b=2, l=2, r=2), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+fig_dona_vencidos.update_layout(showlegend=False, height=145, margin=dict(t=2, b=2, l=2, r=2), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+
+# --- ÁREAS Y AUDITORÍAS ---
+df_perf = df_filtrado.copy()
+if col_estado in df_perf.columns:
+    df_perf["Estado_Normalizado"] = df_perf[col_estado].fillna("").astype(str).str.strip()
+    df_perf["Estado_Normalizado"] = df_perf["Estado_Normalizado"].apply(lambda x: "Abierta" if "abiert" in x.lower() else ("Vencida" if "vencid" in x.lower() else ("Sin plan de acción" if "sin" in x.lower() else x)))
+else:
+    df_perf["Estado_Normalizado"] = ""
+
+s_est = df_perf["Estado_Normalizado"]
+
+fig_area_horiz, total_acciones_area = None, 0
+if col_responsable in df_perf.columns:
+    df_pend = df_perf[~s_est.str.contains("Finaliz|Cerrad", case=False, na=False)].copy()
+    if not df_pend.empty:
+        df_pend[col_responsable] = df_pend[col_responsable].astype(str).str.replace("\n", ",").str.split(",")
+        df_pend_exploded = df_pend.explode(col_responsable)
+        df_pend_exploded[col_responsable] = df_pend_exploded[col_responsable].astype(str).str.strip()
+        df_pend_exploded = df_pend_exploded[~df_pend_exploded[col_responsable].isin(["", "nan", "None", "None."])]
+
+        total_acciones_area = len(df_pend_exploded)
+        df_area_grouped = df_pend_exploded.groupby([col_responsable, "Estado_Normalizado"]).size().reset_index(name="Cantidad")
+        df_totales_area = df_area_grouped.groupby(col_responsable)["Cantidad"].sum().reset_index(name="Total_Pendientes").sort_values(by="Total_Pendientes", ascending=False)
+        df_area_grouped[col_responsable] = pd.Categorical(df_area_grouped[col_responsable], categories=df_totales_area[col_responsable], ordered=True)
+        df_area_grouped["Texto_Etiqueta"] = df_area_grouped["Cantidad"].apply(lambda x: f"<b>{x}</b>" if x > 1 else "")
+
+        calc_height_areas = max(480, len(df_totales_area) * 44)
+        fig_area_horiz = px.bar(df_area_grouped, y=col_responsable, x="Cantidad", color="Estado_Normalizado", text="Texto_Etiqueta", orientation="h", barmode="stack", color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Sin plan de acción": "#F8A583"})
+        fig_area_horiz.update_traces(textposition="inside", insidetextanchor="middle", textfont=dict(size=12, color="white", family="Arial Black"), cliponaxis=False)
+
+        for _, row in df_totales_area.iterrows():
+            fig_area_horiz.add_annotation(y=row[col_responsable], x=row["Total_Pendientes"], text=f" <b>{row['Total_Pendientes']}</b>", showarrow=False, xanchor="left", yanchor="middle", font=dict(size=13, color="var(--text-color)"))
+        max_pend_area = df_totales_area["Total_Pendientes"].max() if not df_totales_area.empty else 10
+        fig_area_horiz.update_layout(
+            height=calc_height_areas,
+            coloraxis_showscale=False,
+            yaxis=dict(type="category", autorange="reversed", title=None, automargin=True, tickfont=dict(color="var(--text-color)")),
+            xaxis=dict(showticklabels=False, title=None, visible=False, showgrid=False, zeroline=False, range=[0, max_pend_area * 1.25]),
+            legend_title_text="Estado",
+            margin=dict(l=280, r=60, t=60, b=40),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+        )
+
+fig_aud_horiz, total_acciones_aud = None, 0
+if col_auditoria in df_perf.columns:
+    df_aud_pend_raw = df_perf[~s_est.str.contains("Finaliz|Cerrad", case=False, na=False)]
+    if not df_aud_pend_raw.empty:
+        total_acciones_aud = len(df_aud_pend_raw)
+        df_aud_grouped = df_aud_pend_raw.groupby([col_auditoria, "Estado_Normalizado"]).size().reset_index(name="Cantidad")
+        df_totales_aud = df_aud_grouped.groupby(col_auditoria)["Cantidad"].sum().reset_index(name="Total_Pendientes").sort_values(by="Total_Pendientes", ascending=False)
+        df_aud_grouped[col_auditoria] = pd.Categorical(df_aud_grouped[col_auditoria], categories=df_totales_aud[col_auditoria], ordered=True)
+        df_aud_grouped["Texto_Etiqueta"] = df_aud_grouped["Cantidad"].apply(lambda x: f"<b>{x}</b>" if x > 1 else "")
+
+        calc_height_auds = max(450, len(df_totales_aud) * 44)
+        fig_aud_horiz = px.bar(df_aud_grouped, y=col_auditoria, x="Cantidad", color="Estado_Normalizado", text="Texto_Etiqueta", orientation="h", barmode="stack", color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Sin plan de acción": "#F8A583"})
+        fig_aud_horiz.update_traces(textposition="inside", insidetextanchor="middle", textfont=dict(size=12, color="white", family="Arial Black"), cliponaxis=False)
+
+        for _, row in df_totales_aud.iterrows():
+            fig_aud_horiz.add_annotation(y=row[col_auditoria], x=row["Total_Pendientes"], text=f" <b>{row['Total_Pendientes']}</b>", showarrow=False, xanchor="left", yanchor="middle", font=dict(size=13, color="var(--text-color)"))
+        max_pend_aud = df_totales_aud["Total_Pendientes"].max() if not df_totales_aud.empty else 10
+        fig_aud_horiz.update_layout(
+            height=calc_height_auds,
+            coloraxis_showscale=False,
+            yaxis=dict(type="category", autorange="reversed", title=None, automargin=True, tickfont=dict(color="var(--text-color)")),
+            xaxis=dict(showticklabels=False, title=None, visible=False, showgrid=False, zeroline=False, range=[0, max_pend_aud * 1.25]),
+            legend_title_text="Estado",
+            margin=dict(l=280, r=60, t=60, b=40),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+        )
 
 
 # ---------------------------------------------------------
-# DEFINICIÓN DE PESTAÑAS
+# PESTAÑAS PRINCIPALES
 # ---------------------------------------------------------
 tab_principal, tab_metricas, tab_alertas, tab_finalizadas = st.tabs([
     "📊 Tablero Principal",
@@ -577,23 +617,23 @@ tab_principal, tab_metricas, tab_alertas, tab_finalizadas = st.tabs([
 with tab_principal:
     c2, c3, c4 = st.columns([2.5, 2.5, 2.0])
 
-    # --- COLUMNA 1: HALLAZGOS Y PLANES ---
     with c2:
         st.markdown('<div class="block-header">Total Hallazgos Pendientes</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="card-box" style="background-color:#4B92DB; font-size:1.3rem; height:34px; line-height:26px;">{total_hallazgos_unicos_pendientes}</div>', unsafe_allow_html=True)
 
-        st.markdown('<div class="block-header" style="font-size:0.75rem; margin-top:2px;">Detalle por Nivel de Riesgo</div>', unsafe_allow_html=True)
+        st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
         r1, r2, r3 = st.columns(3)
         with r1:
-            st.markdown('<div class="block-header" style="font-size:0.65rem; text-transform:none;">Riesgo Alto</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="card-box" style="background-color:#FFBF00;">{r_alto}</div>', unsafe_allow_html=True)
+            st.markdown('<div class="block-header" style="font-size:0.72rem;">Riesgo Alto</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="card-box" style="background-color:#FFB000; font-size:1rem;">{r_alto}</div>', unsafe_allow_html=True)
         with r2:
-            st.markdown('<div class="block-header" style="font-size:0.65rem; text-transform:none;">Riesgo Medio</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="card-box" style="background-color:#FFFF00;">{r_medio}</div>', unsafe_allow_html=True)
+            st.markdown('<div class="block-header" style="font-size:0.72rem;">Riesgo Medio</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="card-box" style="background-color:#FFFF00; font-size:1rem;">{r_medio}</div>', unsafe_allow_html=True)
         with r3:
-            st.markdown('<div class="block-header" style="font-size:0.65rem; text-transform:none;">Riesgo Bajo</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="card-box" style="background-color:#00B050;">{r_bajo}</div>', unsafe_allow_html=True)
+            st.markdown('<div class="block-header" style="font-size:0.72rem;">Riesgo Bajo</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="card-box" style="background-color:#00B050; font-size:1rem;">{r_bajo}</div>', unsafe_allow_html=True)
 
+        st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
         st.markdown('<div class="block-header" style="font-size:0.78rem;">Planes de Acción Pendientes</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="card-box" style="background-color:#00B050; height:36px; line-height:26px; font-size:1.4rem; margin-bottom:8px;">{total_planes_pendientes}</div>', unsafe_allow_html=True)
 
@@ -601,22 +641,22 @@ with tab_principal:
         e1, e2, e3 = st.columns(3)
         with e1:
             st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Abiertos</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="card-box" style="background-color:#58C57A; font-size:1.1rem; padding:6px;">{abiertos}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="card-box" style="background-color:#58C57A; font-size:1.05rem; padding:4px;">{abiertos}</div>', unsafe_allow_html=True)
         with e2:
             st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Vencidos</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="card-box" style="background-color:#FF5252; color:#FFFFFF; font-size:1.1rem; padding:6px;">{vencidos}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="card-box" style="background-color:#FF5252; color:#FFFFFF; font-size:1.05rem; padding:4px;">{vencidos}</div>', unsafe_allow_html=True)
         with e3:
             st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Sin definir</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="card-box" style="background-color:#FFB366; font-size:1.1rem; padding:6px;">{sin_definir}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="card-box" style="background-color:#F8A583; font-size:1.05rem; padding:4px;">{sin_plan}</div>', unsafe_allow_html=True)
 
-    # --- COLUMNA 2: ALERTAS Y BARRAS ---
     with c3:
         st.markdown('<div class="block-header">Acciones próximas a vencer</div>', unsafe_allow_html=True)
 
         def obtener_valor_alerta(col_name):
             if col_name and col_name in df_filtrado.columns:
-                s = pd.to_numeric(df_filtrado[col_name], errors="coerce").fillna(0)
-                cant = (s > 0).sum()
+                s = df_filtrado[col_name].dropna().astype(str).str.strip()
+                validos = s[~s.str.lower().isin(["nan", "none", "", "0", "0.0", "false"])]
+                cant = len(validos)
                 return str(cant) if cant > 0 else "—"
             return "—"
 
@@ -629,19 +669,27 @@ with tab_principal:
             f"""
             <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
                 <div class="alert-row-compact">
-                    <div class="alert-item-label"><span>5 días</span><span>🔴</span></div>
+                    <div class="alert-item-label">
+                        <span>5 días</span><span>🔴</span>
+                    </div>
                     <div class="alert-val-box">{val_5}</div>
                 </div>
                 <div class="alert-row-compact">
-                    <div class="alert-item-label"><span>10 días</span><span>🟡</span></div>
+                    <div class="alert-item-label">
+                        <span>10 días</span><span>🟡</span>
+                    </div>
                     <div class="alert-val-box">{val_10}</div>
                 </div>
                 <div class="alert-row-compact">
-                    <div class="alert-item-label"><span>20 días</span><span>🟢</span></div>
+                    <div class="alert-item-label">
+                        <span>20 días</span><span>🟢</span>
+                    </div>
                     <div class="alert-val-box">{val_20}</div>
                 </div>
                 <div class="alert-row-compact">
-                    <div class="alert-item-label"><span>30 días</span><span>🔵</span></div>
+                    <div class="alert-item-label">
+                        <span>30 días</span><span>🔵</span>
+                    </div>
                     <div class="alert-val-box">{val_30}</div>
                 </div>
             </div>
@@ -650,41 +698,69 @@ with tab_principal:
         )
 
         st.markdown('<div class="block-header" style="margin-top:2px;">Distribución de Planes Pendientes</div>', unsafe_allow_html=True)
-        st.plotly_chart(fig_bar, use_container_width=True, key="fig_bar_ai")
+        st.plotly_chart(fig_bar, use_container_width=True, key="fig_bar_pendientes")
 
-    # --- COLUMNA 3: DONAS ---
     with c4:
         st.markdown('<div class="block-header">Porcentaje de Acciones Pendientes</div>', unsafe_allow_html=True)
         
         st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#00B050;">🟢 En tiempo (Abiertos)</div>', unsafe_allow_html=True)
-        st.plotly_chart(fig_dona_abiertos, use_container_width=True, key="fig_dona_abiertos_ai")
+        st.plotly_chart(fig_dona_abiertos, use_container_width=True, key="fig_dona_abiertos_key")
         
         st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#FF5252;">🔴 Vencidos</div>', unsafe_allow_html=True)
-        st.plotly_chart(fig_dona_vencidos, use_container_width=True, key="fig_dona_vencidos_ai")
+        st.plotly_chart(fig_dona_vencidos, use_container_width=True, key="fig_dona_vencidos_key")
 
     st.markdown("---")
-    
-    # --- FILTRO DESPLEGABLE EN EL ENCABEZADO DE LA TABLA ---
-    col_t1, col_t2 = st.columns([2.5, 1.5])
-    with col_t1:
+
+    col_sub, col_filtro_rapido = st.columns([2, 1])
+    with col_sub:
         st.subheader("📋 Detalle General de Compromisos Pendientes")
-    with col_t2:
-        cat_opciones = ["(Mostrar Todos)"]
-        if col_plan_auditoria and col_plan_auditoria in df_activos.columns:
-            cat_opciones += sorted([str(x) for x in df_activos[col_plan_auditoria].dropna().unique() if str(x).strip()])
-        cat_sel = st.selectbox("⚡ Filtrar vista detallada por categoría:", options=cat_opciones, key="filtro_categoria_tabla_ai")
+    with col_filtro_rapido:
+        opciones_rapidas = ["(Mostrar Todos)", "Riesgo: Alto", "Riesgo: Medio", "Riesgo: Bajo", "Estado: Abiertos", "Estado: Vencidos", "Estado: Sin definir"]
+        if col_a5:
+            opciones_rapidas.append("Alerta: Próximos a 5 días")
+        if col_a10:
+            opciones_rapidas.append("Alerta: Próximos a 10 días")
+        if col_a20:
+            opciones_rapidas.append("Alerta: Próximos a 20 días")
+        if col_a30:
+            opciones_rapidas.append("Alerta: Próximos a 30 días")
 
-    df_tabla_ai = df_activos.copy()
-    if cat_sel != "(Mostrar Todos)" and col_plan_auditoria and col_plan_auditoria in df_tabla_ai.columns:
-        df_tabla_ai = df_tabla_ai[df_tabla_ai[col_plan_auditoria].astype(str) == cat_sel]
+        filtro_elegido = st.selectbox("⚡ Filtrar vista detallada por categoría:", options=opciones_rapidas, index=0)
 
-    df_tabla_ai.index = range(1, len(df_tabla_ai) + 1)
-    st.dataframe(df_tabla_ai, use_container_width=True)
+    df_tabla = df_activos.copy()
+    if filtro_elegido != "(Mostrar Todos)":
+        if "Riesgo: Alto" in filtro_elegido and col_riesgo:
+            df_tabla = df_tabla[df_tabla[col_riesgo].astype(str).str.contains("Alto", case=False, na=False)]
+        elif "Riesgo: Medio" in filtro_elegido and col_riesgo:
+            df_tabla = df_tabla[df_tabla[col_riesgo].astype(str).str.contains("Medio", case=False, na=False)]
+        elif "Riesgo: Bajo" in filtro_elegido and col_riesgo:
+            df_tabla = df_tabla[df_tabla[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False)]
+        elif "Estado: Abiertos" in filtro_elegido and col_estado:
+            df_tabla = df_tabla[df_tabla[col_estado].astype(str).str.contains("Abiert", case=False, na=False)]
+        elif "Estado: Vencidos" in filtro_elegido and col_estado:
+            df_tabla = df_tabla[df_tabla[col_estado].astype(str).str.contains("Vencid", case=False, na=False)]
+        elif "Estado: Sin definir" in filtro_elegido and col_estado:
+            df_tabla = df_tabla[df_tabla[col_estado].astype(str).str.contains("Sin", case=False, na=False)]
+        elif "Alerta: Próximos a 5 días" in filtro_elegido and col_a5:
+            s_val = df_tabla[col_a5].fillna("").astype(str).str.strip().str.lower()
+            df_tabla = df_tabla[~s_val.isin(["nan", "none", "", "0", "0.0", "false"])]
+        elif "Alerta: Próximos a 10 días" in filtro_elegido and col_a10:
+            s_val = df_tabla[col_a10].fillna("").astype(str).str.strip().str.lower()
+            df_tabla = df_tabla[~s_val.isin(["nan", "none", "", "0", "0.0", "false"])]
+        elif "Alerta: Próximos a 20 días" in filtro_elegido and col_a20:
+            s_val = df_tabla[col_a20].fillna("").astype(str).str.strip().str.lower()
+            df_tabla = df_tabla[~s_val.isin(["nan", "none", "", "0", "0.0", "false"])]
+        elif "Alerta: Próximos a 30 días" in filtro_elegido and col_a30:
+            s_val = df_tabla[col_a30].fillna("").astype(str).str.strip().str.lower()
+            df_tabla = df_tabla[~s_val.isin(["nan", "none", "", "0", "0.0", "false"])]
+
+    df_tabla.index = range(1, len(df_tabla) + 1)
+    st.dataframe(df_tabla, use_container_width=True)
 
     st.download_button(
         label="📥 Descargar Excel (.xlsx)",
-        data=generar_excel_formateado(df_tabla_ai),
-        file_name=f"Detalle_Auditoria_Interna_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+        data=generar_excel_formateado(df_tabla),
+        file_name=f"Detalle_Compromisos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=False,
     )
@@ -695,18 +771,36 @@ with tab_principal:
 # =========================================================
 with tab_metricas:
     st.header("📈 Resumen de Estado y Desempeño")
-    st.markdown("Vista general del avance de compromisos por área y plan de auditoría.")
+    st.markdown("Vista general del avance de compromisos por área y auditoría.")
 
-    comp_vencidos_pend = df_activos[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
+    comp_vencidos_pendientes = df_activos[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
+    comp_criticos_pendientes = df_activos[col_riesgo].astype(str).str.contains("Alto", case=False, na=False).sum() if col_riesgo else 0
 
-    m1, m2, m3 = st.columns(3)
+    m1, m2, m3, m4 = st.columns(4)
     m1.metric("Planes de Acción Pendientes", total_planes_pendientes)
-    m2.metric("🔴 Compromisos Vencidos", comp_vencidos_pend, delta=f"{(comp_vencidos_pend/total_planes_pendientes*100):.1f}% de pendientes" if total_planes_pendientes > 0 else "0%", delta_color="inverse")
-    m3.metric("🎯 Tasa Global de Cierre", f"{pct_abiertos}%", delta="Objetivo: 100%")
+    m2.metric("🔴 Compromisos Vencidos", comp_vencidos_pendientes, delta=f"{(comp_vencidos_pendientes/total_planes_pendientes*100):.1f}% de pendientes" if total_planes_pendientes > 0 else "0%", delta_color="inverse")
+    m3.metric("🔥 Hallazgos Riesgo Alto", comp_criticos_pendientes, delta=f"{(comp_criticos_pendientes/total_planes_pendientes*100):.1f}% de pendientes" if total_planes_pendientes > 0 else "0%", delta_color="inverse")
+    m4.metric("🎯 Tasa Global de Cierre", f"{pct_abiertos}%", delta="Objetivo: 85%")
 
     st.markdown("---")
-    st.subheader("👥 Distribución de Compromisos Pendientes por Área / Dependencia")
-    st.dataframe(df_activos, use_container_width=True)
+
+    st.subheader("👥 Distribución de Compromisos Pendientes por Área")
+    st.markdown('<div class="small-note"><b>ℹ️ Nota sobre Responsabilidad Compartida:</b> Los hallazgos con responsabilidad compartida se contabilizan en los compromisos de cada Área individualmente.</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_area}</div>', unsafe_allow_html=True)
+
+    if fig_area_horiz is not None:
+        st.plotly_chart(fig_area_horiz, use_container_width=True, key="fig_area_horiz_key")
+    else:
+        st.success("🎉 ¡Excelente! No hay compromisos pendientes en ninguna área.")
+
+    st.markdown("---")
+    st.subheader("🔬 Distribución de Compromisos Pendientes por Auditoría")
+    st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_aud}</div>', unsafe_allow_html=True)
+
+    if fig_aud_horiz is not None:
+        st.plotly_chart(fig_aud_horiz, use_container_width=True, key="fig_aud_horiz_key")
+    else:
+        st.info("No hay compromisos pendientes en las auditorías.")
 
 
 # =========================================================
@@ -714,7 +808,6 @@ with tab_metricas:
 # =========================================================
 with tab_alertas:
     st.header("🚨 Alertas Críticas y Edición Directa")
-    st.markdown("Gestión de casos graves (vencimientos mayores a 30 días) y registro de modificaciones.")
 
     df_alertas = df_filtrado.copy()
     hoy = pd.to_datetime(date.today())
@@ -733,139 +826,186 @@ with tab_alertas:
     prom_mora = int(df_criticos_30["Dias_Atraso"].mean()) if not df_criticos_30.empty else 0
     col_ac2.metric("⏱️ Promedio Días Vencidos", f"{prom_mora} días")
 
-    st.markdown("<br>", unsafe_allow_html=True)
-
     if not df_criticos_30.empty:
-        df_criticos_30.index = range(1, len(df_criticos_30) + 1)
+        df_criticos_30_vista = df_criticos_30.copy()
+        df_criticos_30_vista.index = range(1, len(df_criticos_30_vista) + 1)
         st.subheader("📋 Tabla de Compromisos Críticos")
-        st.dataframe(df_criticos_30, use_container_width=True)
+        st.dataframe(df_criticos_30_vista, use_container_width=True)
+
+        st.download_button(
+            label="📥 Descargar Acciones Críticas en Excel (.xlsx)",
+            data=generar_excel_formateado(df_criticos_30_vista),
+            file_name=f"Compromisos_Criticos_30Dias_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=False,
+            key="btn_descarga_criticos_30"
+        )
     else:
         st.success("🎉 ¡Excelente! No existen planes de acción con mora de 30 días o más.")
 
     st.markdown("---")
-    st.subheader("✏️ Establecer Compromisos Auditoría Interna")
-    st.caption("Filtra por Plan de Auditoría y Estado. Luego selecciona el Hallazgo a editar.")
+    st.subheader("✏️ Establecer Compromisos")
+
+    col_f_aud, col_f_auditor, col_f_plan, col_f_estado = st.columns(4)
 
     df_edicion_temp = df_raw.copy()
 
-    col_f_aud, col_f_estado = st.columns(2)
-
+    # 1. Filtro Auditoría
     opciones_auditoria = ["(Todas)"]
-    if col_plan_auditoria and col_plan_auditoria in df_raw.columns:
-        opciones_auditoria += sorted([str(x).strip() for x in df_raw[col_plan_auditoria].dropna().unique() if str(x).strip()])
+    if col_auditoria and col_auditoria in df_raw.columns:
+        opciones_auditoria += sorted([str(x) for x in df_raw[col_auditoria].dropna().unique() if str(x).strip()])
     with col_f_aud:
-        aud_seleccionada = st.selectbox("1. Filtrar por Plan de Auditoría:", options=opciones_auditoria, key="f_aud_edit_ai")
+        aud_seleccionada = st.selectbox("1. Filtrar por Auditoría:", options=opciones_auditoria, key="f_aud_edit")
 
     if aud_seleccionada != "(Todas)":
-        df_edicion_temp = df_edicion_temp[df_edicion_temp[col_plan_auditoria].astype(str).str.strip().str.lower() == aud_seleccionada.strip().lower()]
+        df_edicion_temp = df_edicion_temp[df_edicion_temp[col_auditoria].astype(str).str.strip().str.lower() == aud_seleccionada.strip().lower()]
 
+    # 2. Filtro Auditor
+    opciones_auditor = ["(Todos)"]
+    if col_auditor_resp and col_auditor_resp in df_edicion_temp.columns:
+        opciones_auditor += sorted([str(x) for x in df_edicion_temp[col_auditor_resp].dropna().unique() if str(x).strip()])
+    with col_f_auditor:
+        auditor_seleccionado = st.selectbox("2. Filtrar por Auditor:", options=opciones_auditor, key="f_auditor_edit")
+
+    if auditor_seleccionado != "(Todos)":
+        df_edicion_temp = df_edicion_temp[df_edicion_temp[col_auditor_resp].astype(str).str.strip().str.lower() == auditor_seleccionado.strip().lower()]
+
+    # 3. Filtro Plan / Vigencia
+    opciones_plan_v = ["(Todos)"]
+    if col_plan_filtro and col_plan_filtro in df_edicion_temp.columns:
+        opciones_plan_v += sorted([str(x) for x in df_edicion_temp[col_plan_filtro].dropna().unique() if str(x).strip()])
+    with col_f_plan:
+        plan_v_seleccionado = st.selectbox("3. Filtrar por Plan / Vigencia:", options=opciones_plan_v, key="f_plan_edit")
+
+    if plan_v_seleccionado != "(Todos)":
+        df_edicion_temp = df_edicion_temp[df_edicion_temp[col_plan_filtro].astype(str).str.strip().str.lower() == plan_v_seleccionado.strip().lower()]
+
+    # 4. Filtro Estado
     opciones_estado_f = ["(Todos)"]
     if col_estado and col_estado in df_edicion_temp.columns:
-        opciones_estado_f += sorted([str(x).strip() for x in df_edicion_temp[col_estado].dropna().unique() if str(x).strip()])
+        opciones_estado_f += sorted([str(x) for x in df_edicion_temp[col_estado].dropna().unique() if str(x).strip()])
     with col_f_estado:
-        estado_filtro_sel = st.selectbox("2. Filtrar por Estado:", options=opciones_estado_f, key="f_estado_edit_ai")
+        estado_filtro_sel = st.selectbox("4. Filtrar por Estado:", options=opciones_estado_f, key="f_estado_edit")
 
     if estado_filtro_sel != "(Todos)":
         df_edicion_temp = df_edicion_temp[df_edicion_temp[col_estado].astype(str).str.strip().str.lower() == estado_filtro_sel.strip().lower()]
 
-    opciones_hallazgos = df_edicion_temp[col_hallazgo].dropna().unique() if col_hallazgo and not df_edicion_temp.empty else []
+    # 5. Filtro Plan de Acción
+    opciones_pa_f = ["(Todos)"]
+    if col_plan_accion and col_plan_accion in df_edicion_temp.columns:
+        opciones_pa_f += sorted([str(x) for x in df_edicion_temp[col_plan_accion].dropna().unique() if str(x).strip()])
 
-    if len(opciones_hallazgos) == 0:
-        st.warning("⚠️ No se encontraron hallazgos con la combinación exacta de los filtros seleccionados.")
-    else:
-        id_sel = st.selectbox("3. Seleccione el Registro / Hallazgo a Modificar:", options=opciones_hallazgos, key="f_hallazgo_sel_ai")
+    pa_filtro_sel = st.selectbox("5. Filtrar por Plan de Acción:", options=opciones_pa_f, key="f_pa_edit")
 
-        mask = df_edicion_temp[col_hallazgo] == id_sel
-        registro = df_edicion_temp[mask].iloc[0] if mask.any() else None
-        idx_exacto_raw = df_edicion_temp[mask].index[0] if mask.any() else None
+    if pa_filtro_sel != "(Todos)":
+        df_edicion_temp = df_edicion_temp[df_edicion_temp[col_plan_accion].astype(str).str.strip().str.lower() == pa_filtro_sel.strip().lower()]
 
-        plan_actual_val = str(registro[col_plan_accion]) if registro is not None and col_plan_accion and pd.notnull(registro[col_plan_accion]) else ""
-        est_actual_val = str(registro[col_estado]) if registro is not None and col_estado and pd.notnull(registro[col_estado]) else "Abierta"
-        resp_actual_val = str(registro[col_responsable]) if registro is not None and col_responsable and pd.notnull(registro[col_responsable]) else ""
+    # 6. Registros Filtrados Finales
+    if col_hallazgo and not df_edicion_temp.empty:
+        dict_opciones = {}
+        for _, row in df_edicion_temp.dropna(subset=[col_hallazgo]).iterrows():
+            val_h = str(row[col_hallazgo])
+            val_n = str(row[col_nombre]).strip() if col_nombre and col_nombre in row and pd.notnull(row[col_nombre]) else ""
+            etiqueta = f"[{val_n}] - {val_h}" if val_n and val_n.lower() != "nan" else val_h
+            dict_opciones[etiqueta] = val_h
 
-        fecha_def_obj = date.today()
-        fecha_antigua_str = ""
-        if registro is not None and col_fecha_cierre and pd.notnull(registro[col_fecha_cierre]):
-            try:
-                fecha_def_obj = pd.to_datetime(registro[col_fecha_cierre]).date()
-                fecha_antigua_str = fecha_def_obj.strftime("%d/%m/%Y")
-            except Exception:
-                fecha_antigua_str = str(registro[col_fecha_cierre])
+        if len(dict_opciones) == 0:
+            st.warning("⚠️ No se encontraron hallazgos con la combinación exacta de los filtros seleccionados.")
+        else:
+            etiqueta_sel = st.selectbox("6. Seleccione el Registro / Hallazgo a Modificar:", options=list(dict_opciones.keys()), key="f_hallazgo_sel")
+            id_sel = dict_opciones[etiqueta_sel]
 
-        col_f1, col_f2 = st.columns(2)
-        with col_f1:
-            nueva_fecha_cierre = st.date_input("Nueva Fecha de Cierre / Terminación:", value=fecha_def_obj, key=f"in_fecha_{idx_exacto_raw}_ai")
-            lista_estados = ["Abierta", "Vencida", "Finalizada", "Sin plan de acción"]
-            if est_actual_val and est_actual_val not in lista_estados:
-                lista_estados.append(est_actual_val)
-            idx_est_def = lista_estados.index(est_actual_val) if est_actual_val in lista_estados else 0
-            nuevo_estado = st.selectbox("Estado del Compromiso:", options=lista_estados, index=idx_est_def, key=f"in_estado_{idx_exacto_raw}_ai")
-            nuevo_responsable = st.text_input("Responsable Asignado:", value=resp_actual_val, key=f"in_resp_{idx_exacto_raw}_ai")
+            mask = df_edicion_temp[col_hallazgo] == id_sel
+            registro = df_edicion_temp[mask].iloc[0] if mask.any() else None
+            idx_exacto_raw = df_edicion_temp[mask].index[0] if mask.any() else None
 
-        with col_f2:
-            nuevo_plan_accion = st.text_area("Plan de Acción / Compromiso:", value=plan_actual_val, height=100, key=f"in_plan_{idx_exacto_raw}_ai")
-            obs_usuario = st.text_area("Observaciones adicionales / Notas:", value="", height=80, key=f"in_obs_{idx_exacto_raw}_ai")
+            plan_actual_val = str(registro[col_plan_accion]) if registro is not None and col_plan_accion and pd.notnull(registro[col_plan_accion]) else ""
+            est_actual_val = str(registro[col_estado]) if registro is not None and col_estado and pd.notnull(registro[col_estado]) else "Abierta"
+            resp_actual_val = str(registro[col_responsable]) if registro is not None and col_responsable and pd.notnull(registro[col_responsable]) else ""
 
-        btn_guardar = st.button("➕ Registrar Cambio", type="primary", use_container_width=False, key=f"btn_save_{idx_exacto_raw}_ai")
+            fecha_def_obj = date.today()
+            fecha_antigua_str = ""
+            if registro is not None and col_fecha_cierre and pd.notnull(registro[col_fecha_cierre]):
+                try:
+                    fecha_def_obj = pd.to_datetime(registro[col_fecha_cierre]).date()
+                    fecha_antigua_str = fecha_def_obj.strftime("%d/%m/%Y")
+                except Exception:
+                    fecha_antigua_str = str(registro[col_fecha_cierre])
 
-        if btn_guardar:
-            fecha_hoy_str = datetime.now().strftime("%d/%m/%Y %H:%M")
-            nueva_fecha_str = nueva_fecha_cierre.strftime("%d/%m/%Y")
+            col_f1, col_f2 = st.columns(2)
+            with col_f1:
+                nueva_fecha_cierre = st.date_input("Nueva Fecha de Cierre / Compromiso:", value=fecha_def_obj, key=f"in_fecha_{idx_exacto_raw}")
+                lista_estados = ["Abierta", "Vencida", "Finalizada", "Sin plan de acción"]
+                if est_actual_val and est_actual_val not in lista_estados:
+                    lista_estados.append(est_actual_val)
+                idx_est_def = lista_estados.index(est_actual_val) if est_actual_val in lista_estados else 0
+                nuevo_estado = st.selectbox("Estado del Compromiso (Editable):", options=lista_estados, index=idx_est_def, key=f"in_estado_{idx_exacto_raw}")
+                nuevo_responsable = st.text_input("Responsable Asignado (Editable):", value=resp_actual_val, key=f"in_resp_{idx_exacto_raw}")
 
-            col_destino_obs = col_obs_audit if col_obs_audit else "Observación Auditoría"
-            obs_historico_previo = str(df_raw.at[idx_exacto_raw, col_destino_obs]) if pd.notnull(df_raw.at[idx_exacto_raw, col_destino_obs]) else ""
+            with col_f2:
+                nuevo_plan_accion = st.text_area("Plan de Acción / Compromiso (Editable):", value=plan_actual_val, height=100, key=f"in_plan_{idx_exacto_raw}")
+                obs_usuario = st.text_area("Observaciones adicionales / Notas:", value="", height=80, key=f"in_obs_{idx_exacto_raw}")
 
-            nuevo_registro_historial = f"--- Modificación el {fecha_hoy_str} ---\n"
-            if fecha_antigua_str != nueva_fecha_str:
-                nuevo_registro_historial += f"• Fecha Cierre Anterior: {fecha_antigua_str} ➡️ Nueva: {nueva_fecha_str}\n"
-            if est_actual_val != nuevo_estado:
-                nuevo_registro_historial += f"• Estado Anterior: {est_actual_val} ➡️ Nuevo: {nuevo_estado}\n"
-            if resp_actual_val != nuevo_responsable:
-                nuevo_registro_historial += f"• Responsable Anterior: {resp_actual_val} ➡️ Nuevo: {nuevo_responsable}\n"
-            if plan_actual_val != nuevo_plan_accion:
-                nuevo_registro_historial += f"• Plan Anterior: {plan_actual_val}\n• Plan Nuevo: {nuevo_plan_accion}\n"
-            if obs_usuario.strip():
-                nuevo_registro_historial += f"• Nota: {obs_usuario.strip()}\n"
+            btn_guardar = st.button("➕ Registrar Cambio", type="primary", use_container_width=False, key=f"btn_save_{idx_exacto_raw}")
 
-            if obs_historico_previo.strip() and obs_historico_previo.lower() != "nan":
-                obs_final = f"{nuevo_registro_historial}\n{obs_historico_previo}"
-            else:
-                obs_final = nuevo_registro_historial
+            if btn_guardar:
+                fecha_hoy_str = datetime.now().strftime("%d/%m/%Y %H:%M")
+                nueva_fecha_str = nueva_fecha_cierre.strftime("%d/%m/%Y")
 
-            fila_modificada = df_raw.loc[idx_exacto_raw].copy()
-            if col_fecha_cierre:
-                fila_modificada[col_fecha_cierre] = nueva_fecha_str
-            if col_estado:
-                fila_modificada[col_estado] = nuevo_estado
-            if col_responsable:
-                fila_modificada[col_responsable] = nuevo_responsable
-            if col_plan_accion:
-                fila_modificada[col_plan_accion] = nuevo_plan_accion
-            fila_modificada[col_destino_obs] = obs_final.strip()
+                col_destino_obs = col_obs_audit if col_obs_audit else "Observación Auditoría"
+                obs_historico_previo = str(df_raw.at[idx_exacto_raw, col_destino_obs]) if pd.notnull(df_raw.at[idx_exacto_raw, col_destino_obs]) else ""
 
-            if "lote_filas_modificadas_ai" not in st.session_state:
-                st.session_state["lote_filas_modificadas_ai"] = {}
+                nuevo_registro_historial = f"--- Modificación el {fecha_hoy_str} ---\n"
+                if fecha_antigua_str != nueva_fecha_str:
+                    nuevo_registro_historial += f"• Fecha Cierre Anterior: {fecha_antigua_str} ➡️ Nueva: {nueva_fecha_str}\n"
+                if est_actual_val != nuevo_estado:
+                    nuevo_registro_historial += f"• Estado Anterior: {est_actual_val} ➡️ Nuevo: {nuevo_estado}\n"
+                if resp_actual_val != nuevo_responsable:
+                    nuevo_registro_historial += f"• Responsable Anterior: {resp_actual_val} ➡️ Nuevo: {nuevo_responsable}\n"
+                if plan_actual_val != nuevo_plan_accion:
+                    nuevo_registro_historial += f"• Plan Anterior: {plan_actual_val}\n• Plan Nuevo: {nuevo_plan_accion}\n"
+                if obs_usuario.strip():
+                    nuevo_registro_historial += f"• Nota: {obs_usuario.strip()}\n"
 
-            st.session_state["lote_filas_modificadas_ai"][id_sel] = fila_modificada
+                if obs_historico_previo.strip() and obs_historico_previo.lower() != "nan":
+                    obs_final = f"{nuevo_registro_historial}\n{obs_historico_previo}"
+                else:
+                    obs_final = nuevo_registro_historial
 
-            st.toast("✅ ¡Registro agregado exitosamente!", icon="🎉")
+                fila_modificada = df_raw.loc[idx_exacto_raw].copy()
+                if col_fecha_cierre:
+                    fila_modificada[col_fecha_cierre] = nueva_fecha_str
+                if col_estado:
+                    fila_modificada[col_estado] = nuevo_estado
+                if col_responsable:
+                    fila_modificada[col_responsable] = nuevo_responsable
+                if col_plan_accion:
+                    fila_modificada[col_plan_accion] = nuevo_plan_accion
+                fila_modificada[col_destino_obs] = obs_final.strip()
+
+                if "lote_filas_modificadas" not in st.session_state:
+                    st.session_state["lote_filas_modificadas"] = {}
+
+                st.session_state["lote_filas_modificadas"][id_sel] = fila_modificada
+
+                st.toast("✅ ¡Registro agregado exitosamente!", icon="🎉")
 
     # ---------------------------------------------------------
-    # DESCARGA DE REGISTROS MODIFICADOS EN EL DÍA
+    # DESCARGA DE REGISTROS MODIFICADOS
     # ---------------------------------------------------------
     st.markdown("---")
     st.subheader("📥 Descargar Registros Modificados en el Día")
 
-    if "lote_filas_modificadas_ai" not in st.session_state:
-        st.session_state["lote_filas_modificadas_ai"] = {}
+    if "lote_filas_modificadas" not in st.session_state:
+        st.session_state["lote_filas_modificadas"] = {}
 
-    if "limpiar_key_ai" not in st.session_state:
-        st.session_state["limpiar_key_ai"] = 0
+    if "limpiar_key" not in st.session_state:
+        st.session_state["limpiar_key"] = 0
 
-    version_key = st.session_state["limpiar_key_ai"]
+    version_key = st.session_state["limpiar_key"]
 
-    cant_modificados = len(st.session_state["lote_filas_modificadas_ai"])
-    lista_acumulada = list(st.session_state["lote_filas_modificadas_ai"].values())
+    cant_modificados = len(st.session_state["lote_filas_modificadas"])
+    lista_acumulada = list(st.session_state["lote_filas_modificadas"].values())
 
     if cant_modificados > 0:
         st.markdown(f'<div style="background-color: #D4EDDA; color: #155724; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-weight: bold;">✅ ¡Tienes {cant_modificados} plan(es) modificado(s) listo(s) para exportar!</div>', unsafe_allow_html=True)
@@ -880,18 +1020,18 @@ with tab_alertas:
             st.download_button(
                 label=f"📥 Descargar Modificaciones ({cant_modificados})",
                 data=excel_lote,
-                file_name=f"Planes_Modificados_Auditoria_Interna_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                file_name=f"Planes_Modificados_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                key=f"btn_download_lote_ai_{version_key}",
+                key=f"btn_download_lote_{version_key}",
                 use_container_width=False,
             )
         else:
-            st.button("📥 Descargar Modificaciones (0)", disabled=True, use_container_width=False, key=f"btn_download_disabled_ai_{version_key}")
+            st.button("📥 Descargar Modificaciones (0)", disabled=True, use_container_width=False, key=f"btn_download_disabled_{version_key}")
 
     with col_btn_clear:
-        if st.button("🗑️ Limpiar Historial", type="secondary", use_container_width=False, disabled=(cant_modificados == 0), key=f"btn_clear_historial_ai_{version_key}"):
-            st.session_state["lote_filas_modificadas_ai"] = {}
-            st.session_state["limpiar_key_ai"] += 1
+        if st.button("🗑️ Limpiar Historial", type="secondary", use_container_width=False, disabled=(cant_modificados == 0), key=f"btn_clear_historial_{version_key}"):
+            st.session_state["lote_filas_modificadas"] = {}
+            st.session_state["limpiar_key"] += 1
             st.rerun()
 
 
@@ -899,8 +1039,7 @@ with tab_alertas:
 # PESTAÑA 4: FINALIZADAS
 # =========================================================
 with tab_finalizadas:
-    st.header("🎉 Acciones Finalizadas Auditoría Interna")
-    st.markdown("Consulta y métricas exclusivas de las acciones que han completado su ciclo.")
+    st.header("🎉 Acciones Finalizadas")
 
     col_m1, col_m2 = st.columns([0.24, 1])
 
@@ -922,9 +1061,9 @@ with tab_finalizadas:
             st.download_button(
                 label="📥 Descargar Solo Finalizadas (.xlsx)",
                 data=generar_excel_formateado(df_finalizadas_tabla),
-                file_name=f"Acciones_Finalizadas_Auditoria_Interna_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                file_name=f"Acciones_Finalizadas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                key="btn_download_finalizadas_only_ai",
+                key="btn_download_finalizadas_only",
                 use_container_width=False,
             )
         else:

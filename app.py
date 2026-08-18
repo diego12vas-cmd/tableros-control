@@ -334,4 +334,85 @@ def generar_excel_formateado(df):
         })
         
         cell_format = workbook.add_format({"valign": "vcenter", "border": 1})
-        date_cell_format =
+        date_cell_format = workbook.add_format({"valign": "vcenter", "align": "center", "border": 1})
+
+        for col_num, value in enumerate(df_export.columns.values):
+            worksheet.write(0, col_num, str(value), header_format)
+
+        for i, col in enumerate(df_export.columns):
+            es_col_fecha = col in cols_fecha
+            
+            if not df_export.empty:
+                longitudes = [len(str(val)) for val in df_export[col].dropna().tolist()]
+                max_len = max(longitudes) if longitudes else 0
+            else:
+                max_len = 0
+            
+            l_col = len(str(col))
+            adjusted_width = min(max(max_len + 4, l_col + 4, 14), 65)
+            
+            if es_col_fecha:
+                worksheet.set_column(i, i, adjusted_width, date_cell_format)
+            else:
+                worksheet.set_column(i, i, adjusted_width, cell_format)
+
+        worksheet.hide_gridlines(2)
+
+    return output.getvalue()
+
+
+# ---------------------------------------------------------
+# CARGA DE DATOS (TIEMPO REAL)
+# ---------------------------------------------------------
+def cargar_datos():
+    if not os.path.exists(EXCEL_PATH):
+        st.error(f"No se encontró el archivo Excel en la ruta: {EXCEL_PATH}")
+        return pd.DataFrame()
+
+    try:
+        xls = pd.ExcelFile(EXCEL_PATH)
+        sheet_b = (
+            "Base de datos"
+            if "Base de datos" in xls.sheet_names
+            else ("Base de Datos" if "Base de Datos" in xls.sheet_names else xls.sheet_names[0])
+        )
+        df_base = pd.read_excel(xls, sheet_name=sheet_b)
+        df_base.columns = [str(c).strip() for c in df_base.columns]
+
+        for col in df_base.columns:
+            if df_base[col].dtype == "object":
+                df_base[col] = df_base[col].astype(str).str.strip()
+
+        return df_base
+    except Exception as e:
+        st.error(f"Error al cargar el archivo Excel: {e}")
+        return pd.DataFrame()
+
+
+df_raw = cargar_datos()
+
+if df_raw.empty:
+    st.stop()
+
+
+# ---------------------------------------------------------
+# DETECCIÓN FLEXIBLE DE COLUMNAS
+# ---------------------------------------------------------
+def buscar_columna_por_patron(df, patrones):
+    for col in df.columns:
+        col_clean = (
+            str(col)
+            .lower()
+            .replace("á", "a")
+            .replace("é", "e")
+            .replace("í", "i")
+            .replace("ó", "o")
+            .replace("ú", "u")
+        )
+        for pat in patrones:
+            if pat in col_clean:
+                return col
+    return None
+
+
+col_estado = "Estado" if "Estado" in df_raw.columns else buscar_columna_por_patron(

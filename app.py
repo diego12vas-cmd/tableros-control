@@ -415,4 +415,353 @@ def buscar_columna_por_patron(df, patrones):
     return None
 
 
-col_estado = "Estado" if "Estado" in df_raw.columns else buscar_columna_por_patron(
+col_estado = "Estado" if "Estado" in df_raw.columns else buscar_columna_por_patron(df_raw, ["estado"])
+col_responsable = buscar_columna_por_patron(df_raw, ["area responsable", "responsable", "dependencia"])
+col_auditor_resp = buscar_columna_por_patron(df_raw, ["auditor responsable", "auditor"])
+col_plan_auditoria = buscar_columna_por_patron(df_raw, ["plan de auditoria", "plan auditoria"])
+col_auditoria_esp = buscar_columna_por_patron(df_raw, ["auditoria especifica", "auditoria"])
+col_riesgo = "Riesgo" if "Riesgo" in df_raw.columns else buscar_columna_por_patron(df_raw, ["riesgo"])
+
+col_hallazgo = "Titulo del Hallazgo" if "Titulo del Hallazgo" in df_raw.columns else buscar_columna_por_patron(df_raw, ["titulo del hallazgo", "hallazgo", "id"])
+col_plan_accion = "Plan de Acción" if "Plan de Acción" in df_raw.columns else buscar_columna_por_patron(df_raw, ["plan de accion", "accion", "compromiso"])
+col_fecha_cierre = "Fecha Estimada de Cierre" if "Fecha Estimada de Cierre" in df_raw.columns else buscar_columna_por_patron(df_raw, ["fecha estimada de cierre", "vencimiento", "cierre", "fecha cierre"])
+col_fecha_cierre_aud = "Fecha cierre x Auditoría" if "Fecha cierre x Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["fecha cierre x auditoria", "cierre x auditoria"])
+col_obs_audit = "Observación Auditoría" if "Observación Auditoría" in df_raw.columns else (buscar_columna_por_patron(df_raw, ["observacion auditoria", "observacion"]) or "Observación Auditoría")
+
+col_a5 = "Alerta 5" if "Alerta 5" in df_raw.columns else buscar_columna_por_patron(df_raw, ["alerta 5"])
+col_a10 = "Alerta 10" if "Alerta 10" in df_raw.columns else buscar_columna_por_patron(df_raw, ["alerta 10"])
+col_a20 = "Alerta 20" if "Alerta 20" in df_raw.columns else buscar_columna_por_patron(df_raw, ["alerta 20"])
+col_a30 = "Alerta 30" if "Alerta 30" in df_raw.columns else buscar_columna_por_patron(df_raw, ["alerta 30"])
+
+if col_estado:
+    df_raw[col_estado] = df_raw[col_estado].astype(str).str.capitalize()
+
+# ---------------------------------------------------------
+# BARRA LATERAL: FILTROS MULTISELECT (EXCLUYENDO FINALIZADAS)
+# ---------------------------------------------------------
+st.sidebar.title("🔍 Filtros del Tablero")
+
+df_filtrado = df_raw.copy()
+
+if col_estado:
+    estados_vals = sorted([
+        e for e in df_raw[col_estado].dropna().unique() 
+        if str(e).lower() not in ["nan", "none", ""] and not re.search(r"finaliz|cerrad", str(e), re.IGNORECASE)
+    ])
+    with st.sidebar.expander("📌 Estado del compromiso", expanded=True):
+        estado_sel = st.multiselect("Seleccione uno o varios Estados:", options=estados_vals, default=[], key="multi_estado_ai")
+    if estado_sel:
+        df_filtrado = df_filtrado[df_filtrado[col_estado].isin(estado_sel)]
+
+if col_responsable:
+    resp_vals = sorted(list(set([r for r in df_raw[col_responsable].dropna().unique() if str(r).lower() not in ["nan", "none", ""]])))
+    with st.sidebar.expander("👤 Responsables", expanded=False):
+        resp_sel = st.multiselect("Seleccione uno o varios Responsables:", options=resp_vals, default=[], key="multi_resp_ai")
+    if resp_sel:
+        df_filtrado = df_filtrado[df_filtrado[col_responsable].isin(resp_sel)]
+
+if col_auditor_resp:
+    aud_vals = sorted(list(set([a for a in df_raw[col_auditor_resp].dropna().unique() if str(a).lower() not in ["nan", "none", ""]])))
+    with st.sidebar.expander("👨‍💼 Auditor Responsable", expanded=False):
+        auditor_sel = st.multiselect("Seleccione uno o varios Auditores:", options=aud_vals, default=[], key="multi_auditor_ai")
+    if auditor_sel:
+        df_filtrado = df_filtrado[df_filtrado[col_auditor_resp].isin(auditor_sel)]
+
+if col_plan_auditoria:
+    plan_vals = sorted(list(set([p for p in df_raw[col_plan_auditoria].dropna().unique() if str(p).lower() not in ["nan", "none", ""]])))
+    with st.sidebar.expander("📁 Plan Auditoría / Vigencia", expanded=False):
+        plan_sel = st.multiselect("Seleccione uno o varios Planes:", options=plan_vals, default=[], key="multi_plan_ai")
+    if plan_sel:
+        df_filtrado = df_filtrado[df_filtrado[col_plan_auditoria].isin(plan_sel)]
+
+if col_auditoria_esp:
+    esp_vals = sorted(list(set([e for e in df_raw[col_auditoria_esp].dropna().unique() if str(e).lower() not in ["nan", "none", ""]])))
+    with st.sidebar.expander("🔬 Auditoría Específica", expanded=False):
+        esp_sel = st.multiselect("Seleccione una o varias Auditorías:", options=esp_vals, default=[], key="multi_esp_ai")
+    if esp_sel:
+        df_filtrado = df_filtrado[df_filtrado[col_auditoria_esp].isin(esp_sel)]
+
+
+# ---------------------------------------------------------
+# CÁLCULO DE MESES PARA PESTAÑA FINALIZADAS
+# ---------------------------------------------------------
+meses_es_map = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAY", 6: "JUN", 7: "JUL", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
+conteo_meses = {m: 0 for m in meses_es_map.values()}
+
+if col_fecha_cierre_aud and col_fecha_cierre_aud in df_filtrado.columns:
+    df_fin = df_filtrado[df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
+    if not df_fin.empty:
+        fechas_dt = pd.to_datetime(df_fin[col_fecha_cierre_aud], errors="coerce")
+        for f in fechas_dt.dropna():
+            m_num = f.month
+            if m_num in meses_es_map:
+                conteo_meses[meses_es_map[m_num]] += 1
+
+
+# ---------------------------------------------------------
+# MÉTRICAS Y FIGURAS EXCLUYENDO FINALIZADAS
+# ---------------------------------------------------------
+df_activos = df_filtrado[~df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else df_filtrado.copy()
+
+if col_hallazgo and col_hallazgo in df_activos.columns:
+    hallazgos_limpios = df_activos[col_hallazgo].dropna().astype(str).str.strip().str.upper()
+    hallazgos_validos = hallazgos_limpios[~hallazgos_limpios.isin(["", "NAN", "NONE", "0"])]
+    total_hallazgos_unicos_pendientes = hallazgos_validos.nunique()
+else:
+    total_hallazgos_unicos_pendientes = len(df_activos)
+
+r_alto = df_activos[col_riesgo].astype(str).str.contains("Alto", case=False, na=False).sum() if col_riesgo else 0
+r_medio = df_activos[col_riesgo].astype(str).str.contains("Medio", case=False, na=False).sum() if col_riesgo else 0
+r_bajo = df_activos[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False).sum() if col_riesgo else 0
+
+abiertos = df_filtrado[col_estado].astype(str).str.contains("Abiert", case=False, na=False).sum() if col_estado else 0
+vencidos = df_filtrado[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
+sin_definir = df_filtrado[col_estado].astype(str).str.contains("Sin definir", case=False, na=False).sum() if col_estado else 0
+
+total_planes_pendientes = abiertos + vencidos + sin_definir
+
+# --- BARRAS ---
+max_val = max([abiertos, vencidos, sin_definir])
+df_bar = pd.DataFrame({"Estado": ["Abiertos", "Vencidos", "Sin definir"], "Cantidad": [abiertos, vencidos, sin_definir]})
+
+fig_bar = px.bar(df_bar, x="Estado", y="Cantidad", text="Cantidad", color="Estado", color_discrete_map={"Abiertos": "#58C57A", "Vencidos": "#FF5252", "Sin definir": "#FFB366"})
+fig_bar.update_traces(textposition="outside", textfont=dict(size=12, color="var(--text-color)", family="Arial"), cliponaxis=False)
+fig_bar.update_layout(
+    autosize=True,
+    showlegend=False, 
+    height=180, 
+    margin=dict(t=25, b=5, l=5, r=5), 
+    xaxis_title=None, 
+    yaxis_title=None, 
+    xaxis=dict(tickfont=dict(size=11, color="var(--text-color)", family="Arial")), 
+    yaxis=dict(showticklabels=False, range=[0, max_val * 1.25 if max_val > 0 else 10]), 
+    paper_bgcolor="rgba(0,0,0,0)", 
+    plot_bgcolor="rgba(0,0,0,0)"
+)
+
+# --- LAS 2 DONAS ---
+# 1. En Tiempo (Abiertos)
+pct_abiertos = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
+colors_abiertos = ["#00B050" if i < (pct_abiertos / 5) else "#E0E0E0" for i in range(20)]
+
+fig_dona_abiertos = go.Figure(data=[
+    go.Pie(values=[1]*20, hole=0.68, marker_colors=colors_abiertos, marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none")
+])
+fig_dona_abiertos.add_annotation(text=f"<b>{pct_abiertos}%</b>", x=0.5, y=0.5, font=dict(size=28, color="var(--text-color)"), showarrow=False)
+fig_dona_abiertos.update_layout(autosize=True, showlegend=False, height=145, margin=dict(t=2, b=2, l=2, r=2), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+
+# 2. Vencidos
+pct_vencidos = round((vencidos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
+colors_vencidos = ["#FF5252" if i < (pct_vencidos / 5) else "#E0E0E0" for i in range(20)]
+
+fig_dona_vencidos = go.Figure(data=[
+    go.Pie(values=[1]*20, hole=0.68, marker_colors=colors_vencidos, marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none")
+])
+fig_dona_vencidos.add_annotation(text=f"<b>{pct_vencidos}%</b>", x=0.5, y=0.5, font=dict(size=28, color="var(--text-color)"), showarrow=False)
+fig_dona_vencidos.update_layout(autosize=True, showlegend=False, height=145, margin=dict(t=2, b=2, l=2, r=2), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+
+
+# ---------------------------------------------------------
+# DEFINICIÓN DE PESTAÑAS
+# ---------------------------------------------------------
+tab_principal, tab_metricas, tab_alertas, tab_finalizadas = st.tabs([
+    "📊 Tablero Principal",
+    "📈 Métricas de Cumplimiento",
+    "🚨 Alertas y Edición Directa",
+    "🎉 Finalizadas",
+])
+
+# =========================================================
+# PESTAÑA 1: TABLERO PRINCIPAL
+# =========================================================
+with tab_principal:
+    c2, c3, c4 = st.columns([2.5, 2.5, 2.0])
+
+    # --- COLUMNA 1: HALLAZGOS Y PLANES ---
+    with c2:
+        st.markdown('<div class="block-header">Total Hallazgos Pendientes</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="card-box" style="background-color:#4B92DB; font-size:1.3rem; height:34px; line-height:26px;">{total_hallazgos_unicos_pendientes}</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="block-header" style="font-size:0.75rem; margin-top:2px;">Detalle por Nivel de Riesgo</div>', unsafe_allow_html=True)
+        r1, r2, r3 = st.columns(3)
+        with r1:
+            st.markdown('<div class="block-header" style="font-size:0.65rem; text-transform:none;">Riesgo Alto</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="card-box" style="background-color:#FFBF00;">{r_alto}</div>', unsafe_allow_html=True)
+        with r2:
+            st.markdown('<div class="block-header" style="font-size:0.65rem; text-transform:none;">Riesgo Medio</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="card-box" style="background-color:#FFFF00;">{r_medio}</div>', unsafe_allow_html=True)
+        with r3:
+            st.markdown('<div class="block-header" style="font-size:0.65rem; text-transform:none;">Riesgo Bajo</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="card-box" style="background-color:#00B050;">{r_bajo}</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="block-header" style="font-size:0.78rem;">Planes de Acción Pendientes</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="card-box" style="background-color:#00B050; height:36px; line-height:26px; font-size:1.4rem; margin-bottom:8px;">{total_planes_pendientes}</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="block-header" style="font-size:0.78rem;">Detalle de Estados Pendientes</div>', unsafe_allow_html=True)
+        e1, e2, e3 = st.columns(3)
+        with e1:
+            st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Abiertos</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="card-box" style="background-color:#58C57A; font-size:1.1rem; padding:6px;">{abiertos}</div>', unsafe_allow_html=True)
+        with e2:
+            st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Vencidos</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="card-box" style="background-color:#FF5252; color:#FFFFFF; font-size:1.1rem; padding:6px;">{vencidos}</div>', unsafe_allow_html=True)
+        with e3:
+            st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Sin definir</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="card-box" style="background-color:#FFB366; font-size:1.1rem; padding:6px;">{sin_definir}</div>', unsafe_allow_html=True)
+
+    # --- COLUMNA 2: ALERTAS Y BARRAS ---
+    with c3:
+        st.markdown('<div class="block-header">Acciones próximas a vencer</div>', unsafe_allow_html=True)
+
+        def obtener_valor_alerta(col_name):
+            if col_name and col_name in df_filtrado.columns:
+                s = pd.to_numeric(df_filtrado[col_name], errors="coerce").fillna(0)
+                cant = (s > 0).sum()
+                return str(cant) if cant > 0 else "—"
+            return "—"
+
+        val_5 = obtener_valor_alerta(col_a5)
+        val_10 = obtener_valor_alerta(col_a10)
+        val_20 = obtener_valor_alerta(col_a20)
+        val_30 = obtener_valor_alerta(col_a30)
+
+        st.markdown(
+            f"""
+            <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+                <div class="alert-row-compact">
+                    <div class="alert-item-label"><span>5 días</span><span>🔴</span></div>
+                    <div class="alert-val-box">{val_5}</div>
+                </div>
+                <div class="alert-row-compact">
+                    <div class="alert-item-label"><span>10 días</span><span>🟡</span></div>
+                    <div class="alert-val-box">{val_10}</div>
+                </div>
+                <div class="alert-row-compact">
+                    <div class="alert-item-label"><span>20 días</span><span>🟢</span></div>
+                    <div class="alert-val-box">{val_20}</div>
+                </div>
+                <div class="alert-row-compact">
+                    <div class="alert-item-label"><span>30 días</span><span>🔵</span></div>
+                    <div class="alert-val-box">{val_30}</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        st.markdown('<div class="block-header" style="margin-top:2px;">Distribución de Planes Pendientes</div>', unsafe_allow_html=True)
+        st.plotly_chart(fig_bar, use_container_width=True, key="fig_bar_ai")
+
+    # --- COLUMNA 3: DONAS ---
+    with c4:
+        st.markdown('<div class="block-header">Porcentaje de Acciones Pendientes</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#00B050;">🟢 En tiempo (Abiertos)</div>', unsafe_allow_html=True)
+        st.plotly_chart(fig_dona_abiertos, use_container_width=True, key="fig_dona_abiertos_ai")
+        
+        st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#FF5252;">🔴 Vencidos</div>', unsafe_allow_html=True)
+        st.plotly_chart(fig_dona_vencidos, use_container_width=True, key="fig_dona_vencidos_ai")
+
+    st.markdown("---")
+    st.subheader("📋 Detalle General de Compromisos Pendientes")
+
+    df_tabla_ai = df_activos.copy()
+    df_tabla_ai.index = range(1, len(df_tabla_ai) + 1)
+    st.dataframe(df_tabla_ai, use_container_width=True)
+
+    st.download_button(
+        label="📥 Descargar Excel (.xlsx)",
+        data=generar_excel_formateado(df_tabla_ai),
+        file_name=f"Detalle_Auditoria_Interna_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=False,
+    )
+
+
+# =========================================================
+# PESTAÑA 2: MÉTRICAS DE CUMPLIMIENTO
+# =========================================================
+with tab_metricas:
+    st.header("📈 Resumen de Estado y Desempeño")
+    st.markdown("Vista general del avance de compromisos por área y plan de auditoría.")
+
+    comp_vencidos_pend = df_activos[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
+
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Planes de Acción Pendientes", total_planes_pendientes)
+    m2.metric("🔴 Compromisos Vencidos", comp_vencidos_pend, delta=f"{(comp_vencidos_pend/total_planes_pendientes*100):.1f}% de pendientes" if total_planes_pendientes > 0 else "0%", delta_color="inverse")
+    m3.metric("🎯 Tasa Global de Cierre", f"{pct_abiertos}%", delta="Objetivo: 100%")
+
+    st.markdown("---")
+    st.subheader("👥 Distribución de Compromisos Pendientes por Área / Dependencia")
+    st.dataframe(df_activos, use_container_width=True)
+
+
+# =========================================================
+# PESTAÑA 3: ALERTAS CRÍTICAS Y EDICIÓN EN MEMORIA
+# =========================================================
+with tab_alertas:
+    st.header("🚨 Alertas Críticas y Edición Directa")
+    st.markdown("Gestión de casos graves (vencimientos mayores a 30 días) y registro de modificaciones.")
+
+    df_alertas = df_filtrado.copy()
+    hoy = pd.to_datetime(date.today())
+
+    if col_fecha_cierre and col_fecha_cierre in df_alertas.columns:
+        df_alertas["Fecha_DT"] = pd.to_datetime(df_alertas[col_fecha_cierre], errors="coerce")
+        df_alertas["Dias_Atraso"] = (hoy - df_alertas["Fecha_DT"]).dt.days
+        df_alertas["Dias_Atraso"] = df_alertas["Dias_Atraso"].apply(lambda x: x if x > 0 else 0)
+    else:
+        df_alertas["Dias_Atraso"] = 0
+
+    df_criticos_30 = df_alertas[(~df_alertas[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)) & (df_alertas["Dias_Atraso"] >= 30)].sort_values(by="Dias_Atraso", ascending=False)
+
+    col_ac1, col_ac2 = st.columns(2)
+    col_ac1.metric("🔴 Planes Críticos (≥ 30 Días Mora)", len(df_criticos_30))
+    prom_mora = int(df_criticos_30["Dias_Atraso"].mean()) if not df_criticos_30.empty else 0
+    col_ac2.metric("⏱️ Promedio Días Vencidos", f"{prom_mora} días")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    if not df_criticos_30.empty:
+        df_criticos_30.index = range(1, len(df_criticos_30) + 1)
+        st.subheader("📋 Tabla de Compromisos Críticos")
+        st.dataframe(df_criticos_30, use_container_width=True)
+    else:
+        st.success("🎉 ¡Excelente! No existen planes de acción con mora de 30 días o más.")
+
+
+# =========================================================
+# PESTAÑA 4: FINALIZADAS
+# =========================================================
+with tab_finalizadas:
+    st.header("🎉 Acciones Finalizadas Auditoría Interna")
+    st.markdown("Consulta y métricas exclusivas de las acciones que han completado su ciclo.")
+
+    col_m1, col_m2 = st.columns([0.24, 1])
+
+    with col_m1:
+        st.markdown('<div class="titulo-seccion-finaliz">📅 Cierre Mensual 2026</div>', unsafe_allow_html=True)
+        st.markdown('<div class="month-container">', unsafe_allow_html=True)
+        for m, cant in conteo_meses.items():
+            st.markdown(f'<div class="month-row"><span>{m}</span><div class="month-box">{cant}</div></div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_m2:
+        st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Tabla de Planes Finalizados</div>', unsafe_allow_html=True)
+        df_finalizadas_tabla = df_filtrado[df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
+
+        if not df_finalizadas_tabla.empty:
+            df_finalizadas_tabla.index = range(1, len(df_finalizadas_tabla) + 1)
+            st.dataframe(df_finalizadas_tabla, use_container_width=True)
+
+            st.download_button(
+                label="📥 Descargar Solo Finalizadas (.xlsx)",
+                data=generar_excel_formateado(df_finalizadas_tabla),
+                file_name=f"Acciones_Finalizadas_Auditoria_Interna_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="btn_download_finalizadas_only_ai",
+                use_container_width=False,
+            )
+        else:
+            st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")

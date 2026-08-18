@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA Y ESTILOS CSS COMPACTOS
+# CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="Tablero de Control - Planes de Acción Auditoría Interna",
@@ -16,9 +16,53 @@ st.set_page_config(
     layout="wide",
 )
 
+# ---------------------------------------------------------
+# SISTEMA DE AUTENTICACIÓN SEGURA (STREAMLIT SECRETS)
+# ---------------------------------------------------------
+def validar_login():
+    if "autenticado" not in st.session_state:
+        st.session_state["autenticado"] = False
+
+    if not st.session_state["autenticado"]:
+        st.markdown("## 🔒 Acceso Restringido")
+        st.caption("Por favor, ingresa tus credenciales para acceder al tablero de Auditoría Interna.")
+        
+        c1, _ = st.columns([1.5, 2])
+        with c1:
+            usuario = st.text_input("Usuario", key="user_input_ai")
+            password = st.text_input("Contraseña", type="password", key="pass_input_ai")
+            
+            if st.button("Iniciar Sesión", type="primary", use_container_width=True):
+                usuarios_validos = st.secrets.get("passwords", {})
+                
+                if usuario in usuarios_validos and str(usuarios_validos[usuario]) == password:
+                    st.session_state["autenticado"] = True
+                    st.rerun()
+                else:
+                    st.error("❌ Usuario o contraseña incorrectos.")
+        return False
+    return True
+
+# Bloquea el resto del tablero si no se ha iniciado sesión
+if not validar_login():
+    st.stop()
+
+# ---------------------------------------------------------
+# ESTILOS CSS COMPACTOS & RESPONSIVOS
+# ---------------------------------------------------------
 st.markdown(
     """
     <style>
+        /* Ocultar menús nativos y marcas de Streamlit para usuarios finales */
+        #MainMenu {visibility: hidden;}
+        header {visibility: hidden;}
+        footer {visibility: hidden;}
+        .stAppDeployButton {display:none !important;}
+        [data-testid="stHeader"] {display:none !important;}
+        [data-testid="stToolbar"] {display:none !important;}
+        [data-testid="stDecoration"] {display:none !important;}
+        [data-testid="stStatusWidget"] {display:none !important;}
+
         /* 1. Reducir la altura del header transparente de Streamlit */
         header[data-testid="stHeader"] {
             height: 2.5rem !important;
@@ -27,7 +71,7 @@ st.markdown(
 
         /* 2. Dar espacio superior suficiente para el título principal */
         .block-container {
-            padding-top: 3.5rem !important;
+            padding-top: 2rem !important;
             padding-bottom: 1rem !important;
         }
 
@@ -197,6 +241,30 @@ st.markdown(
         div[data-testid="stDownloadButton"] button:hover {
             background-color: #218838 !important;
             color: #FFFFFF !important;
+        }
+
+        /* --- AJUSTES DE DISEÑO RESPONSIVO PARA MÓVILES (CELULARES) --- */
+        @media (max-width: 768px) {
+            .block-container {
+                padding-left: 0.8rem !important;
+                padding-right: 0.8rem !important;
+                padding-top: 1.5rem !important;
+            }
+            .titulo-tablero {
+                font-size: 1.1rem !important;
+                text-align: center;
+            }
+            .card-box {
+                font-size: 0.95rem !important;
+                padding: 6px 2px !important;
+            }
+            .block-header {
+                font-size: 0.78rem !important;
+            }
+            div[data-testid="stDataFrame"] {
+                width: 100% !important;
+                overflow-x: auto !important;
+            }
         }
     </style>
 """,
@@ -424,9 +492,13 @@ if not df_calc.empty:
 
 
 # ---------------------------------------------------------
-# FILTROS LATERALES
+# FILTROS LATERALES & CERRAR SESIÓN
 # ---------------------------------------------------------
 st.sidebar.title("🔍 Filtros del Tablero")
+
+if st.sidebar.button("🚪 Cerrar Sesión"):
+    st.session_state["autenticado"] = False
+    st.rerun()
 
 df_filtrado = df_raw.copy()
 

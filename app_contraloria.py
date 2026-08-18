@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA Y ESTILOS CSS COMPACTOS
+# CONFIGURACIÓN DE PÁGINA Y ESTILOS CSS COMPACTOS Y RESPONSIVOS
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="Tablero de Control - Planes de Acción Contraloría de Bogotá",
@@ -19,19 +19,23 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-        /* 1. Reducir la altura del header transparente de Streamlit */
-        header[data-testid="stHeader"] {
-            height: 2.5rem !important;
-            background: transparent !important;
-        }
+        /* Ocultar elementos de administración y menús de Streamlit para usuarios finales */
+        #MainMenu {visibility: hidden;}
+        header {visibility: hidden;}
+        footer {visibility: hidden;}
+        .stAppDeployButton {display:none !important;}
+        [data-testid="stHeader"] {display:none !important;}
+        [data-testid="stToolbar"] {display:none !important;}
+        [data-testid="stDecoration"] {display:none !important;}
+        [data-testid="stStatusWidget"] {display:none !important;}
 
-        /* 2. Dar espacio superior suficiente para el título principal */
+        /* 1. Ajustes del contenedor principal */
         .block-container {
-            padding-top: 3.5rem !important;
+            padding-top: 2rem !important;
             padding-bottom: 1rem !important;
         }
 
-        /* 3. Estilo del título principal (idéntico al de Auditoría Interna) */
+        /* 2. Estilo del título principal */
         .titulo-tablero {
             font-size: 1.35rem !important;
             font-weight: 700 !important;
@@ -43,7 +47,7 @@ st.markdown(
         }
 
         [data-testid="stSidebar"] {
-            min-width: 360px !important;
+            min-width: 320px !important;
             max-width: 360px !important;
         }
         div[data-baseweb="popover"] {
@@ -198,12 +202,37 @@ st.markdown(
             background-color: #218838 !important;
             color: #FFFFFF !important;
         }
+
+        /* --- AJUSTES ESPECIALES RESPONSIVOS (DISPOSITIVOS MÓVILES / CELULARES) --- */
+        @media (max-width: 768px) {
+            .block-container {
+                padding-left: 0.8rem !important;
+                padding-right: 0.8rem !important;
+                padding-top: 1.2rem !important;
+            }
+            .titulo-tablero {
+                font-size: 1.1rem !important;
+                text-align: center;
+            }
+            .card-box {
+                font-size: 1rem !important;
+                padding: 6px 4px !important;
+            }
+            div[data-testid="stDataFrame"] {
+                width: 100% !important;
+                overflow-x: auto !important;
+            }
+            .total-acciones-box {
+                width: 100% !important;
+                text-align: center;
+            }
+        }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# TÍTULO PRINCIPAL CONTRALORÍA (IGUAL AL FORMATO DE INTERNAS)
+# TÍTULO PRINCIPAL CONTRALORÍA
 st.markdown('<div class="titulo-tablero">📊 Tablero de Control - Planes de Acción Contraloría de Bogotá</div>', unsafe_allow_html=True)
 
 
@@ -533,13 +562,14 @@ vencidos = df_filtrado[col_estado].astype(str).str.contains("Vencid", case=False
 
 total_planes_pendientes = abiertos + vencidos
 
-# --- BARRAS SOLO PENDIENTES (SIN "SIN DEFINIR") ---
+# --- BARRAS SOLO PENDIENTES ---
 max_val = max([abiertos, vencidos])
 df_bar = pd.DataFrame({"Estado": ["Abiertos", "Vencidos"], "Cantidad": [abiertos, vencidos]})
 
 fig_bar = px.bar(df_bar, x="Estado", y="Cantidad", text="Cantidad", color="Estado", color_discrete_map={"Abiertos": "#58C57A", "Vencidos": "#FF5252"})
 fig_bar.update_traces(textposition="outside", textfont=dict(size=12, color="var(--text-color)", family="Arial"), cliponaxis=False)
 fig_bar.update_layout(
+    autosize=True,
     showlegend=False, 
     height=180, 
     margin=dict(t=25, b=5, l=5, r=5), 
@@ -560,7 +590,7 @@ fig_dona_abiertos = go.Figure(data=[
     go.Pie(values=[1]*20, hole=0.68, marker_colors=colors_abiertos, marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none")
 ])
 fig_dona_abiertos.add_annotation(text=f"<b>{pct_abiertos}%</b>", x=0.5, y=0.5, font=dict(size=28, color="var(--text-color)"), showarrow=False)
-fig_dona_abiertos.update_layout(showlegend=False, height=145, margin=dict(t=2, b=2, l=2, r=2), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+fig_dona_abiertos.update_layout(autosize=True, showlegend=False, height=145, margin=dict(t=2, b=2, l=2, r=2), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
 # 2. Vencidos
 pct_vencidos = round((vencidos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
@@ -570,7 +600,7 @@ fig_dona_vencidos = go.Figure(data=[
     go.Pie(values=[1]*20, hole=0.68, marker_colors=colors_vencidos, marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none")
 ])
 fig_dona_vencidos.add_annotation(text=f"<b>{pct_vencidos}%</b>", x=0.5, y=0.5, font=dict(size=28, color="var(--text-color)"), showarrow=False)
-fig_dona_vencidos.update_layout(showlegend=False, height=145, margin=dict(t=2, b=2, l=2, r=2), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+fig_dona_vencidos.update_layout(autosize=True, showlegend=False, height=145, margin=dict(t=2, b=2, l=2, r=2), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
 
 # --- CÁLCULO ÁREAS ---
@@ -639,12 +669,13 @@ if col_responsable in df_perf.columns:
             )
         max_pend_area = df_totales_area["Total_Pendientes"].max() if not df_totales_area.empty else 10
         fig_area_horiz.update_layout(
+            autosize=True,
             height=calc_height_areas,
             coloraxis_showscale=False,
             yaxis=dict(type="category", autorange="reversed", title=None, automargin=True, tickfont=dict(color="var(--text-color)")),
             xaxis=dict(showticklabels=False, title=None, visible=False, showgrid=False, zeroline=False, range=[0, max_pend_area * 1.25]),
             legend_title_text="Estado",
-            margin=dict(l=350, r=60, t=20, b=20),
+            margin=dict(l=200, r=40, t=20, b=20),
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)"
         )
@@ -710,12 +741,13 @@ if col_auditoria in df_perf.columns:
             )
         max_pend_aud = df_totales_aud["Total_Pendientes"].max() if not df_totales_aud.empty else 10
         fig_aud_horiz.update_layout(
+            autosize=True,
             height=calc_height_auds,
             coloraxis_showscale=False,
             yaxis=dict(type="category", autorange="reversed", title=None, automargin=True, tickfont=dict(color="var(--text-color)")),
             xaxis=dict(showticklabels=False, title=None, visible=False, showgrid=False, zeroline=False, range=[0, max_pend_aud * 1.25]),
             legend_title_text="Estado",
-            margin=dict(l=180, r=60, t=20, b=20),
+            margin=dict(l=140, r=40, t=20, b=20),
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)"
         )
@@ -732,7 +764,7 @@ tab_principal, tab_metricas, tab_alertas, tab_finalizadas = st.tabs([
 ])
 
 # =========================================================
-# PESTAÑA 1: TABLERO PRINCIPAL (ESTRUCTURA AJUSTADA SIN "SIN DEFINIR")
+# PESTAÑA 1: TABLERO PRINCIPAL
 # =========================================================
 with tab_principal:
     c2, c3, c4 = st.columns([2.5, 2.5, 2.0])

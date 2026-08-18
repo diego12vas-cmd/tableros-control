@@ -470,7 +470,7 @@ if col_auditor_resp:
 if col_plan_auditoria:
     plan_vals = sorted(list(set([p for p in df_raw[col_plan_auditoria].dropna().unique() if str(p).lower() not in ["nan", "none", ""]])))
     with st.sidebar.expander("📁 Plan Auditoría / Vigencia", expanded=False):
-        plan_sel = st.multiselect("Seleccione uno o varios Planes:", options=plan_vals, default=[], key="multi_plan_ai")
+        plan_sel = st.multiselect("Seleccione uno o varios Planes:", options=plan_sel, default=[], key="multi_plan_ai") if 'plan_sel' in locals() and plan_sel else st.multiselect("Seleccione uno o varios Planes:", options=plan_vals, default=[], key="multi_plan_ai")
     if plan_sel:
         df_filtrado = df_filtrado[df_filtrado[col_plan_auditoria].isin(plan_sel)]
 
@@ -663,9 +663,21 @@ with tab_principal:
         st.plotly_chart(fig_dona_vencidos, use_container_width=True, key="fig_dona_vencidos_ai")
 
     st.markdown("---")
-    st.subheader("📋 Detalle General de Compromisos Pendientes")
+    
+    # --- FILTRO DESPLEGABLE EN EL ENCABEZADO DE LA TABLA ---
+    col_t1, col_t2 = st.columns([2.5, 1.5])
+    with col_t1:
+        st.subheader("📋 Detalle General de Compromisos Pendientes")
+    with col_t2:
+        cat_opciones = ["(Mostrar Todos)"]
+        if col_plan_auditoria and col_plan_auditoria in df_activos.columns:
+            cat_opciones += sorted([str(x) for x in df_activos[col_plan_auditoria].dropna().unique() if str(x).strip()])
+        cat_sel = st.selectbox("⚡ Filtrar vista detallada por categoría:", options=cat_opciones, key="filtro_categoria_tabla_ai")
 
     df_tabla_ai = df_activos.copy()
+    if cat_sel != "(Mostrar Todos)" and col_plan_auditoria and col_plan_auditoria in df_tabla_ai.columns:
+        df_tabla_ai = df_tabla_ai[df_tabla_ai[col_plan_auditoria].astype(str) == cat_sel]
+
     df_tabla_ai.index = range(1, len(df_tabla_ai) + 1)
     st.dataframe(df_tabla_ai, use_container_width=True)
 
@@ -729,6 +741,158 @@ with tab_alertas:
         st.dataframe(df_criticos_30, use_container_width=True)
     else:
         st.success("🎉 ¡Excelente! No existen planes de acción con mora de 30 días o más.")
+
+    st.markdown("---")
+    st.subheader("✏️ Establecer Compromisos Auditoría Interna")
+    st.caption("Filtra por Plan de Auditoría y Estado. Luego selecciona el Hallazgo a editar.")
+
+    df_edicion_temp = df_raw.copy()
+
+    col_f_aud, col_f_estado = st.columns(2)
+
+    opciones_auditoria = ["(Todas)"]
+    if col_plan_auditoria and col_plan_auditoria in df_raw.columns:
+        opciones_auditoria += sorted([str(x).strip() for x in df_raw[col_plan_auditoria].dropna().unique() if str(x).strip()])
+    with col_f_aud:
+        aud_seleccionada = st.selectbox("1. Filtrar por Plan de Auditoría:", options=opciones_auditoria, key="f_aud_edit_ai")
+
+    if aud_seleccionada != "(Todas)":
+        df_edicion_temp = df_edicion_temp[df_edicion_temp[col_plan_auditoria].astype(str).str.strip().str.lower() == aud_seleccionada.strip().lower()]
+
+    opciones_estado_f = ["(Todos)"]
+    if col_estado and col_estado in df_edicion_temp.columns:
+        opciones_estado_f += sorted([str(x).strip() for x in df_edicion_temp[col_estado].dropna().unique() if str(x).strip()])
+    with col_f_estado:
+        estado_filtro_sel = st.selectbox("2. Filtrar por Estado:", options=opciones_estado_f, key="f_estado_edit_ai")
+
+    if estado_filtro_sel != "(Todos)":
+        df_edicion_temp = df_edicion_temp[df_edicion_temp[col_estado].astype(str).str.strip().str.lower() == estado_filtro_sel.strip().lower()]
+
+    opciones_hallazgos = df_edicion_temp[col_hallazgo].dropna().unique() if col_hallazgo and not df_edicion_temp.empty else []
+
+    if len(opciones_hallazgos) == 0:
+        st.warning("⚠️ No se encontraron hallazgos con la combinación exacta de los filtros seleccionados.")
+    else:
+        id_sel = st.selectbox("3. Seleccione el Registro / Hallazgo a Modificar:", options=opciones_hallazgos, key="f_hallazgo_sel_ai")
+
+        mask = df_edicion_temp[col_hallazgo] == id_sel
+        registro = df_edicion_temp[mask].iloc[0] if mask.any() else None
+        idx_exacto_raw = df_edicion_temp[mask].index[0] if mask.any() else None
+
+        plan_actual_val = str(registro[col_plan_accion]) if registro is not None and col_plan_accion and pd.notnull(registro[col_plan_accion]) else ""
+        est_actual_val = str(registro[col_estado]) if registro is not None and col_estado and pd.notnull(registro[col_estado]) else "Abierta"
+        resp_actual_val = str(registro[col_responsable]) if registro is not None and col_responsable and pd.notnull(registro[col_responsable]) else ""
+
+        fecha_def_obj = date.today()
+        fecha_antigua_str = ""
+        if registro is not None and col_fecha_cierre and pd.notnull(registro[col_fecha_cierre]):
+            try:
+                fecha_def_obj = pd.to_datetime(registro[col_fecha_cierre]).date()
+                fecha_antigua_str = fecha_def_obj.strftime("%d/%m/%Y")
+            except Exception:
+                fecha_antigua_str = str(registro[col_fecha_cierre])
+
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            nueva_fecha_cierre = st.date_input("Nueva Fecha de Cierre / Terminación:", value=fecha_def_obj, key=f"in_fecha_{idx_exacto_raw}_ai")
+            lista_estados = ["Abierta", "Vencida", "Finalizada", "Sin plan de acción"]
+            if est_actual_val and est_actual_val not in lista_estados:
+                lista_estados.append(est_actual_val)
+            idx_est_def = lista_estados.index(est_actual_val) if est_actual_val in lista_estados else 0
+            nuevo_estado = st.selectbox("Estado del Compromiso:", options=lista_estados, index=idx_est_def, key=f"in_estado_{idx_exacto_raw}_ai")
+            nuevo_responsable = st.text_input("Responsable Asignado:", value=resp_actual_val, key=f"in_resp_{idx_exacto_raw}_ai")
+
+        with col_f2:
+            nuevo_plan_accion = st.text_area("Plan de Acción / Compromiso:", value=plan_actual_val, height=100, key=f"in_plan_{idx_exacto_raw}_ai")
+            obs_usuario = st.text_area("Observaciones adicionales / Notas:", value="", height=80, key=f"in_obs_{idx_exacto_raw}_ai")
+
+        btn_guardar = st.button("➕ Registrar Cambio", type="primary", use_container_width=False, key=f"btn_save_{idx_exacto_raw}_ai")
+
+        if btn_guardar:
+            fecha_hoy_str = datetime.now().strftime("%d/%m/%Y %H:%M")
+            nueva_fecha_str = nueva_fecha_cierre.strftime("%d/%m/%Y")
+
+            col_destino_obs = col_obs_audit if col_obs_audit else "Observación Auditoría"
+            obs_historico_previo = str(df_raw.at[idx_exacto_raw, col_destino_obs]) if pd.notnull(df_raw.at[idx_exacto_raw, col_destino_obs]) else ""
+
+            nuevo_registro_historial = f"--- Modificación el {fecha_hoy_str} ---\n"
+            if fecha_antigua_str != nueva_fecha_str:
+                nuevo_registro_historial += f"• Fecha Cierre Anterior: {fecha_antigua_str} ➡️ Nueva: {nueva_fecha_str}\n"
+            if est_actual_val != nuevo_estado:
+                nuevo_registro_historial += f"• Estado Anterior: {est_actual_val} ➡️ Nuevo: {nuevo_estado}\n"
+            if resp_actual_val != nuevo_responsable:
+                nuevo_registro_historial += f"• Responsable Anterior: {resp_actual_val} ➡️ Nuevo: {nuevo_responsable}\n"
+            if plan_actual_val != nuevo_plan_accion:
+                nuevo_registro_historial += f"• Plan Anterior: {plan_actual_val}\n• Plan Nuevo: {nuevo_plan_accion}\n"
+            if obs_usuario.strip():
+                nuevo_registro_historial += f"• Nota: {obs_usuario.strip()}\n"
+
+            if obs_historico_previo.strip() and obs_historico_previo.lower() != "nan":
+                obs_final = f"{nuevo_registro_historial}\n{obs_historico_previo}"
+            else:
+                obs_final = nuevo_registro_historial
+
+            fila_modificada = df_raw.loc[idx_exacto_raw].copy()
+            if col_fecha_cierre:
+                fila_modificada[col_fecha_cierre] = nueva_fecha_str
+            if col_estado:
+                fila_modificada[col_estado] = nuevo_estado
+            if col_responsable:
+                fila_modificada[col_responsable] = nuevo_responsable
+            if col_plan_accion:
+                fila_modificada[col_plan_accion] = nuevo_plan_accion
+            fila_modificada[col_destino_obs] = obs_final.strip()
+
+            if "lote_filas_modificadas_ai" not in st.session_state:
+                st.session_state["lote_filas_modificadas_ai"] = {}
+
+            st.session_state["lote_filas_modificadas_ai"][id_sel] = fila_modificada
+
+            st.toast("✅ ¡Registro agregado exitosamente!", icon="🎉")
+
+    # ---------------------------------------------------------
+    # DESCARGA DE REGISTROS MODIFICADOS EN EL DÍA
+    # ---------------------------------------------------------
+    st.markdown("---")
+    st.subheader("📥 Descargar Registros Modificados en el Día")
+
+    if "lote_filas_modificadas_ai" not in st.session_state:
+        st.session_state["lote_filas_modificadas_ai"] = {}
+
+    if "limpiar_key_ai" not in st.session_state:
+        st.session_state["limpiar_key_ai"] = 0
+
+    version_key = st.session_state["limpiar_key_ai"]
+
+    cant_modificados = len(st.session_state["lote_filas_modificadas_ai"])
+    lista_acumulada = list(st.session_state["lote_filas_modificadas_ai"].values())
+
+    if cant_modificados > 0:
+        st.markdown(f'<div style="background-color: #D4EDDA; color: #155724; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-weight: bold;">✅ ¡Tienes {cant_modificados} plan(es) modificado(s) listo(s) para exportar!</div>', unsafe_allow_html=True)
+    else:
+        st.markdown('<div style="background-color: #E2E3E5; color: #383D41; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px;">ℹ️ Aún no has realizado modificaciones en esta sesión.</div>', unsafe_allow_html=True)
+
+    col_btn_dl, col_btn_clear, _ = st.columns([2.5, 1.2, 2.3])
+
+    with col_btn_dl:
+        if cant_modificados > 0:
+            excel_lote = generar_excel_formateado(pd.DataFrame(lista_acumulada))
+            st.download_button(
+                label=f"📥 Descargar Modificaciones ({cant_modificados})",
+                data=excel_lote,
+                file_name=f"Planes_Modificados_Auditoria_Interna_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key=f"btn_download_lote_ai_{version_key}",
+                use_container_width=False,
+            )
+        else:
+            st.button("📥 Descargar Modificaciones (0)", disabled=True, use_container_width=False, key=f"btn_download_disabled_ai_{version_key}")
+
+    with col_btn_clear:
+        if st.button("🗑️ Limpiar Historial", type="secondary", use_container_width=False, disabled=(cant_modificados == 0), key=f"btn_clear_historial_ai_{version_key}"):
+            st.session_state["lote_filas_modificadas_ai"] = {}
+            st.session_state["limpiar_key_ai"] += 1
+            st.rerun()
 
 
 # =========================================================

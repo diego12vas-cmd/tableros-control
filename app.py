@@ -1191,13 +1191,13 @@ with tab_finalizadas:
 
 
 # =========================================================
-# PESTAÑA 5: OFICIOS DE SOLICITUD (CORREGIDA Y COMPATIBLE)
+# PESTAÑA 5: OFICIOS DE SOLICITUD (ROBUSTA Y SIN ARROW ERRORS)
 # =========================================================
 with tab_oficios:
     st.header("📩 Registro e Historial de Oficios Radicados")
     st.markdown("Consulta y trazabilidad formal de los oficios enviados para soporte de modificaciones.")
 
-    # Detección flexible de la columna Radicado
+    # Detección ultra flexible de la columna Radicado
     col_rad_target = None
     for c in df_filtrado.columns:
         if "radicado" in str(c).lower() or "oficio" in str(c).lower():
@@ -1207,7 +1207,7 @@ with tab_oficios:
     if col_rad_target and col_rad_target in df_filtrado.columns:
         df_oficios_raw = df_filtrado.dropna(subset=[col_rad_target]).copy()
         
-        # Excluir valores no válidos o registros deshabilitados
+        # Excluir palabras no válidas o registros borrados
         palabras_invalidas = ["nan", "none", "", "0", "0.0", "false", "eliminada", "eliminado", "cancelada", "sin radicado"]
         df_oficios_raw = df_oficios_raw[~df_oficios_raw[col_rad_target].astype(str).str.strip().str.lower().isin(palabras_invalidas)]
         
@@ -1217,29 +1217,36 @@ with tab_oficios:
 
         if not df_oficios_raw.empty:
             col_id_nombre = "ID" if "ID" in df_oficios_raw.columns else ("id" if "id" in df_oficios_raw.columns else None)
-            if col_id_nombre:
-                df_oficios_raw[col_id_nombre] = df_oficios_raw[col_id_nombre].astype(str).str.replace(".0", "", regex=False).str.strip()
             
-            # Agrupar por el radicado
-            def agrupar_oficios(group):
-                primer_registro = group.iloc[0].copy()
-                if col_id_nombre and col_id_nombre in group.columns:
-                    ids_unicos = sorted(list(set(group[col_id_nombre].dropna().astype(str).tolist())))
-                    primer_registro["IDs Afectados"] = ", ".join(ids_unicos)
-                return primer_registro
+            # Consolidar radicados de forma segura mediante iteración pura (evita fallos de PyArrow)
+            radicados_procesados = {}
+            for _, row in df_oficios_raw.iterrows():
+                rad_val = str(row[col_rad_target]).strip()
+                id_val = str(row[col_id_nombre]).replace(".0", "").strip() if col_id_nombre and col_id_nombre in row and pd.notnull(row[col_id_nombre]) else ""
+                
+                if rad_val not in radicados_procesados:
+                    dict_fila = {"Radicado": rad_val, "IDs Afectados": [id_val] if id_val else []}
+                    for c_posible in ["Fecha", "Área Remitente", "Asunto", "Estado de la Solicitud", "Enlace PDF"]:
+                        for c_real in df_oficios_raw.columns:
+                            if c_posible.lower() in str(c_real).lower() and c_posible not in dict_fila:
+                                dict_fila[c_posible] = str(row[c_real]) if pd.notnull(row[c_real]) and str(row[c_real]).lower() != "none" else ""
+                                break
+                    radicados_procesados[rad_val] = dict_fila
+                else:
+                    if id_val and id_val not in radicados_procesados[rad_val]["IDs Afectados"]:
+                        radicados_procesados[rad_val]["IDs Afectados"].append(id_val)
 
-            df_oficios_consolidado = df_oficios_raw.groupby(col_rad_target, as_index=False).apply(agrupar_oficios)
-            
-            tot_oficios_unicos = len(df_oficios_consolidado)
-            
-            col_est_sol = None
-            for c in df_oficios_consolidado.columns:
-                if "solicitud" in str(c).lower() or "estado de la" in str(c).lower():
-                    if c != col_estado:
-                        col_est_sol = c
-                        break
+            # Construir lista limpia de diccionarios
+            lista_final_oficios = []
+            for rad_val, datos in radicados_procesados.items():
+                datos["IDs Afectados"] = ", ".join(sorted(datos["IDs Afectados"]))
+                lista_final_oficios.append(datos)
 
-            aprobados_cnt = df_oficios_consolidado[col_est_sol].astype(str).str.contains("Aprob", case=False, na=False).sum() if col_est_sol else tot_oficios_unicos
+            df_oficios_vista = pd.DataFrame(lista_final_oficios)
+            df_oficios_vista.index = range(1, len(df_oficios_vista) + 1)
+            
+            tot_oficios_unicos = len(df_oficios_vista)
+            aprobados_cnt = df_oficios_vista["Estado de la Solicitud"].astype(str).str.contains("Aprob", case=False, na=False).sum() if "Estado de la Solicitud" in df_oficios_vista.columns else tot_oficios_unicos
             
             mo1, mo2, _ = st.columns([1, 1, 2])
             mo1.metric("📑 Total Oficios Radicados", tot_oficios_unicos)
@@ -1247,21 +1254,7 @@ with tab_oficios:
 
             st.markdown("---")
 
-            # Mapeo simple de columnas sin formateos complejos que rompan PyArrow
-            cols_mostrar = [col_rad_target]
-            if "IDs Afectados" in df_oficios_consolidado.columns:
-                cols_mostrar.append("IDs Afectados")
-            
-            for c_posible in ["Fecha", "Área Remitente", "Asunto", "Estado de la Solicitud", "Enlace PDF"]:
-                for c_real in df_oficios_consolidado.columns:
-                    if c_posible.lower() in str(c_real).lower() and c_real not in cols_mostrar:
-                        cols_mostrar.append(c_real)
-                        break
-
-            df_oficios_vista = df_oficios_consolidado[cols_mostrar].copy().reset_index(drop=True)
-            df_oficios_vista.index = range(1, len(df_oficios_vista) + 1)
-
-            # Renderizado directo y seguro sin LinkColumn problemático
+            # Muestra segura de tabla limpia y estilizada
             st.dataframe(
                 df_oficios_vista,
                 use_container_width=True

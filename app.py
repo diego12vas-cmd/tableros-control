@@ -517,7 +517,6 @@ if not df_calc.empty:
 # ---------------------------------------------------------
 st.sidebar.title("🔍 Filtros del Tablero")
 
-# MUESTRA LA FECHA EXTRAÍDA DE TU EXCEL
 fecha_excel = obtener_fecha_excel()
 if fecha_excel:
     st.sidebar.markdown(f"📅 **Datos actualizados al:** {fecha_excel}")
@@ -906,11 +905,11 @@ with tab_metricas:
 
 
 # =========================================================
-# PESTAÑA 3: COMPARATIVA HISTÓRICA E INTERANUAL (DISEÑO ULTRA LIMPIO Y METRICAS)
+# PESTAÑA 3: COMPARATIVA HISTÓRICA E INTERANUAL (ULTRA LIMPIA, VALORES VISIBLES Y TERMINOLOGÍA AJUSTADA)
 # =========================================================
 with tab_historico:
     st.header("📈 Análisis Histórico e Interanual de Auditorías")
-    st.markdown("Evolución temporal del volumen de observaciones por vigencia y distribución numérica por Área Responsable.")
+    st.markdown("Evolución temporal del volumen de **Planes de Mejoramiento** por vigencia y distribución numérica por Área Responsable.")
 
     if col_plan_filtro and col_plan_filtro in df_raw.columns:
         df_hist_calc = df_raw.copy()
@@ -919,22 +918,22 @@ with tab_historico:
         c_h1, c_h2 = st.columns(2)
 
         with c_h1:
-            # Gráfico 1: Evolución por Vigencia (SIN LÍNEAS DE CUADRÍCULA NI REGLAS Y CON ESPACIO)
-            df_vigencia_totales = df_hist_calc.groupby("Vigencia_Limpia").size().reset_index(name="Total_Hallazgos").sort_values(by="Vigencia_Limpia")
-            max_hall_v = df_vigencia_totales["Total_Hallazgos"].max() if not df_vigencia_totales.empty else 10
-            sum_tot_g1 = df_vigencia_totales["Total_Hallazgos"].sum() if not df_vigencia_totales.empty else 0
+            # Gráfico 1: Evolución por Vigencia
+            df_vigencia_totales = df_hist_calc.groupby("Vigencia_Limpia").size().reset_index(name="Total_Planes").sort_values(by="Vigencia_Limpia")
+            max_hall_v = df_vigencia_totales["Total_Planes"].max() if not df_vigencia_totales.empty else 10
+            sum_tot_g1 = df_vigencia_totales["Total_Planes"].sum() if not df_vigencia_totales.empty else 0
             
             fig_hist_line = px.bar(
                 df_vigencia_totales,
                 x="Vigencia_Limpia",
-                y="Total_Hallazgos",
-                text="Total_Hallazgos",
-                title="Evolución Total de Hallazgos por Vigencia",
+                y="Total_Planes",
+                text="Total_Planes",
+                title="Evolución Total de Planes de Mejoramiento por Vigencia",
                 color_discrete_sequence=["#1F4E78"]
             )
             fig_hist_line.update_traces(textposition="outside", textfont=dict(size=13, color="var(--text-color)"))
             fig_hist_line.update_layout(
-                height=340,
+                height=360,
                 xaxis_title=None,
                 yaxis_title=None,
                 xaxis=dict(showgrid=False, zeroline=False),
@@ -945,12 +944,13 @@ with tab_historico:
             )
             st.plotly_chart(fig_hist_line, use_container_width=True, key="fig_hist_line_key")
             
-            # Cajas métricas inferiores
-            st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Hallazgos Historicos: <b>{sum_tot_g1}</b></div>', unsafe_allow_html=True)
+            # Caja de Total Consolidado
+            st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Planes de Mejoramiento Históricos: <b>{sum_tot_g1}</b></div>', unsafe_allow_html=True)
 
         with c_h2:
-            # Gráfico 2: Comparativa de Estados por Vigencia (SIN LÍNEAS Y CON RECORTE SEGURO)
+            # Gráfico 2: Comparativa de Estados por Vigencia con Valores Internos
             df_hist_grouped = df_hist_calc.groupby(["Vigencia_Limpia", col_estado]).size().reset_index(name="Cantidad")
+            df_hist_grouped["Texto_Etiqueta"] = df_hist_grouped["Cantidad"].apply(lambda x: str(x) if x > 0 else "")
             max_hist_st = df_hist_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().max() if not df_hist_grouped.empty else 10
             sum_tot_g2 = df_hist_grouped["Cantidad"].sum() if not df_hist_grouped.empty else 0
 
@@ -959,12 +959,31 @@ with tab_historico:
                 x="Vigencia_Limpia",
                 y="Cantidad",
                 color=col_estado,
+                text="Texto_Etiqueta",
                 title="Distribución de Estados por Vigencia",
                 barmode="stack",
                 color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Sin plan de acción": "#F8A583"}
             )
+            fig_hist_stack.update_traces(
+                textposition="inside",
+                insidetextanchor="middle",
+                textfont=dict(size=11, color="white", family="Arial Black")
+            )
+            
+            # Anotación con los totales consolidados en la parte superior de cada barra
+            df_totales_por_vigencia = df_hist_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
+            for _, row_v in df_totales_por_vigencia.iterrows():
+                fig_hist_stack.add_annotation(
+                    x=row_v["Vigencia_Limpia"],
+                    y=row_v["Cantidad"],
+                    text=f"<b>{row_v['Cantidad']}</b>",
+                    showarrow=False,
+                    yanchor="bottom",
+                    font=dict(size=12, color="var(--text-color)")
+                )
+
             fig_hist_stack.update_layout(
-                height=340,
+                height=360,
                 xaxis_title=None,
                 yaxis_title=None,
                 xaxis=dict(showgrid=False, zeroline=False),
@@ -976,14 +995,14 @@ with tab_historico:
             )
             st.plotly_chart(fig_hist_stack, use_container_width=True, key="fig_hist_stack_key")
 
-            # Cajas métricas inferiores
+            # Caja de Total Consolidado
             st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Evaluados: <b>{sum_tot_g2}</b></div>', unsafe_allow_html=True)
 
         st.markdown("---")
 
-        # TABLA DE MATRIZ COMPARATIVA INTERANUAL POR ÁREA (LIMPIA Y EJECUTIVA)
+        # TABLA DE MATRIZ COMPARATIVA INTERANUAL POR ÁREA
         st.subheader("👥 Matriz Comparativa Interanual por Área Responsable")
-        st.markdown('<div class="small-note">Detalle del comportamiento y distribución de hallazgos asignados a cada Área en las distintas vigencias.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="small-note">Detalle del comportamiento y distribución de los <b>Planes de Mejoramiento</b> asignados a cada Área en las distintas vigencias.</div>', unsafe_allow_html=True)
 
         if col_responsable and col_responsable in df_hist_calc.columns:
             df_area_hist = df_hist_calc.copy()

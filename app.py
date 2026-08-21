@@ -335,7 +335,6 @@ def obtener_fecha_excel():
                             if match_next:
                                 return match_next.group(1)
         
-        # Respaldo si no encuentra el texto exacto
         timestamp_mod = os.path.getmtime(EXCEL_PATH)
         return datetime.fromtimestamp(timestamp_mod).strftime("%d/%m/%Y")
     except Exception:
@@ -507,6 +506,14 @@ col_a5 = buscar_columna_por_patron(df_raw, ["alerta 5"])
 col_a10 = buscar_columna_por_patron(df_raw, ["alerta 10"])
 col_a20 = buscar_columna_por_patron(df_raw, ["alerta 20"])
 col_a30 = buscar_columna_por_patron(df_raw, ["alerta 30"])
+
+# COLUMNAS ESPECÍFICAS DE OFICIOS
+col_radicado = "Radicado" if "Radicado" in df_raw.columns else buscar_columna_por_patron(df_raw, ["radicado", "oficio"])
+col_fecha_oficio = "Fecha" if "Fecha" in df_raw.columns else buscar_columna_por_patron(df_raw, ["fecha"])
+col_area_remitente = "Área Remitente" if "Área Remitente" in df_raw.columns else buscar_columna_por_patron(df_raw, ["area remitente", "remitente"])
+col_asunto = "Asunto" if "Asunto" in df_raw.columns else buscar_columna_por_patron(df_raw, ["asunto", "solicitud"])
+col_estado_solicitud = "Estado de la Solicitud" if "Estado de la Solicitud" in df_raw.columns else buscar_columna_por_patron(df_raw, ["estado de la solicitud", "estado solicitud"])
+col_enlace_pdf = "Enlace PDF" if "Enlace PDF" in df_raw.columns else buscar_columna_por_patron(df_raw, ["enlace pdf", "enlace", "pdf"])
 
 if col_estado:
     df_raw[col_estado] = df_raw[col_estado].astype(str).str.capitalize()
@@ -716,11 +723,12 @@ if col_auditoria in df_perf.columns:
 # ---------------------------------------------------------
 # PESTAÑAS PRINCIPALES
 # ---------------------------------------------------------
-tab_principal, tab_metricas, tab_alertas, tab_finalizadas = st.tabs([
+tab_principal, tab_metricas, tab_alertas, tab_finalizadas, tab_oficios = st.tabs([
     "📊 Tablero Principal",
     "📈 Métricas de Cumplimiento",
     "🚨 Alertas y Edición Directa",
     "🎉 Finalizadas",
+    "📩 Oficios de Solicitud",
 ])
 
 # =========================================================
@@ -1179,4 +1187,86 @@ with tab_finalizadas:
                 use_container_width=False,
             )
         else:
-            st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros applied.")
+            st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
+
+
+# =========================================================
+# PESTAÑA 5: OFICIOS DE SOLICITUD (CONSOLIDADOS POR RADICADO)
+# =========================================================
+with tab_oficios:
+    st.header("📩 Registro e Historial de Oficios Radicados")
+    st.markdown("Consulta y trazabilidad formal de los oficios enviados para soporte de modificaciones.")
+
+    if col_radicado and col_radicado in df_filtrado.columns:
+        df_oficios_raw = df_filtrado.dropna(subset=[col_radicado]).copy()
+        df_oficios_raw = df_oficios_raw[~df_oficios_raw[col_radicado].astype(str).str.strip().str.lower().isin(["nan", "none", "", "0"])]
+        
+        if not df_oficios_raw.empty:
+            # Formatear la columna ID si existe
+            col_id_nombre = "ID" if "ID" in df_oficios_raw.columns else "id"
+            if col_id_nombre in df_oficios_raw.columns:
+                df_oficios_raw[col_id_nombre] = df_oficios_raw[col_id_nombre].astype(str).str.replace(".0", "", regex=False).str.strip()
+            
+            # Agrupar por radicado para consolidar múltiples IDs en una sola línea de oficio
+            def agrupar_oficios(group):
+                primer_registro = group.iloc[0].copy()
+                if col_id_nombre in group.columns:
+                    ids_unicos = sorted(list(set(group[col_id_nombre].dropna().astype(str).tolist())))
+                    primer_registro["IDs Afectados"] = ", ".join(ids_unicos)
+                return primer_registro
+
+            df_oficios_consolidado = df_oficios_raw.groupby(col_radicado, as_index=False).apply(agrupar_oficios)
+            
+            # Métricas Únicas
+            tot_oficios_unicos = len(df_oficios_consolidado)
+            aprobados_cnt = df_oficios_consolidado[col_estado_solicitud].astype(str).str.contains("Aprob", case=False, na=False).sum() if col_estado_solicitud else 0
+            
+            mo1, mo2, _ = st.columns([1, 1, 2])
+            mo1.metric("📑 Total Oficios Radicados", tot_oficios_unicos)
+            mo2.metric("✅ Solicitudes Aprobadas", aprobados_cnt)
+
+            st.markdown("---")
+
+            # Columnas a presentar
+            cols_mostrar = [col_radicado]
+            if "IDs Afectados" in df_oficios_consolidado.columns:
+                cols_mostrar.append("IDs Afectados")
+            if col_fecha_oficio and col_fecha_oficio in df_oficios_consolidado.columns:
+                cols_mostrar.append(col_fecha_oficio)
+            if col_area_remitente and col_area_remitente in df_oficios_consolidado.columns:
+                cols_mostrar.append(col_area_remitente)
+            if col_asunto and col_asunto in df_oficios_consolidado.columns:
+                cols_mostrar.append(col_asunto)
+            if col_estado_solicitud and col_estado_solicitud in df_oficios_consolidado.columns:
+                cols_mostrar.append(col_estado_solicitud)
+            if col_enlace_pdf and col_enlace_pdf in df_oficios_consolidado.columns:
+                cols_mostrar.append(col_enlace_pdf)
+
+            df_oficios_vista = df_oficios_consolidado[cols_mostrar].copy().reset_index(drop=True)
+            df_oficios_vista.index = range(1, len(df_oficios_vista) + 1)
+
+            st.dataframe(
+                df_oficios_vista,
+                use_container_width=True,
+                column_config={
+                    col_enlace_pdf: st.column_config.LinkColumn(
+                        "Documento PDF",
+                        help="Haz clic para abrir el soporte en Google Drive",
+                        validate=r"^https://.*",
+                        display_text="📄 Ver Oficio PDF"
+                    )
+                } if col_enlace_pdf and col_enlace_pdf in df_oficios_vista.columns else None
+            )
+
+            st.download_button(
+                label="📥 Descargar Listado de Oficios (.xlsx)",
+                data=generar_excel_formateado(df_oficios_vista),
+                file_name=f"Historial_Oficios_Radicados_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="btn_download_oficios",
+                use_container_width=False,
+            )
+        else:
+            st.info("ℹ️ No se han encontrado registros con número de radicado para los filtros seleccionados.")
+    else:
+        st.warning("⚠️ No se detectó la columna 'Radicado' en el archivo de Excel.")

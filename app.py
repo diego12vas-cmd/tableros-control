@@ -313,6 +313,39 @@ EXCEL_PATH = buscar_excel_inteligente()
 
 
 # ---------------------------------------------------------
+# EXTRAER FECHA DE ACTUALIZACIÓN DIRECTA DE LA HOJA 'TABLERO'
+# ---------------------------------------------------------
+def obtener_fecha_excel():
+    if not EXCEL_PATH or not os.path.exists(EXCEL_PATH):
+        return None
+    try:
+        xls = pd.ExcelFile(EXCEL_PATH)
+        if "Tablero" in xls.sheet_names:
+            df_tablero = pd.read_excel(xls, sheet_name="Tablero", header=None)
+            for col in df_tablero.columns:
+                for row_idx, val in enumerate(df_tablero[col].dropna()):
+                    val_str = str(val).strip()
+                    if "última fecha de actualización" in val_str.lower() or "ultima fecha" in val_str.lower():
+                        match = re.search(r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})", val_str)
+                        if match:
+                            return match.group(1)
+                        if row_idx + 1 < len(df_tablero):
+                            val_next = str(df_tablero[col].iloc[row_idx + 1]).strip()
+                            match_next = re.search(r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})", val_next)
+                            if match_next:
+                                return match_next.group(1)
+        
+        # Respaldo si no encuentra el texto exacto
+        timestamp_mod = os.path.getmtime(EXCEL_PATH)
+        return datetime.fromtimestamp(timestamp_mod).strftime("%d/%m/%Y")
+    except Exception:
+        if os.path.exists(EXCEL_PATH):
+            timestamp_mod = os.path.getmtime(EXCEL_PATH)
+            return datetime.fromtimestamp(timestamp_mod).strftime("%d/%m/%Y")
+        return None
+
+
+# ---------------------------------------------------------
 # EXPORTACIÓN EXCEL SIN PERDIDA DE DATOS
 # ---------------------------------------------------------
 def generar_excel_formateado(df):
@@ -492,13 +525,20 @@ if not df_calc.empty:
 
 
 # ---------------------------------------------------------
-# FILTROS LATERALES & CERRAR SESIÓN
+# FILTROS LATERALES, FECHA DE CORTE DEL EXCEL & CERRAR SESIÓN
 # ---------------------------------------------------------
 st.sidebar.title("🔍 Filtros del Tablero")
+
+# MUESTRA LA FECHA EXTRAÍDA DE TU EXCEL
+fecha_excel = obtener_fecha_excel()
+if fecha_excel:
+    st.sidebar.markdown(f"📅 **Datos actualizados al:** {fecha_excel}")
 
 if st.sidebar.button("🚪 Cerrar Sesión"):
     st.session_state["autenticado"] = False
     st.rerun()
+
+st.sidebar.markdown("---")
 
 df_filtrado = df_raw.copy()
 
@@ -1139,4 +1179,4 @@ with tab_finalizadas:
                 use_container_width=False,
             )
         else:
-            st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
+            st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros applied.")

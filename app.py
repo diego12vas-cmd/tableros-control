@@ -48,11 +48,12 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS COMPACTOS & RESPONSIVOS
+# ESTILOS CSS COMPACTOS & RESPONSIVOS (OCULTA EL BOTÓN NEGRO)
 # ---------------------------------------------------------
 st.markdown(
     """
     <style>
+        /* Ocultar menús nativos, marcas y el botón 'Gestionar la aplicación' */
         #MainMenu {visibility: hidden;}
         header {visibility: hidden;}
         footer {visibility: hidden;}
@@ -61,6 +62,12 @@ st.markdown(
         [data-testid="stToolbar"] {display:none !important;}
         [data-testid="stDecoration"] {display:none !important;}
         [data-testid="stStatusWidget"] {display:none !important;}
+        
+        /* Oculta la pestaña negra inferior de gestión de Streamlit */
+        div[data-testid="stManageApp"] {display: none !important;}
+        div[class*="stManageApp"] {display: none !important;}
+        button[title*="Manage app"] {display: none !important;}
+        iframe[title*="manage-app"] {display: none !important;}
 
         header[data-testid="stHeader"] {
             height: 2.5rem !important;
@@ -69,7 +76,7 @@ st.markdown(
 
         .block-container {
             padding-top: 2rem !important;
-            padding-bottom: 1rem !important;
+            padding-bottom: 2rem !important;
         }
 
         .titulo-tablero {
@@ -905,7 +912,7 @@ with tab_metricas:
 
 
 # =========================================================
-# PESTAÑA 3: COMPARATIVA HISTÓRICA E INTERANUAL (ULTRA LIMPIA, VALORES VISIBLES Y TERMINOLOGÍA AJUSTADA)
+# PESTAÑA 3: COMPARATIVA HISTÓRICA E INTERANUAL
 # =========================================================
 with tab_historico:
     st.header("📈 Análisis Histórico e Interanual de Auditorías")
@@ -944,7 +951,6 @@ with tab_historico:
             )
             st.plotly_chart(fig_hist_line, use_container_width=True, key="fig_hist_line_key")
             
-            # Caja de Total Consolidado
             st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Planes de Mejoramiento Históricos: <b>{sum_tot_g1}</b></div>', unsafe_allow_html=True)
 
         with c_h2:
@@ -970,7 +976,6 @@ with tab_historico:
                 textfont=dict(size=11, color="white", family="Arial Black")
             )
             
-            # Anotación con los totales consolidados en la parte superior de cada barra
             df_totales_por_vigencia = df_hist_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
             for _, row_v in df_totales_por_vigencia.iterrows():
                 fig_hist_stack.add_annotation(
@@ -995,7 +1000,6 @@ with tab_historico:
             )
             st.plotly_chart(fig_hist_stack, use_container_width=True, key="fig_hist_stack_key")
 
-            # Caja de Total Consolidado
             st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Evaluados: <b>{sum_tot_g2}</b></div>', unsafe_allow_html=True)
 
         st.markdown("---")

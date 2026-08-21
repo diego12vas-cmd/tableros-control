@@ -48,12 +48,11 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS COMPACTOS & RESPONSIVOS (OCULTA EL BOTÓN NEGRO)
+# ESTILOS CSS COMPACTOS & RESPONSIVOS (OCULTA BOTÓN NEGRO)
 # ---------------------------------------------------------
 st.markdown(
     """
     <style>
-        /* Ocultar menús nativos, marcas y el botón 'Gestionar la aplicación' */
         #MainMenu {visibility: hidden;}
         header {visibility: hidden;}
         footer {visibility: hidden;}
@@ -63,7 +62,6 @@ st.markdown(
         [data-testid="stDecoration"] {display:none !important;}
         [data-testid="stStatusWidget"] {display:none !important;}
         
-        /* Oculta la pestaña negra inferior de gestión de Streamlit */
         div[data-testid="stManageApp"] {display: none !important;}
         div[class*="stManageApp"] {display: none !important;}
         button[title*="Manage app"] {display: none !important;}
@@ -912,11 +910,11 @@ with tab_metricas:
 
 
 # =========================================================
-# PESTAÑA 3: COMPARATIVA HISTÓRICA E INTERANUAL
+# PESTAÑA 3: COMPARATIVA HISTÓRICA E INTERANUAL DE PLANES DE MEJORAMIENTO
 # =========================================================
 with tab_historico:
-    st.header("📈 Análisis Histórico e Interanual de Auditorías")
-    st.markdown("Evolución temporal del volumen de **Planes de Mejoramiento** por vigencia y distribución numérica por Área Responsable.")
+    st.header("📈 Análisis Histórico e Interanual de Planes de Mejoramiento")
+    st.markdown("Evolución temporal de **Planes de Mejoramiento** por vigencia y distribución por Área Responsable.")
 
     if col_plan_filtro and col_plan_filtro in df_raw.columns:
         df_hist_calc = df_raw.copy()

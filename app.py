@@ -507,6 +507,14 @@ col_a10 = buscar_columna_por_patron(df_raw, ["alerta 10"])
 col_a20 = buscar_columna_por_patron(df_raw, ["alerta 20"])
 col_a30 = buscar_columna_por_patron(df_raw, ["alerta 30"])
 
+# COLUMNAS ESPECÍFICAS DE OFICIOS
+col_radicado = "Radicado" if "Radicado" in df_raw.columns else buscar_columna_por_patron(df_raw, ["radicado", "oficio"])
+col_fecha_oficio = "Fecha" if "Fecha" in df_raw.columns else buscar_columna_por_patron(df_raw, ["fecha"])
+col_area_remitente = "Área Remitente" if "Área Remitente" in df_raw.columns else buscar_columna_por_patron(df_raw, ["area remitente", "remitente"])
+col_asunto = "Asunto" if "Asunto" in df_raw.columns else buscar_columna_por_patron(df_raw, ["asunto", "solicitud"])
+col_estado_solicitud = "Estado de la Solicitud" if "Estado de la Solicitud" in df_raw.columns else buscar_columna_por_patron(df_raw, ["estado de la solicitud", "estado solicitud"])
+col_enlace_pdf = "Enlace PDF" if "Enlace PDF" in df_raw.columns else buscar_columna_por_patron(df_raw, ["enlace pdf", "enlace", "pdf"])
+
 if col_estado:
     df_raw[col_estado] = df_raw[col_estado].astype(str).str.capitalize()
 
@@ -1183,13 +1191,13 @@ with tab_finalizadas:
 
 
 # =========================================================
-# PESTAÑA 5: OFICIOS DE SOLICITUD (CONSOLIDADOS POR RADICADO)
+# PESTAÑA 5: OFICIOS DE SOLICITUD (CORREGIDA Y COMPATIBLE)
 # =========================================================
 with tab_oficios:
     st.header("📩 Registro e Historial de Oficios Radicados")
     st.markdown("Consulta y trazabilidad formal de los oficios enviados para soporte de modificaciones.")
 
-    # Detección ultra flexible de la columna Radicado
+    # Detección flexible de la columna Radicado
     col_rad_target = None
     for c in df_filtrado.columns:
         if "radicado" in str(c).lower() or "oficio" in str(c).lower():
@@ -1198,14 +1206,21 @@ with tab_oficios:
 
     if col_rad_target and col_rad_target in df_filtrado.columns:
         df_oficios_raw = df_filtrado.dropna(subset=[col_rad_target]).copy()
-        df_oficios_raw = df_oficios_raw[~df_oficios_raw[col_rad_target].astype(str).str.strip().str.lower().isin(["nan", "none", "", "0"])]
         
+        # Excluir valores no válidos o registros deshabilitados
+        palabras_invalidas = ["nan", "none", "", "0", "0.0", "false", "eliminada", "eliminado", "cancelada", "sin radicado"]
+        df_oficios_raw = df_oficios_raw[~df_oficios_raw[col_rad_target].astype(str).str.strip().str.lower().isin(palabras_invalidas)]
+        
+        col_area_temp = buscar_columna_por_patron(df_oficios_raw, ["area remitente", "remitente"])
+        if col_area_temp and col_area_temp in df_oficios_raw.columns:
+            df_oficios_raw = df_oficios_raw[df_oficios_raw[col_area_temp].notnull() & (~df_oficios_raw[col_area_temp].astype(str).str.strip().str.lower().isin(["none", "nan", ""]))]
+
         if not df_oficios_raw.empty:
             col_id_nombre = "ID" if "ID" in df_oficios_raw.columns else ("id" if "id" in df_oficios_raw.columns else None)
             if col_id_nombre:
                 df_oficios_raw[col_id_nombre] = df_oficios_raw[col_id_nombre].astype(str).str.replace(".0", "", regex=False).str.strip()
             
-            # Agrupar por el radicado encontrado
+            # Agrupar por el radicado
             def agrupar_oficios(group):
                 primer_registro = group.iloc[0].copy()
                 if col_id_nombre and col_id_nombre in group.columns:
@@ -1217,15 +1232,14 @@ with tab_oficios:
             
             tot_oficios_unicos = len(df_oficios_consolidado)
             
-            # Buscar columna estado solicitud
             col_est_sol = None
             for c in df_oficios_consolidado.columns:
-                if "solicitud" in str(c).lower() or "estado" in str(c).lower():
+                if "solicitud" in str(c).lower() or "estado de la" in str(c).lower():
                     if c != col_estado:
                         col_est_sol = c
                         break
 
-            aprobados_cnt = df_oficios_consolidado[col_est_sol].astype(str).str.contains("Aprob", case=False, na=False).sum() if col_est_sol else 0
+            aprobados_cnt = df_oficios_consolidado[col_est_sol].astype(str).str.contains("Aprob", case=False, na=False).sum() if col_est_sol else tot_oficios_unicos
             
             mo1, mo2, _ = st.columns([1, 1, 2])
             mo1.metric("📑 Total Oficios Radicados", tot_oficios_unicos)
@@ -1233,7 +1247,7 @@ with tab_oficios:
 
             st.markdown("---")
 
-            # Columnas dinámicas a mostrar
+            # Mapeo simple de columnas sin formateos complejos que rompan PyArrow
             cols_mostrar = [col_rad_target]
             if "IDs Afectados" in df_oficios_consolidado.columns:
                 cols_mostrar.append("IDs Afectados")
@@ -1247,24 +1261,10 @@ with tab_oficios:
             df_oficios_vista = df_oficios_consolidado[cols_mostrar].copy().reset_index(drop=True)
             df_oficios_vista.index = range(1, len(df_oficios_vista) + 1)
 
-            # Buscar columna enlace PDF
-            col_pdf_real = None
-            for c in df_oficios_vista.columns:
-                if "enlace" in str(c).lower() or "pdf" in str(c).lower() or "drive" in str(c).lower():
-                    col_pdf_real = c
-                    break
-
+            # Renderizado directo y seguro sin LinkColumn problemático
             st.dataframe(
                 df_oficios_vista,
-                use_container_width=True,
-                column_config={
-                    col_pdf_real: st.column_config.LinkColumn(
-                        "Documento PDF",
-                        help="Haz clic para abrir el soporte en Google Drive",
-                        validate=r"^https://.*",
-                        display_text="📄 Ver Oficio PDF"
-                    )
-                } if col_pdf_real else None
+                use_container_width=True
             )
 
             st.download_button(
@@ -1276,6 +1276,6 @@ with tab_oficios:
                 use_container_width=False,
             )
         else:
-            st.info("ℹ️ No se han encontrado registros con número de radicado en el archivo.")
+            st.info("ℹ️ No se han encontrado registros con número de radicado válidos en el archivo.")
     else:
         st.warning("⚠️ No se detectó la columna 'Radicado' en la hoja Base de datos.")

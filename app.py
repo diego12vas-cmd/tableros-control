@@ -53,7 +53,6 @@ if not validar_login():
 st.markdown(
     """
     <style>
-        /* Ocultar menús nativos y marcas de Streamlit para usuarios finales */
         #MainMenu {visibility: hidden;}
         header {visibility: hidden;}
         footer {visibility: hidden;}
@@ -63,19 +62,16 @@ st.markdown(
         [data-testid="stDecoration"] {display:none !important;}
         [data-testid="stStatusWidget"] {display:none !important;}
 
-        /* 1. Reducir la altura del header transparente de Streamlit */
         header[data-testid="stHeader"] {
             height: 2.5rem !important;
             background: transparent !important;
         }
 
-        /* 2. Dar espacio superior suficiente para el título principal */
         .block-container {
             padding-top: 2rem !important;
             padding-bottom: 1rem !important;
         }
 
-        /* 3. Estilo del título principal */
         .titulo-tablero {
             font-size: 1.35rem !important;
             font-weight: 700 !important;
@@ -141,12 +137,10 @@ st.markdown(
             margin-bottom: 4px;
         }
 
-        /* --- ALINEACIÓN Y ESPACIADO ROBUSTO PARA FINALIZADAS --- */
         [data-testid="stHorizontalBlock"] {
             align-items: flex-start !important;
         }
 
-        /* Espacio superior para que la tabla no se monte en el título */
         div[data-testid="stDataFrame"] {
             margin-top: 12px !important;
             padding-top: 0px !important;
@@ -162,7 +156,6 @@ st.markdown(
             white-space: nowrap !important;
         }
 
-        /* --- CONTROL DE ESPACIO DE LA LISTA DE MESES --- */
         .month-container {
             margin-left: 0 !important;
             margin-top: 8px !important;
@@ -243,7 +236,6 @@ st.markdown(
             color: #FFFFFF !important;
         }
 
-        /* --- AJUSTES DE DISEÑO RESPONSIVO PARA MÓVILES (CELULARES) --- */
         @media (max-width: 768px) {
             .block-container {
                 padding-left: 0.8rem !important;
@@ -710,7 +702,7 @@ if col_auditoria in df_perf.columns:
 
 
 # ---------------------------------------------------------
-# PESTAÑAS PRINCIPALES (ORGANIZADAS Y OPTIMIZADAS - 6 PESTAÑAS)
+# PESTAÑAS PRINCIPALES
 # ---------------------------------------------------------
 tab_principal, tab_metricas, tab_historico, tab_alertas, tab_oficios, tab_finalizadas = st.tabs([
     "📊 Tablero Principal",
@@ -914,11 +906,11 @@ with tab_metricas:
 
 
 # =========================================================
-# PESTAÑA 3: COMPARATIVA HISTÓRICA E INTERANUAL
+# PESTAÑA 3: COMPARATIVA HISTÓRICA E INTERANUAL (DISEÑO ULTRA LIMPIO Y METRICAS)
 # =========================================================
 with tab_historico:
     st.header("📈 Análisis Histórico e Interanual de Auditorías")
-    st.markdown("Evolución temporal del volumen de observaciones por vigencia y tendencia de crecimiento/disminución por Área Responsable.")
+    st.markdown("Evolución temporal del volumen de observaciones por vigencia y distribución numérica por Área Responsable.")
 
     if col_plan_filtro and col_plan_filtro in df_raw.columns:
         df_hist_calc = df_raw.copy()
@@ -927,53 +919,71 @@ with tab_historico:
         c_h1, c_h2 = st.columns(2)
 
         with c_h1:
-            # Gráfico 1: Evolución por Vigencia
+            # Gráfico 1: Evolución por Vigencia (SIN LÍNEAS DE CUADRÍCULA NI REGLAS Y CON ESPACIO)
             df_vigencia_totales = df_hist_calc.groupby("Vigencia_Limpia").size().reset_index(name="Total_Hallazgos").sort_values(by="Vigencia_Limpia")
+            max_hall_v = df_vigencia_totales["Total_Hallazgos"].max() if not df_vigencia_totales.empty else 10
+            sum_tot_g1 = df_vigencia_totales["Total_Hallazgos"].sum() if not df_vigencia_totales.empty else 0
+            
             fig_hist_line = px.bar(
                 df_vigencia_totales,
                 x="Vigencia_Limpia",
                 y="Total_Hallazgos",
                 text="Total_Hallazgos",
-                title="Evolución Total de Hallazgos por Plan Auditoría / Vigencia",
+                title="Evolución Total de Hallazgos por Vigencia",
                 color_discrete_sequence=["#1F4E78"]
             )
-            fig_hist_line.update_traces(textposition="outside", textfont=dict(size=12, color="var(--text-color)"))
+            fig_hist_line.update_traces(textposition="outside", textfont=dict(size=13, color="var(--text-color)"))
             fig_hist_line.update_layout(
                 height=340,
                 xaxis_title=None,
-                yaxis_title="Cantidad de Hallazgos",
+                yaxis_title=None,
+                xaxis=dict(showgrid=False, zeroline=False),
+                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hall_v * 1.35]),
+                margin=dict(t=50, b=40, l=10, r=10),
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(0,0,0,0)"
             )
             st.plotly_chart(fig_hist_line, use_container_width=True, key="fig_hist_line_key")
+            
+            # Cajas métricas inferiores
+            st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Hallazgos Historicos: <b>{sum_tot_g1}</b></div>', unsafe_allow_html=True)
 
         with c_h2:
-            # Gráfico 2: Comparativa de Estados por Vigencia
+            # Gráfico 2: Comparativa de Estados por Vigencia (SIN LÍNEAS Y CON RECORTE SEGURO)
             df_hist_grouped = df_hist_calc.groupby(["Vigencia_Limpia", col_estado]).size().reset_index(name="Cantidad")
+            max_hist_st = df_hist_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().max() if not df_hist_grouped.empty else 10
+            sum_tot_g2 = df_hist_grouped["Cantidad"].sum() if not df_hist_grouped.empty else 0
+
             fig_hist_stack = px.bar(
                 df_hist_grouped,
                 x="Vigencia_Limpia",
                 y="Cantidad",
                 color=col_estado,
-                title="Distribución de Estados por Plan de Auditoría",
+                title="Distribución de Estados por Vigencia",
                 barmode="stack",
                 color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Sin plan de acción": "#F8A583"}
             )
             fig_hist_stack.update_layout(
                 height=340,
                 xaxis_title=None,
-                yaxis_title="Cantidad",
+                yaxis_title=None,
+                xaxis=dict(showgrid=False, zeroline=False),
+                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_st * 1.35]),
                 legend_title_text="Estado",
+                margin=dict(t=50, b=40, l=10, r=10),
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(0,0,0,0)"
             )
             st.plotly_chart(fig_hist_stack, use_container_width=True, key="fig_hist_stack_key")
 
+            # Cajas métricas inferiores
+            st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Evaluados: <b>{sum_tot_g2}</b></div>', unsafe_allow_html=True)
+
         st.markdown("---")
 
-        # COMPORTAMIENTO INTERANUAL POR ÁREAS RESPONSABLES (PIVOT SEGURO)
-        st.subheader("👥 Crecimiento / Disminución de Hallazgos por Área Responsable")
-        st.markdown('<div class="small-note">Visualiza cómo ha evolucionado el volumen de hallazgos asignados a cada Área a lo largo de las distintas vigencias.</div>', unsafe_allow_html=True)
+        # TABLA DE MATRIZ COMPARATIVA INTERANUAL POR ÁREA (LIMPIA Y EJECUTIVA)
+        st.subheader("👥 Matriz Comparativa Interanual por Área Responsable")
+        st.markdown('<div class="small-note">Detalle del comportamiento y distribución de hallazgos asignados a cada Área en las distintas vigencias.</div>', unsafe_allow_html=True)
 
         if col_responsable and col_responsable in df_hist_calc.columns:
             df_area_hist = df_hist_calc.copy()
@@ -982,28 +992,6 @@ with tab_historico:
             df_area_hist_exploded[col_responsable] = df_area_hist_exploded[col_responsable].astype(str).str.strip()
             df_area_hist_exploded = df_area_hist_exploded[~df_area_hist_exploded[col_responsable].isin(["", "nan", "None", "None."])]
 
-            df_trend_area = df_area_hist_exploded.groupby(["Vigencia_Limpia", col_responsable]).size().reset_index(name="Hallazgos")
-
-            fig_area_trend = px.line(
-                df_trend_area,
-                x="Vigencia_Limpia",
-                y="Hallazgos",
-                color=col_responsable,
-                markers=True,
-                title="Tendencia Interanual de Hallazgos por Área Responsable"
-            )
-            fig_area_trend.update_layout(
-                height=420,
-                xaxis_title="Vigencia",
-                yaxis_title="Cantidad de Hallazgos",
-                legend_title_text="Área Responsable",
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)"
-            )
-            st.plotly_chart(fig_area_trend, use_container_width=True, key="fig_area_trend_key")
-
-            # Matriz Pivot Robusta
-            st.subheader("📋 Matriz Comparativa Interanual por Área")
             df_pivot_area = pd.pivot_table(
                 df_area_hist_exploded,
                 index=col_responsable,
@@ -1012,6 +1000,8 @@ with tab_historico:
                 fill_value=0
             )
             df_pivot_area["Total Histórico"] = df_pivot_area.sum(axis=1)
+            df_pivot_area = df_pivot_area.sort_values(by="Total Histórico", ascending=False)
+            
             st.dataframe(df_pivot_area, use_container_width=True)
 
     else:

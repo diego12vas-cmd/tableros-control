@@ -914,7 +914,7 @@ with tab_metricas:
 # =========================================================
 with tab_historico:
     st.header("📈 Análisis Histórico e Interanual de Planes de Mejoramiento")
-    st.markdown("Evolución temporal de **Planes de Mejoramiento** por vigencia y distribución por Área Responsable.")
+    st.markdown("Evolución de **Planes de Mejoramiento** por vigencia y distribución por Área Responsable.")
 
     if col_plan_filtro and col_plan_filtro in df_raw.columns:
         df_hist_calc = df_raw.copy()

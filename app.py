@@ -429,12 +429,12 @@ def generar_excel_formateado(df):
 
 
 # ---------------------------------------------------------
-# CARGA DE DATOS (BASE DE DATOS, CÁLCULOS Y LOG_CAMBIOS)
+# CARGA DE DATOS
 # ---------------------------------------------------------
 def cargar_datos():
     if not os.path.exists(EXCEL_PATH):
         st.error(f"⚠️ No se encontró el archivo Excel en la ruta:\n`{EXCEL_PATH}`")
-        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame()
 
     try:
         xls = pd.ExcelFile(EXCEL_PATH)
@@ -449,16 +449,13 @@ def cargar_datos():
         sheet_c = "Calculos" if "Calculos" in xls.sheet_names else ("Cálculos" if "Cálculos" in xls.sheet_names else None)
         df_calc = pd.read_excel(xls, sheet_name=sheet_c, header=None) if sheet_c else pd.DataFrame()
 
-        sheet_log = "Log_cambios" if "Log_cambios" in xls.sheet_names else ("Log Cambios" if "Log Cambios" in xls.sheet_names else None)
-        df_log_cambios = pd.read_excel(xls, sheet_name=sheet_log) if sheet_log else pd.DataFrame()
-
-        return df_base, df_calc, df_log_cambios
+        return df_base, df_calc
     except Exception as e:
         st.error(f"Error al cargar el archivo Excel: {e}")
-        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame()
 
 
-df_raw, df_calc, df_log_cambios = cargar_datos()
+df_raw, df_calc = cargar_datos()
 
 if df_raw.empty:
     st.stop()
@@ -713,16 +710,15 @@ if col_auditoria in df_perf.columns:
 
 
 # ---------------------------------------------------------
-# PESTAÑAS PRINCIPALES
+# PESTAÑAS PRINCIPALES (ORGANIZADAS LÓGICAMENTE - 6 PESTAÑAS)
 # ---------------------------------------------------------
-tab_principal, tab_metricas, tab_alertas, tab_finalizadas, tab_oficios, tab_log, tab_historico = st.tabs([
+tab_principal, tab_metricas, tab_historico, tab_alertas, tab_oficios, tab_finalizadas = st.tabs([
     "📊 Tablero Principal",
     "📈 Métricas de Cumplimiento",
-    "🚨 Alertas y Edición Directa",
-    "🎉 Finalizadas",
-    "📩 Oficios de Solicitud",
-    "📋 Log de Cambios",
     "📈 Comparativa Histórica",
+    "🚨 Alertas y Edición Directa",
+    "📩 Oficios de Solicitud",
+    "🎉 Finalizadas",
 ])
 
 # =========================================================
@@ -918,7 +914,105 @@ with tab_metricas:
 
 
 # =========================================================
-# PESTAÑA 3: ALERTAS CRÍTICAS Y EDICIÓN EN MEMORIA
+# PESTAÑA 3: COMPARATIVA HISTÓRICA E INTERANUAL (POR VIGENCIA Y ÁREAS)
+# =========================================================
+with tab_historico:
+    st.header("📈 Análisis Histórico e Interanual de Auditorías")
+    st.markdown("Evolución temporal del volumen de observaciones por vigencia y tendencia de crecimiento/disminución por Área Responsable.")
+
+    if col_plan_filtro and col_plan_filtro in df_raw.columns:
+        df_hist_calc = df_raw.copy()
+        df_hist_calc["Vigencia_Limpia"] = df_hist_calc[col_plan_filtro].astype(str).str.strip()
+        
+        c_h1, c_h2 = st.columns(2)
+
+        with c_h1:
+            # Gráfico 1: Evolución por Vigencia
+            df_vigencia_totales = df_hist_calc.groupby("Vigencia_Limpia").size().reset_index(name="Total_Hallazgos").sort_values(by="Vigencia_Limpia")
+            fig_hist_line = px.bar(
+                df_vigencia_totales,
+                x="Vigencia_Limpia",
+                y="Total_Hallazgos",
+                text="Total_Hallazgos",
+                title="Evolución Total de Hallazgos por Plan Auditoría / Vigencia",
+                color_discrete_sequence=["#1F4E78"]
+            )
+            fig_hist_line.update_traces(textposition="outside", textfont=dict(size=12, color="var(--text-color)"))
+            fig_hist_line.update_layout(
+                height=340,
+                xaxis_title=None,
+                yaxis_title="Cantidad de Hallazgos",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)"
+            )
+            st.plotly_chart(fig_hist_line, use_container_width=True, key="fig_hist_line_key")
+
+        with c_h2:
+            # Gráfico 2: Comparativa de Estados por Vigencia
+            df_hist_grouped = df_hist_calc.groupby(["Vigencia_Limpia", col_estado]).size().reset_index(name="Cantidad")
+            fig_hist_stack = px.bar(
+                df_hist_grouped,
+                x="Vigencia_Limpia",
+                y="Cantidad",
+                color=col_estado,
+                title="Distribución de Estados por Plan de Auditoría",
+                barmode="stack",
+                color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Sin plan de acción": "#F8A583"}
+            )
+            fig_hist_stack.update_layout(
+                height=340,
+                xaxis_title=None,
+                yaxis_title="Cantidad",
+                legend_title_text="Estado",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)"
+            )
+            st.plotly_chart(fig_hist_stack, use_container_width=True, key="fig_hist_stack_key")
+
+        st.markdown("---")
+
+        # NUEVO: COMPORTAMIENTO INTERANUAL POR ÁREAS RESPONSABLES
+        st.subheader("👥 Crecimiento / Disminución de Hallazgos por Área Responsable")
+        st.markdown('<div class="small-note">Visualiza cómo ha evolucionado el volumen de hallazgos asignados a cada Área a lo largo de las distintas vigencias.</div>', unsafe_allow_html=True)
+
+        if col_responsable and col_responsable in df_hist_calc.columns:
+            df_area_hist = df_hist_calc.copy()
+            df_area_hist[col_responsable] = df_area_hist[col_responsable].astype(str).str.replace("\n", ",").str.split(",")
+            df_area_hist_exploded = df_area_hist.explode(col_responsable)
+            df_area_hist_exploded[col_responsable] = df_area_hist_exploded[col_responsable].astype(str).str.strip()
+            df_area_hist_exploded = df_area_hist_exploded[~df_area_hist_exploded[col_responsable].isin(["", "nan", "None", "None."])]
+
+            df_trend_area = df_area_hist_exploded.groupby(["Vigencia_Limpia", col_responsable]).size().reset_index(name="Hallazgos")
+
+            fig_area_trend = px.line(
+                df_trend_area,
+                x="Vigencia_Limpia",
+                y="Hallazgos",
+                color=col_responsable,
+                markers=True,
+                title="Tendencia Interanual de Hallazgos por Área Responsable"
+            )
+            fig_area_trend.update_layout(
+                height=420,
+                xaxis_title="Vigencia",
+                yaxis_title="Cantidad de Hallazgos",
+                legend_title_text="Área Responsable",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)"
+            )
+            st.plotly_chart(fig_area_trend, use_container_width=True, key="fig_area_trend_key")
+
+            # Matriz Pivot
+            st.subheader("📋 Matriz Comparativa Interanual por Área")
+            df_pivot_area = pd.crosstab(df_area_hist_exploded[col_responsable], df_area_hist_exploded["Vigencia_Limpia"], margins=True, margins_name="Total Historico")
+            st.dataframe(df_pivot_area, use_container_width=True)
+
+    else:
+        st.warning("⚠️ No se detectó la columna 'Plan Auditoría / Vigencia' para estructurar la comparativa histórica.")
+
+
+# =========================================================
+# PESTAÑA 4: ALERTAS CRÍTICAS Y EDICIÓN EN MEMORIA
 # =========================================================
 with tab_alertas:
     st.header("🚨 Alertas Críticas y Edición Directa")
@@ -1150,41 +1244,6 @@ with tab_alertas:
 
 
 # =========================================================
-# PESTAÑA 4: FINALIZADAS
-# =========================================================
-with tab_finalizadas:
-    st.header("🎉 Acciones Finalizadas")
-
-    col_m1, col_m2 = st.columns([0.24, 1])
-
-    with col_m1:
-        st.markdown('<div class="titulo-seccion-finaliz">📅 Cierre Mensual 2026</div>', unsafe_allow_html=True)
-        st.markdown('<div class="month-container">', unsafe_allow_html=True)
-        for m, cant in conteo_meses.items():
-            st.markdown(f'<div class="month-row"><span>{m}</span><div class="month-box">{cant}</div></div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with col_m2:
-        st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Tabla de Planes Finalizados</div>', unsafe_allow_html=True)
-        df_finalizadas_tabla = df_filtrado[df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
-
-        if not df_finalizadas_tabla.empty:
-            df_finalizadas_tabla.index = range(1, len(df_finalizadas_tabla) + 1)
-            st.dataframe(df_finalizadas_tabla, use_container_width=True)
-
-            st.download_button(
-                label="📥 Descargar Solo Finalizadas (.xlsx)",
-                data=generar_excel_formateado(df_finalizadas_tabla),
-                file_name=f"Acciones_Finalizadas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                key="btn_download_finalizadas_only",
-                use_container_width=False,
-            )
-        else:
-            st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
-
-
-# =========================================================
 # PESTAÑA 5: OFICIOS DE SOLICITUD
 # =========================================================
 with tab_oficios:
@@ -1297,140 +1356,35 @@ with tab_oficios:
 
 
 # =========================================================
-# PESTAÑA 6: LOG DE CAMBIOS (TRAZABILIDAD AUDITABLE)
+# PESTAÑA 6: FINALIZADAS
 # =========================================================
-with tab_log:
-    st.header("📋 Log de Cambios y Trazabilidad")
-    st.markdown("Historial detallado de modificaciones registradas sobre los compromisos.")
+with tab_finalizadas:
+    st.header("🎉 Acciones Finalizadas")
 
-    if not df_log_cambios.empty:
-        df_log_vista = df_log_cambios.copy()
-        
-        # Búsqueda o filtro dinámico en el log
-        c_search1, c_search2 = st.columns([2, 1])
-        with c_search1:
-            busqueda_txt = st.text_input("🔍 Buscar en el historial de cambios (por ID, usuario, radicado o texto):", "")
-        
-        if busqueda_txt.strip():
-            mask = df_log_vista.astype(str).apply(lambda row: row.str.contains(busqueda_txt, case=False, na=False)).any(axis=1)
-            df_log_vista = df_log_vista[mask]
+    col_m1, col_m2 = st.columns([0.24, 1])
 
-        df_log_vista.index = range(1, len(df_log_vista) + 1)
+    with col_m1:
+        st.markdown('<div class="titulo-seccion-finaliz">📅 Cierre Mensual 2026</div>', unsafe_allow_html=True)
+        st.markdown('<div class="month-container">', unsafe_allow_html=True)
+        for m, cant in conteo_meses.items():
+            st.markdown(f'<div class="month-row"><span>{m}</span><div class="month-box">{cant}</div></div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        m_log1, m_log2 = st.columns(2)
-        m_log1.metric("📝 Total Cambios Registrados", len(df_log_cambios))
-        m_log2.metric("🔍 Registros Filtrados", len(df_log_vista))
+    with col_m2:
+        st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Tabla de Planes Finalizados</div>', unsafe_allow_html=True)
+        df_finalizadas_tabla = df_filtrado[df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
 
-        st.markdown("---")
-        st.dataframe(df_log_vista, use_container_width=True)
+        if not df_finalizadas_tabla.empty:
+            df_finalizadas_tabla.index = range(1, len(df_finalizadas_tabla) + 1)
+            st.dataframe(df_finalizadas_tabla, use_container_width=True)
 
-        st.download_button(
-            label="📥 Descargar Bitácora de Cambios (.xlsx)",
-            data=generar_excel_formateado(df_log_vista),
-            file_name=f"Bitacora_Log_Cambios_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            key="btn_dl_log_cambios",
-            use_container_width=False,
-        )
-    else:
-        # Extraer bitácora a partir de la columna Observaciones si no existe hoja independiente
-        col_obs_real = col_obs_audit if col_obs_audit in df_raw.columns else None
-        if col_obs_real:
-            df_hist_obs = df_raw.dropna(subset=[col_obs_real]).copy()
-            df_hist_obs = df_hist_obs[df_hist_obs[col_obs_real].astype(str).str.contains("Modificación", case=False, na=False)]
-            
-            if not df_hist_obs.empty:
-                cols_hist = []
-                if "ID" in df_hist_obs.columns: cols_hist.append("ID")
-                if col_plan_filtro and col_plan_filtro in df_hist_obs.columns: cols_hist.append(col_plan_filtro)
-                if col_auditoria and col_auditoria in df_hist_obs.columns: cols_hist.append(col_auditoria)
-                if col_hallazgo and col_hallazgo in df_hist_obs.columns: cols_hist.append(col_hallazgo)
-                cols_hist.append(col_obs_real)
-
-                df_hist_obs_vista = df_hist_obs[cols_hist].copy().reset_index(drop=True)
-                df_hist_obs_vista.index = range(1, len(df_hist_obs_vista) + 1)
-
-                st.metric("📝 Total Registros con Histórico", len(df_hist_obs_vista))
-                st.markdown("---")
-                st.dataframe(df_hist_obs_vista, use_container_width=True)
-
-                st.download_button(
-                    label="📥 Descargar Histórico (.xlsx)",
-                    data=generar_excel_formateado(df_hist_obs_vista),
-                    file_name=f"Historico_Observaciones_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key="btn_dl_hist_obs",
-                    use_container_width=False,
-                )
-            else:
-                st.info("ℹ️ No hay registros de cambios en la hoja 'Log_cambios' ni observaciones registradas.")
+            st.download_button(
+                label="📥 Descargar Solo Finalizadas (.xlsx)",
+                data=generar_excel_formateado(df_finalizadas_tabla),
+                file_name=f"Acciones_Finalizadas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="btn_download_finalizadas_only",
+                use_container_width=False,
+            )
         else:
-            st.info("ℹ️ No se ha encontrado la hoja 'Log_cambios' en el libro de Excel.")
-
-
-# =========================================================
-# PESTAÑA 7: COMPARATIVA HISTÓRICA E INTERANUAL
-# =========================================================
-with tab_historico:
-    st.header("📈 Análisis Histórico e Interanual de Auditorías")
-    st.markdown("Evolución del volumen de observaciones, tasa de cierre y distribución por vigencia.")
-
-    if col_plan_filtro and col_plan_filtro in df_raw.columns:
-        df_hist_calc = df_raw.copy()
-        
-        # Agrupar por Plan Auditoría / Vigencia
-        df_hist_calc["Vigencia_Limpia"] = df_hist_calc[col_plan_filtro].astype(str).str.strip()
-        df_hist_grouped = df_hist_calc.groupby(["Vigencia_Limpia", col_estado]).size().reset_index(name="Cantidad")
-
-        # Gráfico 1: Evolución por Vigencia
-        df_vigencia_totales = df_hist_calc.groupby("Vigencia_Limpia").size().reset_index(name="Total_Hallazgos").sort_values(by="Vigencia_Limpia")
-        
-        fig_hist_line = px.bar(
-            df_vigencia_totales,
-            x="Vigencia_Limpia",
-            y="Total_Hallazgos",
-            text="Total_Hallazgos",
-            title="Evolución Total de Hallazgos por Plan Auditoría / Vigencia",
-            color_discrete_sequence=["#1F4E78"]
-        )
-        fig_hist_line.update_traces(textposition="outside", textfont=dict(size=12, color="var(--text-color)"))
-        fig_hist_line.update_layout(
-            height=320,
-            xaxis_title=None,
-            yaxis_title="Cantidad de Hallazgos",
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)"
-        )
-
-        st.plotly_chart(fig_hist_line, use_container_width=True, key="fig_hist_line_key")
-
-        st.markdown("---")
-
-        # Gráfico 2: Comparativa de Estados por Vigencia
-        fig_hist_stack = px.bar(
-            df_hist_grouped,
-            x="Vigencia_Limpia",
-            y="Cantidad",
-            color=col_estado,
-            title="Distribución de Estados por Plan de Auditoría",
-            barmode="stack",
-            color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Sin plan de acción": "#F8A583"}
-        )
-        fig_hist_stack.update_layout(
-            height=360,
-            xaxis_title=None,
-            yaxis_title="Cantidad",
-            legend_title_text="Estado",
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)"
-        )
-
-        st.plotly_chart(fig_hist_stack, use_container_width=True, key="fig_hist_stack_key")
-
-        # Tabla resumen interanual
-        st.subheader("📋 Resumen Comparativo de Vigencias")
-        df_pivot_vigencias = pd.crosstab(df_hist_calc["Vigencia_Limpia"], df_hist_calc[col_estado], margins=True, margins_name="Total Global")
-        st.dataframe(df_pivot_vigencias, use_container_width=True)
-
-    else:
-        st.warning("⚠️ No se detectó la columna 'Plan Auditoría / Vigencia' para estructurar la comparativa histórica.")
+            st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")

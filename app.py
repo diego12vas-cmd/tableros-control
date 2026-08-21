@@ -507,14 +507,6 @@ col_a10 = buscar_columna_por_patron(df_raw, ["alerta 10"])
 col_a20 = buscar_columna_por_patron(df_raw, ["alerta 20"])
 col_a30 = buscar_columna_por_patron(df_raw, ["alerta 30"])
 
-# COLUMNAS ESPECÍFICAS DE OFICIOS
-col_radicado = "Radicado" if "Radicado" in df_raw.columns else buscar_columna_por_patron(df_raw, ["radicado", "oficio"])
-col_fecha_oficio = "Fecha" if "Fecha" in df_raw.columns else buscar_columna_por_patron(df_raw, ["fecha"])
-col_area_remitente = "Área Remitente" if "Área Remitente" in df_raw.columns else buscar_columna_por_patron(df_raw, ["area remitente", "remitente"])
-col_asunto = "Asunto" if "Asunto" in df_raw.columns else buscar_columna_por_patron(df_raw, ["asunto", "solicitud"])
-col_estado_solicitud = "Estado de la Solicitud" if "Estado de la Solicitud" in df_raw.columns else buscar_columna_por_patron(df_raw, ["estado de la solicitud", "estado solicitud"])
-col_enlace_pdf = "Enlace PDF" if "Enlace PDF" in df_raw.columns else buscar_columna_por_patron(df_raw, ["enlace pdf", "enlace", "pdf"])
-
 if col_estado:
     df_raw[col_estado] = df_raw[col_estado].astype(str).str.capitalize()
 
@@ -1191,7 +1183,7 @@ with tab_finalizadas:
 
 
 # =========================================================
-# PESTAÑA 5: OFICIOS DE SOLICITUD (ROBUSTA Y SIN ARROW ERRORS)
+# PESTAÑA 5: OFICIOS DE SOLICITUD (FORMATEO DE FECHA, RADICADO E ENLACE PDF)
 # =========================================================
 with tab_oficios:
     st.header("📩 Registro e Historial de Oficios Radicados")
@@ -1218,25 +1210,59 @@ with tab_oficios:
         if not df_oficios_raw.empty:
             col_id_nombre = "ID" if "ID" in df_oficios_raw.columns else ("id" if "id" in df_oficios_raw.columns else None)
             
-            # Consolidar radicados de forma segura mediante iteración pura (evita fallos de PyArrow)
+            # Mapeo preciso de nombres de columnas originales
+            col_fecha_orig = buscar_columna_por_patron(df_oficios_raw, ["fecha"])
+            col_area_orig = buscar_columna_por_patron(df_oficios_raw, ["area remitente", "remitente"])
+            col_asunto_orig = buscar_columna_por_patron(df_oficios_raw, ["asunto", "solicitud"])
+            col_est_sol_orig = buscar_columna_por_patron(df_oficios_raw, ["estado de la solicitud", "estado solicitud"])
+            col_link_orig = buscar_columna_por_patron(df_oficios_raw, ["enlace pdf", "enlace", "pdf", "drive"])
+
             radicados_procesados = {}
             for _, row in df_oficios_raw.iterrows():
-                rad_val = str(row[col_rad_target]).strip()
+                # Limpiar Radicado para quitar .0
+                rad_raw = str(row[col_rad_target]).strip()
+                rad_val = rad_raw.replace(".0", "") if rad_raw.endswith(".0") else rad_raw
+
                 id_val = str(row[col_id_nombre]).replace(".0", "").strip() if col_id_nombre and col_id_nombre in row and pd.notnull(row[col_id_nombre]) else ""
                 
+                # Procesar y formatear la fecha
+                fecha_val_str = ""
+                if col_fecha_orig and col_fecha_orig in row and pd.notnull(row[col_fecha_orig]):
+                    f_val = row[col_fecha_orig]
+                    if isinstance(f_val, (datetime, pd.Timestamp, date)):
+                        fecha_val_str = f_val.strftime("%d/%m/%Y")
+                    else:
+                        try:
+                            dt = pd.to_datetime(str(f_val).strip(), errors="coerce")
+                            if pd.notnull(dt):
+                                fecha_val_str = dt.strftime("%d/%m/%Y")
+                            else:
+                                fecha_val_str = str(f_val).strip()
+                        except Exception:
+                            fecha_val_str = str(f_val).strip()
+
+                area_val = str(row[col_area_orig]) if col_area_orig and pd.notnull(row[col_area_orig]) and str(row[col_area_orig]).lower() != "none" else ""
+                asunto_val = str(row[col_asunto_orig]) if col_asunto_orig and pd.notnull(row[col_asunto_orig]) and str(row[col_asunto_orig]).lower() != "none" else ""
+                est_sol_val = str(row[col_est_sol_orig]) if col_est_sol_orig and pd.notnull(row[col_est_sol_orig]) and str(row[col_est_sol_orig]).lower() != "none" else "Aprobado"
+                link_val = str(row[col_link_orig]) if col_link_orig and pd.notnull(row[col_link_orig]) and str(row[col_link_orig]).lower() != "none" else ""
+
                 if rad_val not in radicados_procesados:
-                    dict_fila = {"Radicado": rad_val, "IDs Afectados": [id_val] if id_val else []}
-                    for c_posible in ["Fecha", "Área Remitente", "Asunto", "Estado de la Solicitud", "Enlace PDF"]:
-                        for c_real in df_oficios_raw.columns:
-                            if c_posible.lower() in str(c_real).lower() and c_posible not in dict_fila:
-                                dict_fila[c_posible] = str(row[c_real]) if pd.notnull(row[c_real]) and str(row[c_real]).lower() != "none" else ""
-                                break
-                    radicados_procesados[rad_val] = dict_fila
+                    radicados_procesados[rad_val] = {
+                        "Radicado": rad_val,
+                        "IDs Afectados": [id_val] if id_val else [],
+                        "Fecha": fecha_val_str,
+                        "Área Remitente": area_val,
+                        "Asunto": asunto_val,
+                        "Estado de la Solicitud": est_sol_val,
+                        "Enlace PDF": link_val
+                    }
                 else:
                     if id_val and id_val not in radicados_procesados[rad_val]["IDs Afectados"]:
                         radicados_procesados[rad_val]["IDs Afectados"].append(id_val)
+                    if not radicados_procesados[rad_val]["Fecha"] and fecha_val_str:
+                        radicados_procesados[rad_val]["Fecha"] = fecha_val_str
 
-            # Construir lista limpia de diccionarios
+            # Construir lista limpia
             lista_final_oficios = []
             for rad_val, datos in radicados_procesados.items():
                 datos["IDs Afectados"] = ", ".join(sorted(datos["IDs Afectados"]))
@@ -1254,10 +1280,18 @@ with tab_oficios:
 
             st.markdown("---")
 
-            # Muestra segura de tabla limpia y estilizada
+            # Renderizado elegante con LinkColumn de Streamlit
             st.dataframe(
                 df_oficios_vista,
-                use_container_width=True
+                use_container_width=True,
+                column_config={
+                    "Enlace PDF": st.column_config.LinkColumn(
+                        "Soporte PDF",
+                        help="Haz clic para abrir el oficio en Google Drive",
+                        validate=r"^https://.*",
+                        display_text="📄 Ver PDF"
+                    )
+                }
             )
 
             st.download_button(

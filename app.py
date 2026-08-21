@@ -429,12 +429,12 @@ def generar_excel_formateado(df):
 
 
 # ---------------------------------------------------------
-# CARGA DE DATOS
+# CARGA DE DATOS (BASE DE DATOS, CÁLCULOS Y LOG_CAMBIOS)
 # ---------------------------------------------------------
 def cargar_datos():
     if not os.path.exists(EXCEL_PATH):
         st.error(f"⚠️ No se encontró el archivo Excel en la ruta:\n`{EXCEL_PATH}`")
-        return pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
     try:
         xls = pd.ExcelFile(EXCEL_PATH)
@@ -447,18 +447,18 @@ def cargar_datos():
                 df_base[col] = df_base[col].astype(str).str.strip()
 
         sheet_c = "Calculos" if "Calculos" in xls.sheet_names else ("Cálculos" if "Cálculos" in xls.sheet_names else None)
-        if sheet_c:
-            df_calc = pd.read_excel(xls, sheet_name=sheet_c, header=None)
-        else:
-            df_calc = pd.DataFrame()
+        df_calc = pd.read_excel(xls, sheet_name=sheet_c, header=None) if sheet_c else pd.DataFrame()
 
-        return df_base, df_calc
+        sheet_log = "Log_cambios" if "Log_cambios" in xls.sheet_names else ("Log Cambios" if "Log Cambios" in xls.sheet_names else None)
+        df_log_cambios = pd.read_excel(xls, sheet_name=sheet_log) if sheet_log else pd.DataFrame()
+
+        return df_base, df_calc, df_log_cambios
     except Exception as e:
         st.error(f"Error al cargar el archivo Excel: {e}")
-        return pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
 
-df_raw, df_calc = cargar_datos()
+df_raw, df_calc, df_log_cambios = cargar_datos()
 
 if df_raw.empty:
     st.stop()
@@ -715,12 +715,14 @@ if col_auditoria in df_perf.columns:
 # ---------------------------------------------------------
 # PESTAÑAS PRINCIPALES
 # ---------------------------------------------------------
-tab_principal, tab_metricas, tab_alertas, tab_finalizadas, tab_oficios = st.tabs([
+tab_principal, tab_metricas, tab_alertas, tab_finalizadas, tab_oficios, tab_log, tab_historico = st.tabs([
     "📊 Tablero Principal",
     "📈 Métricas de Cumplimiento",
     "🚨 Alertas y Edición Directa",
     "🎉 Finalizadas",
     "📩 Oficios de Solicitud",
+    "📋 Log de Cambios",
+    "📈 Comparativa Histórica",
 ])
 
 # =========================================================
@@ -1183,14 +1185,12 @@ with tab_finalizadas:
 
 
 # =========================================================
-# PESTAÑA 5: OFICIOS DE SOLICITUD (POSICIONAMIENTO EXACTO Y ENLACE LIMPIO)
+# PESTAÑA 5: OFICIOS DE SOLICITUD
 # =========================================================
 with tab_oficios:
     st.header("📩 Registro e Historial de Oficios Radicados")
     st.markdown("Consulta y trazabilidad formal de los oficios enviados para soporte de modificaciones.")
 
-    # Mapeo por posición exacta según tu estructura de Excel (Hoja Base de datos)
-    # V: Radicado, W: Fecha, X: Área Remitente, Y: Asunto, Z: Estado de la Solicitud, AA: Enlace PDF
     col_rad_target = df_filtrado.columns[21] if len(df_filtrado.columns) > 21 else buscar_columna_por_patron(df_filtrado, ["radicado"])
     col_fecha_target = df_filtrado.columns[22] if len(df_filtrado.columns) > 22 else buscar_columna_por_patron(df_filtrado, ["fecha"])
     col_area_target = df_filtrado.columns[23] if len(df_filtrado.columns) > 23 else buscar_columna_por_patron(df_filtrado, ["area remitente", "remitente"])
@@ -1201,7 +1201,6 @@ with tab_oficios:
     if col_rad_target and col_rad_target in df_filtrado.columns:
         df_oficios_raw = df_filtrado.dropna(subset=[col_rad_target]).copy()
         
-        # Excluir registros eliminados o sin radicado real
         palabras_invalidas = ["nan", "none", "", "0", "0.0", "false", "eliminada", "eliminado", "cancelada", "sin radicado"]
         df_oficios_raw = df_oficios_raw[~df_oficios_raw[col_rad_target].astype(str).str.strip().str.lower().isin(palabras_invalidas)]
 
@@ -1210,13 +1209,11 @@ with tab_oficios:
             
             radicados_procesados = {}
             for _, row in df_oficios_raw.iterrows():
-                # Formatear Radicado sin .0 decimal
                 rad_raw = str(row[col_rad_target]).strip()
                 rad_val = rad_raw.replace(".0", "") if rad_raw.endswith(".0") else rad_raw
 
                 id_val = str(row[col_id_nombre]).replace(".0", "").strip() if col_id_nombre and col_id_nombre in row and pd.notnull(row[col_id_nombre]) else ""
                 
-                # Extraer Fecha de columna W
                 fecha_val_str = ""
                 if col_fecha_target and col_fecha_target in row and pd.notnull(row[col_fecha_target]):
                     f_val = row[col_fecha_target]
@@ -1236,7 +1233,6 @@ with tab_oficios:
                 asunto_val = str(row[col_asunto_target]) if col_asunto_target and pd.notnull(row[col_asunto_target]) and str(row[col_asunto_target]).lower() != "none" else ""
                 est_sol_val = str(row[col_est_sol_target]) if col_est_sol_target and pd.notnull(row[col_est_sol_target]) and str(row[col_est_sol_target]).lower() != "none" else "Aprobado"
                 
-                # Extraer Link de la columna AA
                 link_val = str(row[col_link_target]).strip() if col_link_target and pd.notnull(row[col_link_target]) and str(row[col_link_target]).lower() != "none" else ""
                 if link_val and not link_val.startswith("http"):
                     link_val = f"https://{link_val}"
@@ -1274,7 +1270,6 @@ with tab_oficios:
 
             st.markdown("---")
 
-            # Muestra con ícono clickeable super limpio
             st.dataframe(
                 df_oficios_vista,
                 use_container_width=True,
@@ -1299,3 +1294,143 @@ with tab_oficios:
             st.info("ℹ️ No se han encontrado registros con número de radicado válidos en el archivo.")
     else:
         st.warning("⚠️ No se detectó la columna 'Radicado' en la hoja Base de datos.")
+
+
+# =========================================================
+# PESTAÑA 6: LOG DE CAMBIOS (TRAZABILIDAD AUDITABLE)
+# =========================================================
+with tab_log:
+    st.header("📋 Log de Cambios y Trazabilidad")
+    st.markdown("Historial detallado de modificaciones registradas sobre los compromisos.")
+
+    if not df_log_cambios.empty:
+        df_log_vista = df_log_cambios.copy()
+        
+        # Búsqueda o filtro dinámico en el log
+        c_search1, c_search2 = st.columns([2, 1])
+        with c_search1:
+            busqueda_txt = st.text_input("🔍 Buscar en el historial de cambios (por ID, usuario, radicado o texto):", "")
+        
+        if busqueda_txt.strip():
+            mask = df_log_vista.astype(str).apply(lambda row: row.str.contains(busqueda_txt, case=False, na=False)).any(axis=1)
+            df_log_vista = df_log_vista[mask]
+
+        df_log_vista.index = range(1, len(df_log_vista) + 1)
+
+        m_log1, m_log2 = st.columns(2)
+        m_log1.metric("📝 Total Cambios Registrados", len(df_log_cambios))
+        m_log2.metric("🔍 Registros Filtrados", len(df_log_vista))
+
+        st.markdown("---")
+        st.dataframe(df_log_vista, use_container_width=True)
+
+        st.download_button(
+            label="📥 Descargar Bitácora de Cambios (.xlsx)",
+            data=generar_excel_formateado(df_log_vista),
+            file_name=f"Bitacora_Log_Cambios_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="btn_dl_log_cambios",
+            use_container_width=False,
+        )
+    else:
+        # Extraer bitácora a partir de la columna Observaciones si no existe hoja independiente
+        col_obs_real = col_obs_audit if col_obs_audit in df_raw.columns else None
+        if col_obs_real:
+            df_hist_obs = df_raw.dropna(subset=[col_obs_real]).copy()
+            df_hist_obs = df_hist_obs[df_hist_obs[col_obs_real].astype(str).str.contains("Modificación", case=False, na=False)]
+            
+            if not df_hist_obs.empty:
+                cols_hist = []
+                if "ID" in df_hist_obs.columns: cols_hist.append("ID")
+                if col_plan_filtro and col_plan_filtro in df_hist_obs.columns: cols_hist.append(col_plan_filtro)
+                if col_auditoria and col_auditoria in df_hist_obs.columns: cols_hist.append(col_auditoria)
+                if col_hallazgo and col_hallazgo in df_hist_obs.columns: cols_hist.append(col_hallazgo)
+                cols_hist.append(col_obs_real)
+
+                df_hist_obs_vista = df_hist_obs[cols_hist].copy().reset_index(drop=True)
+                df_hist_obs_vista.index = range(1, len(df_hist_obs_vista) + 1)
+
+                st.metric("📝 Total Registros con Histórico", len(df_hist_obs_vista))
+                st.markdown("---")
+                st.dataframe(df_hist_obs_vista, use_container_width=True)
+
+                st.download_button(
+                    label="📥 Descargar Histórico (.xlsx)",
+                    data=generar_excel_formateado(df_hist_obs_vista),
+                    file_name=f"Historico_Observaciones_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="btn_dl_hist_obs",
+                    use_container_width=False,
+                )
+            else:
+                st.info("ℹ️ No hay registros de cambios en la hoja 'Log_cambios' ni observaciones registradas.")
+        else:
+            st.info("ℹ️ No se ha encontrado la hoja 'Log_cambios' en el libro de Excel.")
+
+
+# =========================================================
+# PESTAÑA 7: COMPARATIVA HISTÓRICA E INTERANUAL
+# =========================================================
+with tab_historico:
+    st.header("📈 Análisis Histórico e Interanual de Auditorías")
+    st.markdown("Evolución del volumen de observaciones, tasa de cierre y distribución por vigencia.")
+
+    if col_plan_filtro and col_plan_filtro in df_raw.columns:
+        df_hist_calc = df_raw.copy()
+        
+        # Agrupar por Plan Auditoría / Vigencia
+        df_hist_calc["Vigencia_Limpia"] = df_hist_calc[col_plan_filtro].astype(str).str.strip()
+        df_hist_grouped = df_hist_calc.groupby(["Vigencia_Limpia", col_estado]).size().reset_index(name="Cantidad")
+
+        # Gráfico 1: Evolución por Vigencia
+        df_vigencia_totales = df_hist_calc.groupby("Vigencia_Limpia").size().reset_index(name="Total_Hallazgos").sort_values(by="Vigencia_Limpia")
+        
+        fig_hist_line = px.bar(
+            df_vigencia_totales,
+            x="Vigencia_Limpia",
+            y="Total_Hallazgos",
+            text="Total_Hallazgos",
+            title="Evolución Total de Hallazgos por Plan Auditoría / Vigencia",
+            color_discrete_sequence=["#1F4E78"]
+        )
+        fig_hist_line.update_traces(textposition="outside", textfont=dict(size=12, color="var(--text-color)"))
+        fig_hist_line.update_layout(
+            height=320,
+            xaxis_title=None,
+            yaxis_title="Cantidad de Hallazgos",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)"
+        )
+
+        st.plotly_chart(fig_hist_line, use_container_width=True, key="fig_hist_line_key")
+
+        st.markdown("---")
+
+        # Gráfico 2: Comparativa de Estados por Vigencia
+        fig_hist_stack = px.bar(
+            df_hist_grouped,
+            x="Vigencia_Limpia",
+            y="Cantidad",
+            color=col_estado,
+            title="Distribución de Estados por Plan de Auditoría",
+            barmode="stack",
+            color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Sin plan de acción": "#F8A583"}
+        )
+        fig_hist_stack.update_layout(
+            height=360,
+            xaxis_title=None,
+            yaxis_title="Cantidad",
+            legend_title_text="Estado",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)"
+        )
+
+        st.plotly_chart(fig_hist_stack, use_container_width=True, key="fig_hist_stack_key")
+
+        # Tabla resumen interanual
+        st.subheader("📋 Resumen Comparativo de Vigencias")
+        df_pivot_vigencias = pd.crosstab(df_hist_calc["Vigencia_Limpia"], df_hist_calc[col_estado], margins=True, margins_name="Total Global")
+        st.dataframe(df_pivot_vigencias, use_container_width=True)
+
+    else:
+        st.warning("⚠️ No se detectó la columna 'Plan Auditoría / Vigencia' para estructurar la comparativa histórica.")

@@ -1183,52 +1183,43 @@ with tab_finalizadas:
 
 
 # =========================================================
-# PESTAÑA 5: OFICIOS DE SOLICITUD (FORMATEO DE FECHA, RADICADO E ENLACE PDF)
+# PESTAÑA 5: OFICIOS DE SOLICITUD (POSICIONAMIENTO EXACTO Y ENLACE LIMPIO)
 # =========================================================
 with tab_oficios:
     st.header("📩 Registro e Historial de Oficios Radicados")
     st.markdown("Consulta y trazabilidad formal de los oficios enviados para soporte de modificaciones.")
 
-    # Detección ultra flexible de la columna Radicado
-    col_rad_target = None
-    for c in df_filtrado.columns:
-        if "radicado" in str(c).lower() or "oficio" in str(c).lower():
-            col_rad_target = c
-            break
+    # Mapeo por posición exacta según tu estructura de Excel (Hoja Base de datos)
+    # V: Radicado, W: Fecha, X: Área Remitente, Y: Asunto, Z: Estado de la Solicitud, AA: Enlace PDF
+    col_rad_target = df_filtrado.columns[21] if len(df_filtrado.columns) > 21 else buscar_columna_por_patron(df_filtrado, ["radicado"])
+    col_fecha_target = df_filtrado.columns[22] if len(df_filtrado.columns) > 22 else buscar_columna_por_patron(df_filtrado, ["fecha"])
+    col_area_target = df_filtrado.columns[23] if len(df_filtrado.columns) > 23 else buscar_columna_por_patron(df_filtrado, ["area remitente", "remitente"])
+    col_asunto_target = df_filtrado.columns[24] if len(df_filtrado.columns) > 24 else buscar_columna_por_patron(df_filtrado, ["asunto", "solicitud"])
+    col_est_sol_target = df_filtrado.columns[25] if len(df_filtrado.columns) > 25 else buscar_columna_por_patron(df_filtrado, ["estado de la solicitud", "estado solicitud"])
+    col_link_target = df_filtrado.columns[26] if len(df_filtrado.columns) > 26 else buscar_columna_por_patron(df_filtrado, ["enlace pdf", "enlace", "pdf"])
 
     if col_rad_target and col_rad_target in df_filtrado.columns:
         df_oficios_raw = df_filtrado.dropna(subset=[col_rad_target]).copy()
         
-        # Excluir palabras no válidas o registros borrados
+        # Excluir registros eliminados o sin radicado real
         palabras_invalidas = ["nan", "none", "", "0", "0.0", "false", "eliminada", "eliminado", "cancelada", "sin radicado"]
         df_oficios_raw = df_oficios_raw[~df_oficios_raw[col_rad_target].astype(str).str.strip().str.lower().isin(palabras_invalidas)]
-        
-        col_area_temp = buscar_columna_por_patron(df_oficios_raw, ["area remitente", "remitente"])
-        if col_area_temp and col_area_temp in df_oficios_raw.columns:
-            df_oficios_raw = df_oficios_raw[df_oficios_raw[col_area_temp].notnull() & (~df_oficios_raw[col_area_temp].astype(str).str.strip().str.lower().isin(["none", "nan", ""]))]
 
         if not df_oficios_raw.empty:
             col_id_nombre = "ID" if "ID" in df_oficios_raw.columns else ("id" if "id" in df_oficios_raw.columns else None)
             
-            # Mapeo preciso de nombres de columnas originales
-            col_fecha_orig = buscar_columna_por_patron(df_oficios_raw, ["fecha"])
-            col_area_orig = buscar_columna_por_patron(df_oficios_raw, ["area remitente", "remitente"])
-            col_asunto_orig = buscar_columna_por_patron(df_oficios_raw, ["asunto", "solicitud"])
-            col_est_sol_orig = buscar_columna_por_patron(df_oficios_raw, ["estado de la solicitud", "estado solicitud"])
-            col_link_orig = buscar_columna_por_patron(df_oficios_raw, ["enlace pdf", "enlace", "pdf", "drive"])
-
             radicados_procesados = {}
             for _, row in df_oficios_raw.iterrows():
-                # Limpiar Radicado para quitar .0
+                # Formatear Radicado sin .0 decimal
                 rad_raw = str(row[col_rad_target]).strip()
                 rad_val = rad_raw.replace(".0", "") if rad_raw.endswith(".0") else rad_raw
 
                 id_val = str(row[col_id_nombre]).replace(".0", "").strip() if col_id_nombre and col_id_nombre in row and pd.notnull(row[col_id_nombre]) else ""
                 
-                # Procesar y formatear la fecha
+                # Extraer Fecha de columna W
                 fecha_val_str = ""
-                if col_fecha_orig and col_fecha_orig in row and pd.notnull(row[col_fecha_orig]):
-                    f_val = row[col_fecha_orig]
+                if col_fecha_target and col_fecha_target in row and pd.notnull(row[col_fecha_target]):
+                    f_val = row[col_fecha_target]
                     if isinstance(f_val, (datetime, pd.Timestamp, date)):
                         fecha_val_str = f_val.strftime("%d/%m/%Y")
                     else:
@@ -1241,10 +1232,14 @@ with tab_oficios:
                         except Exception:
                             fecha_val_str = str(f_val).strip()
 
-                area_val = str(row[col_area_orig]) if col_area_orig and pd.notnull(row[col_area_orig]) and str(row[col_area_orig]).lower() != "none" else ""
-                asunto_val = str(row[col_asunto_orig]) if col_asunto_orig and pd.notnull(row[col_asunto_orig]) and str(row[col_asunto_orig]).lower() != "none" else ""
-                est_sol_val = str(row[col_est_sol_orig]) if col_est_sol_orig and pd.notnull(row[col_est_sol_orig]) and str(row[col_est_sol_orig]).lower() != "none" else "Aprobado"
-                link_val = str(row[col_link_orig]) if col_link_orig and pd.notnull(row[col_link_orig]) and str(row[col_link_orig]).lower() != "none" else ""
+                area_val = str(row[col_area_target]) if col_area_target and pd.notnull(row[col_area_target]) and str(row[col_area_target]).lower() != "none" else ""
+                asunto_val = str(row[col_asunto_target]) if col_asunto_target and pd.notnull(row[col_asunto_target]) and str(row[col_asunto_target]).lower() != "none" else ""
+                est_sol_val = str(row[col_est_sol_target]) if col_est_sol_target and pd.notnull(row[col_est_sol_target]) and str(row[col_est_sol_target]).lower() != "none" else "Aprobado"
+                
+                # Extraer Link de la columna AA
+                link_val = str(row[col_link_target]).strip() if col_link_target and pd.notnull(row[col_link_target]) and str(row[col_link_target]).lower() != "none" else ""
+                if link_val and not link_val.startswith("http"):
+                    link_val = f"https://{link_val}"
 
                 if rad_val not in radicados_procesados:
                     radicados_procesados[rad_val] = {
@@ -1262,7 +1257,6 @@ with tab_oficios:
                     if not radicados_procesados[rad_val]["Fecha"] and fecha_val_str:
                         radicados_procesados[rad_val]["Fecha"] = fecha_val_str
 
-            # Construir lista limpia
             lista_final_oficios = []
             for rad_val, datos in radicados_procesados.items():
                 datos["IDs Afectados"] = ", ".join(sorted(datos["IDs Afectados"]))
@@ -1280,15 +1274,14 @@ with tab_oficios:
 
             st.markdown("---")
 
-            # Renderizado elegante con LinkColumn de Streamlit
+            # Muestra con ícono clickeable super limpio
             st.dataframe(
                 df_oficios_vista,
                 use_container_width=True,
                 column_config={
                     "Enlace PDF": st.column_config.LinkColumn(
                         "Soporte PDF",
-                        help="Haz clic para abrir el oficio en Google Drive",
-                        validate=r"^https://.*",
+                        help="Haz clic para abrir el archivo en Google Drive",
                         display_text="📄 Ver PDF"
                     )
                 }

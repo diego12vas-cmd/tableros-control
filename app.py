@@ -710,7 +710,7 @@ if col_auditoria in df_perf.columns:
 
 
 # ---------------------------------------------------------
-# PESTAÑAS PRINCIPALES (ORGANIZADAS LÓGICAMENTE - 6 PESTAÑAS)
+# PESTAÑAS PRINCIPALES (ORGANIZADAS Y OPTIMIZADAS - 6 PESTAÑAS)
 # ---------------------------------------------------------
 tab_principal, tab_metricas, tab_historico, tab_alertas, tab_oficios, tab_finalizadas = st.tabs([
     "📊 Tablero Principal",
@@ -914,7 +914,7 @@ with tab_metricas:
 
 
 # =========================================================
-# PESTAÑA 3: COMPARATIVA HISTÓRICA E INTERANUAL (POR VIGENCIA Y ÁREAS)
+# PESTAÑA 3: COMPARATIVA HISTÓRICA E INTERANUAL
 # =========================================================
 with tab_historico:
     st.header("📈 Análisis Histórico e Interanual de Auditorías")
@@ -971,7 +971,7 @@ with tab_historico:
 
         st.markdown("---")
 
-        # NUEVO: COMPORTAMIENTO INTERANUAL POR ÁREAS RESPONSABLES
+        # COMPORTAMIENTO INTERANUAL POR ÁREAS RESPONSABLES (PIVOT SEGURO)
         st.subheader("👥 Crecimiento / Disminución de Hallazgos por Área Responsable")
         st.markdown('<div class="small-note">Visualiza cómo ha evolucionado el volumen de hallazgos asignados a cada Área a lo largo de las distintas vigencias.</div>', unsafe_allow_html=True)
 
@@ -1002,9 +1002,16 @@ with tab_historico:
             )
             st.plotly_chart(fig_area_trend, use_container_width=True, key="fig_area_trend_key")
 
-            # Matriz Pivot
+            # Matriz Pivot Robusta
             st.subheader("📋 Matriz Comparativa Interanual por Área")
-            df_pivot_area = pd.crosstab(df_area_hist_exploded[col_responsable], df_area_hist_exploded["Vigencia_Limpia"], margins=True, margins_name="Total Historico")
+            df_pivot_area = pd.pivot_table(
+                df_area_hist_exploded,
+                index=col_responsable,
+                columns="Vigencia_Limpia",
+                aggfunc="size",
+                fill_value=0
+            )
+            df_pivot_area["Total Histórico"] = df_pivot_area.sum(axis=1)
             st.dataframe(df_pivot_area, use_container_width=True)
 
     else:

@@ -48,7 +48,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS RESPONSIVOS (SIN BOTONES SOBRE TABLAS Y MENÚ MÓVIL)
+# ESTILOS CSS RESPONSIVOS (OCULTA HERRAMIENTAS Y MANTIENE MENÚ)
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -67,15 +67,32 @@ st.markdown(
         button[title*="Manage app"] {display: none !important;}
         iframe[title*="manage-app"] {display: none !important;}
 
-        /* OCULTA BOTONES EMERGENTES DE ZOOM, FOTO Y BÚSQUEDA EN LAS TABLAS */
-        [data-testid="stElementToolbar"] {
-            display: none !important;
-        }
+        /* OCULTA BARRA DE HERRAMIENTAS Y BOTONES FLOTANTES EN TABLAS Y GRÁFICOS */
+        [data-testid="stElementToolbar"],
+        .modebar,
+        .plotly .modebar,
         button[title="View fullscreen"],
         button[title="Download"],
-        button[title="Search"],
-        div[data-testid="stDataFrame"] button {
+        button[title="Search"] {
             display: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+        }
+
+        /* FORCE VISIBILIDAD DEL BOTÓN PARA DESPLEGAR LA BARRA LATERAL EN MÓVIL Y PC */
+        [data-testid="stSidebarCollapsedControl"],
+        button[data-testid="stBaseButton-headerNoPadding"] {
+            display: flex !important;
+            visibility: visible !important;
+            position: fixed !important;
+            top: 0.5rem !important;
+            left: 0.5rem !important;
+            z-index: 9999999 !important;
+            background-color: var(--background-color) !important;
+            border: 1px solid #CBD5E1 !important;
+            border-radius: 6px !important;
+            padding: 4px !important;
+            box-shadow: 0px 2px 6px rgba(0,0,0,0.15) !important;
         }
 
         header[data-testid="stHeader"] {
@@ -84,7 +101,7 @@ st.markdown(
         }
 
         .block-container {
-            padding-top: 2rem !important;
+            padding-top: 2.2rem !important;
             padding-bottom: 2rem !important;
         }
 
@@ -101,18 +118,6 @@ st.markdown(
         [data-testid="stSidebar"] {
             min-width: 360px !important;
             max-width: 360px !important;
-        }
-        
-        /* BOTÓN FLOTANTE VISIBLE PARA ABRIR LA BARRA LATERAL */
-        [data-testid="stSidebarCollapsedControl"] {
-            display: flex !important;
-            visibility: visible !important;
-            top: 0.6rem !important;
-            left: 0.6rem !important;
-            z-index: 9999999 !important;
-            background-color: var(--background-color) !important;
-            border-radius: 50% !important;
-            box-shadow: 0px 2px 6px rgba(0,0,0,0.2) !important;
         }
 
         div[data-baseweb="popover"] {
@@ -270,7 +275,7 @@ st.markdown(
             .block-container {
                 padding-left: 0.5rem !important;
                 padding-right: 0.5rem !important;
-                padding-top: 1rem !important;
+                padding-top: 1.2rem !important;
             }
             .titulo-tablero {
                 font-size: 1.1rem !important;
@@ -608,7 +613,7 @@ if col_auditoria:
 
 
 # ---------------------------------------------------------
-# MÉTRICAS Y GRÁFICOS
+# MÉTRICAS Y GRÁFICOS (SIN BARRA DE HERRAMIENTAS FLOTANTE)
 # ---------------------------------------------------------
 abiertos = df_filtrado[col_estado].astype(str).str.contains("Abiert", case=False, na=False).sum() if col_estado else 0
 vencidos = df_filtrado[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
@@ -840,16 +845,16 @@ with tab_principal:
         )
 
         st.markdown('<div class="block-header" style="margin-top:2px;">Distribución de Planes Pendientes</div>', unsafe_allow_html=True)
-        st.plotly_chart(fig_bar, use_container_width=True, key="fig_bar_pendientes")
+        st.plotly_chart(fig_bar, use_container_width=True, key="fig_bar_pendientes", config={'displayModeBar': False})
 
     with c4:
         st.markdown('<div class="block-header">Porcentaje de Acciones Pendientes</div>', unsafe_allow_html=True)
         
         st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#00B050;">🟢 En tiempo (Abiertos)</div>', unsafe_allow_html=True)
-        st.plotly_chart(fig_dona_abiertos, use_container_width=True, key="fig_dona_abiertos_key")
+        st.plotly_chart(fig_dona_abiertos, use_container_width=True, key="fig_dona_abiertos_key", config={'displayModeBar': False})
         
         st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#FF5252;">🔴 Vencidos</div>', unsafe_allow_html=True)
-        st.plotly_chart(fig_dona_vencidos, use_container_width=True, key="fig_dona_vencidos_key")
+        st.plotly_chart(fig_dona_vencidos, use_container_width=True, key="fig_dona_vencidos_key", config={'displayModeBar': False})
 
     st.markdown("---")
 
@@ -1010,7 +1015,7 @@ with tab_metricas:
     st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_area}</div>', unsafe_allow_html=True)
 
     if fig_area_horiz is not None:
-        st.plotly_chart(fig_area_horiz, use_container_width=True, key="fig_area_horiz_key")
+        st.plotly_chart(fig_area_horiz, use_container_width=True, key="fig_area_horiz_key", config={'displayModeBar': False})
     else:
         st.success("🎉 ¡Excelente! No hay compromisos pendientes en ninguna área.")
 
@@ -1019,7 +1024,7 @@ with tab_metricas:
     st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_aud}</div>', unsafe_allow_html=True)
 
     if fig_aud_horiz is not None:
-        st.plotly_chart(fig_aud_horiz, use_container_width=True, key="fig_aud_horiz_key")
+        st.plotly_chart(fig_aud_horiz, use_container_width=True, key="fig_aud_horiz_key", config={'displayModeBar': False})
     else:
         st.info("No hay compromisos pendientes en las auditorías.")
 
@@ -1061,7 +1066,7 @@ with tab_historico:
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(0,0,0,0)"
             )
-            st.plotly_chart(fig_hist_line, use_container_width=True, key="fig_hist_line_key")
+            st.plotly_chart(fig_hist_line, use_container_width=True, key="fig_hist_line_key", config={'displayModeBar': False})
             
             st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Planes de Mejoramiento Históricos: <b>{sum_tot_g1}</b></div>', unsafe_allow_html=True)
 
@@ -1109,7 +1114,7 @@ with tab_historico:
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(0,0,0,0)"
             )
-            st.plotly_chart(fig_hist_stack, use_container_width=True, key="fig_hist_stack_key")
+            st.plotly_chart(fig_hist_stack, use_container_width=True, key="fig_hist_stack_key", config={'displayModeBar': False})
 
             st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Evaluados: <b>{sum_tot_g2}</b></div>', unsafe_allow_html=True)
 

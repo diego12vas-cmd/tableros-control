@@ -11,7 +11,7 @@ import streamlit as st
 # CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="Tablero de Control - Planes de Acción Auditoría Interna",
+    page_title="Tablero de Control y Gestión - Auditoría Interna",
     page_icon="📊",
     layout="wide",
 )
@@ -268,8 +268,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# TÍTULO PRINCIPAL
-st.markdown('<div class="titulo-tablero">📊 Tablero de Control - Planes de Acción Auditorías Internas</div>', unsafe_allow_html=True)
+# TÍTULO PRINCIPAL INTEGRAL
+st.markdown('<div class="titulo-tablero">📊 Tablero de Control y Gestión - Auditoría Interna</div>', unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------
@@ -712,7 +712,7 @@ if col_auditoria in df_perf.columns:
 
 
 # ---------------------------------------------------------
-# PESTAÑAS PRINCIPALES (REORDENADAS POR FLUJO DE TRABAJO)
+# PESTAÑAS PRINCIPALES (ORDENADAS POR FLUJO DE PROCESO)
 # ---------------------------------------------------------
 tab_principal, tab_paa, tab_metricas, tab_historico, tab_alertas, tab_oficios, tab_finalizadas, tab_informes = st.tabs([
     "📊 Tablero",

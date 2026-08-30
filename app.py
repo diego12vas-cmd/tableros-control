@@ -25,6 +25,20 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
+# BÚSQUEDA DEL LOGO LOCAL
+# ---------------------------------------------------------
+def buscar_logo_local():
+    dir_script = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
+    nombres_logo = ["logo_terminal.png", "logo_terminal.jpg", "logo.png", "logo.jpg"]
+    for n in nombres_logo:
+        ruta = os.path.join(dir_script, n)
+        if os.path.exists(ruta):
+            return ruta
+    return None
+
+LOGO_PATH = buscar_logo_local()
+
+# ---------------------------------------------------------
 # BASE DE DATOS LOCAL Y GESTIÓN DE ROLES/PERMISOS (SQLITE)
 # ---------------------------------------------------------
 DB_PATH = "usuarios_app.db"
@@ -260,7 +274,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS
+# ESTILOS CSS CON VERDE INSTITUCIONAL EN LÍNEAS DE SEPARACIÓN
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -301,7 +315,7 @@ st.markdown(
             pointer-events: none !important;
         }
 
-        /* Borde superior e integración verde institucional */
+        /* Barra Lateral con borde superior Verde Institucional */
         [data-testid="stSidebar"] {
             min-width: 320px !important;
             max-width: 320px !important;
@@ -458,16 +472,16 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ENCABEZADO CON LOGO OFICIAL
-st.markdown(
-    """
-    <div class="titulo-tablero">
-        <img src="https://www.terminaldetransporte.gov.co/sites/default/files/logo_0.png" height="42" alt="La Terminal">
-        <span>Tablero de Control y Gestión - Auditoría Interna</span>
-    </div>
-""",
-    unsafe_allow_html=True,
-)
+# ENCABEZADO PRINCIPAL CON LOGO DE LA TERMINAL
+col_head_logo, col_head_title = st.columns([1, 4])
+with col_head_logo:
+    if LOGO_PATH:
+        st.image(LOGO_PATH, use_container_width=True)
+    else:
+        st.markdown("🚌 **LA TERMINAL**")
+
+with col_head_title:
+    st.markdown('<div class="titulo-tablero">Tablero de Control y Gestión - Auditoría Interna</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
 # BÚSQUEDA DEL EXCEL
@@ -629,7 +643,8 @@ if not df_calc.empty:
 # ---------------------------------------------------------
 # BARRA LATERAL (LOGO EN SIDEBAR Y FILTROS)
 # ---------------------------------------------------------
-st.sidebar.image("https://www.terminaldetransporte.gov.co/sites/default/files/logo_0.png", use_container_width=True)
+if LOGO_PATH:
+    st.sidebar.image(LOGO_PATH, use_container_width=True)
 
 st.sidebar.title("🔍 Filtros del Tablero")
 

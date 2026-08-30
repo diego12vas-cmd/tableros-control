@@ -48,7 +48,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS COMPACTOS & RESPONSIVOS
+# ESTILOS CSS COMPACTOS & RESPONSIVOS (OCULTA EL BOTÓN NEGRO)
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -63,19 +63,22 @@ st.markdown(
         [data-testid="stDecoration"] {display:none !important;}
         [data-testid="stStatusWidget"] {display:none !important;}
 
-        /* 1. Reducir la altura del header transparente de Streamlit */
+        /* Oculta la pestaña negra inferior de gestión de Streamlit */
+        div[data-testid="stManageApp"] {display: none !important;}
+        div[class*="stManageApp"] {display: none !important;}
+        button[title*="Manage app"] {display: none !important;}
+        iframe[title*="manage-app"] {display: none !important;}
+
         header[data-testid="stHeader"] {
             height: 2.5rem !important;
             background: transparent !important;
         }
 
-        /* 2. Dar espacio superior suficiente para el título principal */
         .block-container {
             padding-top: 2rem !important;
-            padding-bottom: 1rem !important;
+            padding-bottom: 2rem !important;
         }
 
-        /* 3. Estilo del título principal */
         .titulo-tablero {
             font-size: 1.35rem !important;
             font-weight: 700 !important;
@@ -141,12 +144,10 @@ st.markdown(
             margin-bottom: 4px;
         }
 
-        /* --- ALINEACIÓN Y ESPACIADO ROBUSTO PARA FINALIZADAS --- */
         [data-testid="stHorizontalBlock"] {
             align-items: flex-start !important;
         }
 
-        /* Espacio superior para que la tabla no se monte en el título */
         div[data-testid="stDataFrame"] {
             margin-top: 12px !important;
             padding-top: 0px !important;
@@ -162,7 +163,6 @@ st.markdown(
             white-space: nowrap !important;
         }
 
-        /* --- CONTROL DE ESPACIO DE LA LISTA DE MESES --- */
         .month-container {
             margin-left: 0 !important;
             margin-top: 8px !important;
@@ -243,7 +243,6 @@ st.markdown(
             color: #FFFFFF !important;
         }
 
-        /* --- AJUSTES DE DISEÑO RESPONSIVO PARA MÓVILES (CELULARES) --- */
         @media (max-width: 768px) {
             .block-container {
                 padding-left: 0.8rem !important;
@@ -324,6 +323,35 @@ def limpiar_nombre_area(texto):
 
     txt = re.sub(r"\s+", " ", txt).strip()
     return txt
+
+
+def obtener_fecha_excel():
+    if not EXCEL_PATH or not os.path.exists(EXCEL_PATH):
+        return None
+    try:
+        xls = pd.ExcelFile(EXCEL_PATH)
+        if "Tablero" in xls.sheet_names:
+            df_tablero = pd.read_excel(xls, sheet_name="Tablero", header=None)
+            for col in df_tablero.columns:
+                for row_idx, val in enumerate(df_tablero[col].dropna()):
+                    val_str = str(val).strip()
+                    if "última fecha de actualización" in val_str.lower() or "ultima fecha" in val_str.lower():
+                        match = re.search(r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})", val_str)
+                        if match:
+                            return match.group(1)
+                        if row_idx + 1 < len(df_tablero):
+                            val_next = str(df_tablero[col].iloc[row_idx + 1]).strip()
+                            match_next = re.search(r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})", val_next)
+                            if match_next:
+                                return match_next.group(1)
+        
+        timestamp_mod = os.path.getmtime(EXCEL_PATH)
+        return datetime.fromtimestamp(timestamp_mod).strftime("%d/%m/%Y")
+    except Exception:
+        if os.path.exists(EXCEL_PATH):
+            timestamp_mod = os.path.getmtime(EXCEL_PATH)
+            return datetime.fromtimestamp(timestamp_mod).strftime("%d/%m/%Y")
+        return None
 
 
 # ---------------------------------------------------------
@@ -411,12 +439,12 @@ def generar_excel_formateado(df):
 
 
 # ---------------------------------------------------------
-# CARGA DE DATOS (TIEMPO REAL)
+# CARGA DE DATOS (BASE DE DATOS E INFORMES DE LA HOJA 'Enlace PDF')
 # ---------------------------------------------------------
 def cargar_datos():
     if not os.path.exists(EXCEL_PATH):
         st.error(f"No se encontró el archivo Excel en la ruta: {EXCEL_PATH}")
-        return pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame()
 
     try:
         xls = pd.ExcelFile(EXCEL_PATH)
@@ -432,13 +460,17 @@ def cargar_datos():
             if df_base[col].dtype == "object":
                 df_base[col] = df_base[col].astype(str).str.strip()
 
-        return df_base
+        # Lectura directa de la hoja 'Enlace PDF' para Informes de Auditoría
+        sheet_inf = "Enlace PDF" if "Enlace PDF" in xls.sheet_names else ("Enlace pdf" if "Enlace pdf" in xls.sheet_names else None)
+        df_informes = pd.read_excel(xls, sheet_name=sheet_inf) if sheet_inf else pd.DataFrame()
+
+        return df_base, df_informes
     except Exception as e:
         st.error(f"Error al cargar el archivo Excel: {e}")
-        return pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame()
 
 
-df_raw = cargar_datos()
+df_raw, df_informes_raw = cargar_datos()
 
 if df_raw.empty:
     st.stop()
@@ -533,9 +565,15 @@ if col_estado:
 # ---------------------------------------------------------
 st.sidebar.title("🔍 Filtros Contraloría")
 
+fecha_excel = obtener_fecha_excel()
+if fecha_excel:
+    st.sidebar.markdown(f"📅 **Datos actualizados al:** {fecha_excel}")
+
 if st.sidebar.button("🚪 Cerrar Sesión"):
     st.session_state["autenticado"] = False
     st.rerun()
+
+st.sidebar.markdown("---")
 
 df_filtrado = df_raw.copy()
 
@@ -588,11 +626,10 @@ if col_fecha_cierre_aud and col_fecha_cierre_aud in df_filtrado.columns:
 
 
 # ---------------------------------------------------------
-# MÉTRICAS Y FIGURAS EXCLUYENDO FINALIZADAS (HALLAZGOS ÚNICOS)
+# MÉTRICAS Y FIGURAS EXCLUYENDO FINALIZADAS
 # ---------------------------------------------------------
 df_activos = df_filtrado[~df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else df_filtrado.copy()
 
-# CONTEO ÚNICO DE HALLAZGOS DESDE 'DESCRIPCIÓN HALLAZGO'
 if col_hallazgo and col_hallazgo in df_activos.columns:
     hallazgos_limpios = df_activos[col_hallazgo].dropna().astype(str).str.strip().str.upper()
     hallazgos_validos = hallazgos_limpios[~hallazgos_limpios.isin(["", "NAN", "NONE", "0"])]
@@ -605,7 +642,6 @@ vencidos = df_filtrado[col_estado].astype(str).str.contains("Vencid", case=False
 
 total_planes_pendientes = abiertos + vencidos
 
-# --- BARRAS SOLO PENDIENTES ---
 max_val = max([abiertos, vencidos])
 df_bar = pd.DataFrame({"Estado": ["Abiertos", "Vencidos"], "Cantidad": [abiertos, vencidos]})
 
@@ -624,8 +660,7 @@ fig_bar.update_layout(
     plot_bgcolor="rgba(0,0,0,0)"
 )
 
-# --- LAS 2 DONAS ---
-# 1. En Tiempo (Abiertos)
+# DONAS
 pct_abiertos = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
 colors_abiertos = ["#00B050" if i < (pct_abiertos / 5) else "#E0E0E0" for i in range(20)]
 
@@ -635,7 +670,6 @@ fig_dona_abiertos = go.Figure(data=[
 fig_dona_abiertos.add_annotation(text=f"<b>{pct_abiertos}%</b>", x=0.5, y=0.5, font=dict(size=28, color="var(--text-color)"), showarrow=False)
 fig_dona_abiertos.update_layout(autosize=True, showlegend=False, height=145, margin=dict(t=2, b=2, l=2, r=2), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
-# 2. Vencidos
 pct_vencidos = round((vencidos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
 colors_vencidos = ["#FF5252" if i < (pct_vencidos / 5) else "#E0E0E0" for i in range(20)]
 
@@ -799,11 +833,12 @@ if col_auditoria in df_perf.columns:
 # ---------------------------------------------------------
 # DEFINICIÓN DE PESTAÑAS
 # ---------------------------------------------------------
-tab_principal, tab_metricas, tab_alertas, tab_finalizadas = st.tabs([
+tab_principal, tab_metricas, tab_alertas, tab_finalizadas, tab_informes = st.tabs([
     "📊 Tablero Principal",
     "📈 Métricas de Cumplimiento",
     "🚨 Alertas y Edición Directa",
     "🎉 Finalizadas",
+    "📑 Informes de Auditoría",
 ])
 
 # =========================================================
@@ -812,7 +847,6 @@ tab_principal, tab_metricas, tab_alertas, tab_finalizadas = st.tabs([
 with tab_principal:
     c2, c3, c4 = st.columns([2.5, 2.5, 2.0])
 
-    # --- COLUMNA 1: HALLAZGOS ÚNICOS Y PLANES ---
     with c2:
         st.markdown('<div class="block-header">Total Hallazgos Pendientes</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="card-box" style="background-color:#4B92DB; font-size:1.3rem; height:34px; line-height:26px;">{total_hallazgos_unicos_pendientes}</div>', unsafe_allow_html=True)
@@ -830,7 +864,6 @@ with tab_principal:
             st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none;">Vencidos</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="card-box" style="background-color:#FF5252; color:#FFFFFF; font-size:1.1rem; padding:6px;">{vencidos}</div>', unsafe_allow_html=True)
 
-    # --- COLUMNA 2: ALERTAS Y BARRAS ---
     with c3:
         st.markdown('<div class="block-header">Acciones próximas a vencer</div>', unsafe_allow_html=True)
 
@@ -881,7 +914,6 @@ with tab_principal:
         st.markdown('<div class="block-header" style="margin-top:2px;">Distribución de Planes Pendientes</div>', unsafe_allow_html=True)
         st.plotly_chart(fig_bar, use_container_width=True, key="fig_bar_contraloria")
 
-    # --- COLUMNA 3: DONAS ---
     with c4:
         st.markdown('<div class="block-header">Porcentaje de Acciones Pendientes</div>', unsafe_allow_html=True)
         
@@ -1139,7 +1171,7 @@ with tab_alertas:
 
 
 # =========================================================
-# PESTAÑA 4: FINALIZADAS (EXCLUSIVA)
+# PESTAÑA 4: FINALIZADAS
 # =========================================================
 with tab_finalizadas:
     st.header("🎉 Acciones Finalizadas Contraloría")
@@ -1172,3 +1204,70 @@ with tab_finalizadas:
             )
         else:
             st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
+
+
+# =========================================================
+# PESTAÑA 5: INFORMES DE AUDITORÍA (LECTURA DE LA HOJA 'Enlace PDF')
+# =========================================================
+with tab_informes:
+    st.header("📑 Informes de Auditoría de la Contraloría")
+    st.markdown("Relación consolidada de los informes de auditoría dejados por la Contraloría de Bogotá agrupados por vigencia.")
+
+    if not df_informes_raw.empty:
+        df_inf_vista = df_informes_raw.copy()
+        
+        # Limpieza y formateo de columnas
+        col_vig_inf = buscar_columna_por_patron(df_inf_vista, ["vigencia"]) or df_inf_vista.columns[0]
+        col_nom_inf = buscar_columna_por_patron(df_inf_vista, ["nombre", "informe"]) or df_inf_vista.columns[1]
+        col_link_inf = buscar_columna_por_patron(df_inf_vista, ["enlace", "pdf", "link", "drive"]) or df_inf_vista.columns[2]
+
+        df_inf_vista[col_vig_inf] = (
+            df_inf_vista[col_vig_inf]
+            .astype(str)
+            .str.replace(".0", "", regex=False)
+            .str.strip()
+        )
+        df_inf_vista[col_vig_inf] = df_inf_vista[col_vig_inf].apply(
+            lambda v: f"Vigencia {v}" if v.isdigit() else v
+        )
+
+        # Formateo del link para asegurar https://
+        def asegurar_link(u):
+            val = str(u).strip()
+            if val and val.lower() not in ["nan", "none", ""] and not val.startswith("http"):
+                return f"https://{val}"
+            return val
+
+        df_inf_vista[col_link_inf] = df_inf_vista[col_link_inf].apply_series(asegurar_link) if hasattr(df_inf_vista[col_link_inf], 'apply_series') else df_inf_vista[col_link_inf].apply(asegurar_link)
+
+        df_inf_vista.index = range(1, len(df_inf_vista) + 1)
+
+        # Métricas
+        mi1, mi2 = st.columns(2)
+        mi1.metric("📑 Total Informes Registrados", len(df_inf_vista))
+        mi2.metric("📅 Vigencias Cubiertas", df_inf_vista[col_vig_inf].nunique())
+
+        st.markdown("---")
+
+        st.dataframe(
+            df_inf_vista,
+            use_container_width=True,
+            column_config={
+                col_link_inf: st.column_config.LinkColumn(
+                    "Soporte PDF",
+                    help="Haz clic para abrir el archivo del informe en PDF",
+                    display_text="📄 Ver PDF"
+                )
+            }
+        )
+
+        st.download_button(
+            label="📥 Descargar Listado de Informes (.xlsx)",
+            data=generar_excel_formateado(df_inf_vista),
+            file_name=f"Relacion_Informes_Contraloria_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="btn_download_informes_pdf",
+            use_container_width=False,
+        )
+    else:
+        st.info("ℹ️ Aún no hay informes registrados en la hoja 'Enlace PDF' del archivo Excel.")

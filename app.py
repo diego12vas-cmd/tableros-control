@@ -712,13 +712,13 @@ if col_auditoria in df_perf.columns:
 
 
 # ---------------------------------------------------------
-# PESTAÑAS PRINCIPALES (8 PESTAÑAS COMPLETAS E INTEGRADAS)
+# PESTAÑAS PRINCIPALES (REORDENADAS POR FLUJO DE TRABAJO)
 # ---------------------------------------------------------
-tab_principal, tab_metricas, tab_historico, tab_paa, tab_alertas, tab_oficios, tab_finalizadas, tab_informes = st.tabs([
+tab_principal, tab_paa, tab_metricas, tab_historico, tab_alertas, tab_oficios, tab_finalizadas, tab_informes = st.tabs([
     "📊 Tablero",
+    "🗓️ Programa Anual",
     "📈 Métricas",
     "📊 Histórico",
-    "🗓️ Programa Anual",
     "🚨 Alertas y Edición",
     "📩 Oficios",
     "🎉 Finalizadas",
@@ -881,7 +881,86 @@ with tab_principal:
 
 
 # =========================================================
-# PESTAÑA 2: MÉTRICAS DE CUMPLIMIENTO
+# PESTAÑA 2: PROGRAMA ANUAL DE AUDITORÍA (PAA)
+# =========================================================
+with tab_paa:
+    st.header("🗓️ Programa Anual de Auditoría (PAA)")
+    st.markdown("Relación de auditorías específicas y su estado de ejecución agrupadas por vigencia.")
+
+    if not df_paa_raw.empty:
+        df_paa_vista = df_paa_raw.copy()
+        
+        col_vig_paa = buscar_columna_por_patron(df_paa_vista, ["vigencia"]) or df_paa_vista.columns[0]
+        col_tipo_paa = buscar_columna_por_patron(df_paa_vista, ["tipologia", "tipo"]) or df_paa_vista.columns[1]
+        col_nom_paa = buscar_columna_por_patron(df_paa_vista, ["nombre", "auditoria"]) or df_paa_vista.columns[2]
+        col_est_paa = buscar_columna_por_patron(df_paa_vista, ["estado"]) or df_paa_vista.columns[3]
+
+        df_paa_vista[col_vig_paa] = df_paa_vista[col_vig_paa].ffill()
+        df_paa_vista[col_vig_paa] = (
+            df_paa_vista[col_vig_paa]
+            .astype(str)
+            .str.replace(".0", "", regex=False)
+            .str.strip()
+        )
+
+        if col_tipo_paa:
+            df_paa_vista[col_tipo_paa] = df_paa_vista[col_tipo_paa].ffill()
+
+        vigencias_paa_unicas = sorted([
+            v for v in df_paa_vista[col_vig_paa].dropna().unique() 
+            if str(v).lower() not in ["nan", "none", ""]
+        ])
+
+        if vigencias_paa_unicas:
+            subtabs_paa = st.tabs([f"📅 Vigencia {v}" if str(v).isdigit() else str(v) for v in vigencias_paa_unicas])
+
+            for i, vig in enumerate(vigencias_paa_unicas):
+                with subtabs_paa[i]:
+                    df_sub_paa = df_paa_vista[df_paa_vista[col_vig_paa] == vig].copy().reset_index(drop=True)
+                    
+                    tot_p = len(df_sub_paa)
+                    fin_p = df_sub_paa[col_est_paa].astype(str).str.contains("Finaliz", case=False, na=False).sum() if col_est_paa else 0
+                    asig_p = tot_p - fin_p
+                    pct_p = round((fin_p / tot_p) * 100) if tot_p > 0 else 0
+
+                    m_p1, m_p2, m_p3, m_p4 = st.columns(4)
+                    m_p1.metric("📋 Total Auditorías Programadas", tot_p)
+                    m_p2.metric("✅ Auditorías Finalizadas", fin_p)
+                    m_p3.metric("⏳ Asignadas / En Proceso", asig_p)
+                    m_p4.metric("📊 Tasa de Ejecución", f"{pct_p}%")
+
+                    st.markdown("---")
+
+                    df_sub_paa.index = range(1, len(df_sub_paa) + 1)
+
+                    def resaltar_finalizadas(row):
+                        val_est = str(row[col_est_paa]).lower() if col_est_paa and pd.notnull(row[col_est_paa]) else ""
+                        if "finaliz" in val_est:
+                            return ["background-color: #D9EAD3; color: #000000; font-weight: normal;"] * len(row)
+                        return [""] * len(row)
+
+                    st.dataframe(
+                        df_sub_paa.style.apply(resaltar_finalizadas, axis=1),
+                        use_container_width=True
+                    )
+
+            st.markdown("---")
+            st.download_button(
+                label="📥 Descargar Programa Anual de Auditoría (.xlsx)",
+                data=generar_excel_formateado(df_paa_vista),
+                file_name=f"Programa_Anual_Auditoria_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="btn_download_paa",
+                use_container_width=False,
+            )
+        else:
+            st.info("ℹ️ No hay vigencias registradas en la hoja 'Programa Anual de Auditoría'.")
+    else:
+        st.info("ℹ️ No se encontró información en la hoja 'Programa Anual de Auditoría' del archivo Excel.")
+
+
+# =========================================================
+# PESTAÑA 3: MÉTRICAS DE CUMPLIMIENTO
 # =========================================================
 with tab_metricas:
     st.header("📈 Resumen de Estado y Desempeño")
@@ -918,7 +997,7 @@ with tab_metricas:
 
 
 # =========================================================
-# PESTAÑA 3: COMPARATIVA HISTÓRICA DE PLANES DE MEJORAMIENTO
+# PESTAÑA 4: COMPARATIVA HISTÓRICA DE PLANES DE MEJORAMIENTO
 # =========================================================
 with tab_historico:
     st.header("📊 Análisis Histórico e Interanual de Planes de Mejoramiento")
@@ -1032,85 +1111,6 @@ with tab_historico:
 
     else:
         st.warning("⚠️ No se detectó la columna 'Plan Auditoría / Vigencia' para estructurar la comparativa histórica.")
-
-
-# =========================================================
-# PESTAÑA 4: PROGRAMA ANUAL DE AUDITORÍA
-# =========================================================
-with tab_paa:
-    st.header("🗓️ Programa Anual de Auditoría (PAA)")
-    st.markdown("Relación de auditorías específicas y su estado de ejecución agrupadas por vigencia.")
-
-    if not df_paa_raw.empty:
-        df_paa_vista = df_paa_raw.copy()
-        
-        col_vig_paa = buscar_columna_por_patron(df_paa_vista, ["vigencia"]) or df_paa_vista.columns[0]
-        col_tipo_paa = buscar_columna_por_patron(df_paa_vista, ["tipologia", "tipo"]) or df_paa_vista.columns[1]
-        col_nom_paa = buscar_columna_por_patron(df_paa_vista, ["nombre", "auditoria"]) or df_paa_vista.columns[2]
-        col_est_paa = buscar_columna_por_patron(df_paa_vista, ["estado"]) or df_paa_vista.columns[3]
-
-        df_paa_vista[col_vig_paa] = df_paa_vista[col_vig_paa].ffill()
-        df_paa_vista[col_vig_paa] = (
-            df_paa_vista[col_vig_paa]
-            .astype(str)
-            .str.replace(".0", "", regex=False)
-            .str.strip()
-        )
-
-        if col_tipo_paa:
-            df_paa_vista[col_tipo_paa] = df_paa_vista[col_tipo_paa].ffill()
-
-        vigencias_paa_unicas = sorted([
-            v for v in df_paa_vista[col_vig_paa].dropna().unique() 
-            if str(v).lower() not in ["nan", "none", ""]
-        ])
-
-        if vigencias_paa_unicas:
-            subtabs_paa = st.tabs([f"📅 Vigencia {v}" if str(v).isdigit() else str(v) for v in vigencias_paa_unicas])
-
-            for i, vig in enumerate(vigencias_paa_unicas):
-                with subtabs_paa[i]:
-                    df_sub_paa = df_paa_vista[df_paa_vista[col_vig_paa] == vig].copy().reset_index(drop=True)
-                    
-                    tot_p = len(df_sub_paa)
-                    fin_p = df_sub_paa[col_est_paa].astype(str).str.contains("Finaliz", case=False, na=False).sum() if col_est_paa else 0
-                    asig_p = tot_p - fin_p
-                    pct_p = round((fin_p / tot_p) * 100) if tot_p > 0 else 0
-
-                    m_p1, m_p2, m_p3, m_p4 = st.columns(4)
-                    m_p1.metric("📋 Total Auditorías Programadas", tot_p)
-                    m_p2.metric("✅ Auditorías Finalizadas", fin_p)
-                    m_p3.metric("⏳ Asignadas / En Proceso", asig_p)
-                    m_p4.metric("📊 Tasa de Ejecución", f"{pct_p}%")
-
-                    st.markdown("---")
-
-                    df_sub_paa.index = range(1, len(df_sub_paa) + 1)
-
-                    def resaltar_finalizadas(row):
-                        val_est = str(row[col_est_paa]).lower() if col_est_paa and pd.notnull(row[col_est_paa]) else ""
-                        if "finaliz" in val_est:
-                            return ["background-color: #D9EAD3; color: #000000; font-weight: normal;"] * len(row)
-                        return [""] * len(row)
-
-                    st.dataframe(
-                        df_sub_paa.style.apply(resaltar_finalizadas, axis=1),
-                        use_container_width=True
-                    )
-
-            st.markdown("---")
-            st.download_button(
-                label="📥 Descargar Programa Anual de Auditoría (.xlsx)",
-                data=generar_excel_formateado(df_paa_vista),
-                file_name=f"Programa_Anual_Auditoria_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                key="btn_download_paa",
-                use_container_width=False,
-            )
-        else:
-            st.info("ℹ️ No hay vigencias registradas en la hoja 'Programa Anual de Auditoría'.")
-    else:
-        st.info("ℹ️ No se encontró información en la hoja 'Programa Anual de Auditoría' del archivo Excel.")
 
 
 # =========================================================

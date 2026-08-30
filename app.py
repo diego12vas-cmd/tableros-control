@@ -48,7 +48,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS COMPACTOS, ELEGANTES Y RESPONSIVOS (PC Y MÓVIL)
+# ESTILOS CSS RESPONSIVOS (SIN BOTONES SOBRE TABLAS Y MENÚ MÓVIL)
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -66,6 +66,17 @@ st.markdown(
         div[class*="stManageApp"] {display: none !important;}
         button[title*="Manage app"] {display: none !important;}
         iframe[title*="manage-app"] {display: none !important;}
+
+        /* OCULTA BOTONES EMERGENTES DE ZOOM, FOTO Y BÚSQUEDA EN LAS TABLAS */
+        [data-testid="stElementToolbar"] {
+            display: none !important;
+        }
+        button[title="View fullscreen"],
+        button[title="Download"],
+        button[title="Search"],
+        div[data-testid="stDataFrame"] button {
+            display: none !important;
+        }
 
         header[data-testid="stHeader"] {
             height: 2.5rem !important;
@@ -91,6 +102,19 @@ st.markdown(
             min-width: 360px !important;
             max-width: 360px !important;
         }
+        
+        /* BOTÓN FLOTANTE VISIBLE PARA ABRIR LA BARRA LATERAL */
+        [data-testid="stSidebarCollapsedControl"] {
+            display: flex !important;
+            visibility: visible !important;
+            top: 0.6rem !important;
+            left: 0.6rem !important;
+            z-index: 9999999 !important;
+            background-color: var(--background-color) !important;
+            border-radius: 50% !important;
+            box-shadow: 0px 2px 6px rgba(0,0,0,0.2) !important;
+        }
+
         div[data-baseweb="popover"] {
             z-index: 99999999 !important;
             position: fixed !important;
@@ -241,7 +265,7 @@ st.markdown(
             color: #FFFFFF !important;
         }
 
-        /* --- ADAPTACIÓN RESPONSIVA PARA CELULARES (MÓVILES) --- */
+        /* --- ADAPTACIÓN RESPONSIVA PARA CELULARES --- */
         @media (max-width: 768px) {
             .block-container {
                 padding-left: 0.5rem !important;
@@ -266,9 +290,6 @@ st.markdown(
             div[data-testid="stDataFrame"] {
                 width: 100% !important;
                 overflow-x: auto !important;
-            }
-            [data-testid="stSidebar"] {
-                min-width: 100% !important;
             }
         }
     </style>

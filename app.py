@@ -25,7 +25,7 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
-# BASE DE DATOS LOCAL Y PESTAÑAS
+# BASE DE DATOS LOCAL Y GESTIÓN DE ROLES/PERMISOS
 # ---------------------------------------------------------
 DB_PATH = "usuarios_app.db"
 
@@ -353,31 +353,6 @@ st.markdown(
             font-weight: bold;
             font-size: 0.85rem;
         }
-        .small-note {
-            background-color: rgba(75, 146, 219, 0.15);
-            border-left: 4px solid #2B6CB0;
-            padding: 8px 14px;
-            border-radius: 4px;
-            font-size: 0.82rem;
-            color: var(--text-color);
-            margin-bottom: 12px;
-            line-height: 1.4;
-        }
-        .total-acciones-box {
-            background-color: rgba(241, 245, 249, 0.15);
-            border: 1px solid #CBD5E1;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 1.1rem;
-            color: var(--text-color);
-            display: inline-block;
-            margin-bottom: 12px;
-        }
-        .month-container {
-            margin-left: 0 !important;
-            margin-top: 8px !important;
-        }
         .month-row {
             display: flex;
             justify-content: space-between;
@@ -413,7 +388,7 @@ st.markdown(
 st.markdown('<div class="titulo-tablero">📊 Tablero de Control y Gestión - Auditoría Interna</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# CARGA DE EXCEL Y PROCESAMIENTO
+# CARGA DE EXCEL PORTABLE Y FORMATOS DE ENLACE PDF
 # ---------------------------------------------------------
 def buscar_excel_inteligente():
     dir_script = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
@@ -689,7 +664,7 @@ if col_auditoria:
         df_filtrado = df_filtrado[df_filtrado[col_auditoria].isin(auditoria_sel)]
 
 # ---------------------------------------------------------
-# MÉTRICAS Y FIGURAS
+# MÉTRICAS Y FIGURAS RESTAURADAS CON DISEÑO COMPLETO
 # ---------------------------------------------------------
 abiertos = df_filtrado[col_estado].astype(str).str.contains("Abiert", case=False, na=False).sum() if col_estado else 0
 vencidos = df_filtrado[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
@@ -878,7 +853,7 @@ for nombre_tab, tab_obj in zip(pestañas_permitidas, tabs):
             st.download_button(label="📥 Descargar Excel (.xlsx)", data=generar_excel_formateado(df_tabla), file_name=f"Detalle_Compromisos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
         elif nombre_tab == "Programa Anual":
-            st.header("🗓️ Programa Anual de Auditoría (PAA)")
+            st.markdown("### 🗓️ Programa Anual de Auditoría (PAA)")
             if not df_paa_raw.empty:
                 df_paa_vista = df_paa_raw.copy()
                 col_vig_paa = buscar_columna_por_patron(df_paa_vista, ["vigencia"]) or df_paa_vista.columns[0]
@@ -905,7 +880,7 @@ for nombre_tab, tab_obj in zip(pestañas_permitidas, tabs):
                 st.info("ℹ️ No hay datos en Programa Anual de Auditoría.")
 
         elif nombre_tab == "Métricas":
-            st.header("📈 Resumen de Estado y Desempeño")
+            st.markdown("### 📈 Resumen de Estado y Desempeño")
             m1, m2, m3, m4 = st.columns(4)
             m1.metric("Planes de Acción Pendientes", total_planes_pendientes)
             m2.metric("🔴 Compromisos Vencidos", vencidos)
@@ -919,17 +894,18 @@ for nombre_tab, tab_obj in zip(pestañas_permitidas, tabs):
             if fig_aud_horiz: st.plotly_chart(fig_aud_horiz, use_container_width=True, key="fig_aud_horiz_key", config={'displayModeBar': False})
 
         elif nombre_tab == "Histórico":
-            st.header("📊 Análisis Histórico e Interanual de Planes de Mejoramiento")
+            st.markdown("### 📊 Análisis Histórico e Interanual de Planes de Mejoramiento")
             if col_plan_filtro and col_plan_filtro in df_raw.columns:
                 df_hist_calc = df_raw.copy()
                 df_hist_calc["Vigencia_Limpia"] = df_hist_calc[col_plan_filtro].astype(str).str.strip()
                 df_vigencia_totales = df_hist_calc.groupby("Vigencia_Limpia").size().reset_index(name="Total_Planes").sort_values(by="Vigencia_Limpia")
                 fig_hist_line = px.bar(df_vigencia_totales, x="Vigencia_Limpia", y="Total_Planes", text="Total_Planes", title="Evolución Total de Planes de Mejoramiento por Vigencia", color_discrete_sequence=["#1F4E78"])
                 fig_hist_line.update_traces(textposition="outside")
+                fig_hist_line.update_layout(xaxis_title=None, yaxis_title="Total Planes", margin=dict(t=50, b=40, l=40, r=40))
                 st.plotly_chart(fig_hist_line, use_container_width=True, key="fig_hist_line_key", config={'displayModeBar': False})
 
         elif nombre_tab == "Alertas y Edición":
-            st.header("🚨 Alertas Críticas y Edición Directa")
+            st.markdown("### 🚨 Alertas Críticas y Edición Directa")
             st.subheader("✏️ Establecer Compromisos")
             df_edicion_temp = df_raw.copy()
             if col_hallazgo and not df_edicion_temp.empty:
@@ -950,16 +926,26 @@ for nombre_tab, tab_obj in zip(pestañas_permitidas, tabs):
                             st.toast("✅ ¡Modificación registrada temporalmente!", icon="🎉")
 
         elif nombre_tab == "Oficios":
-            st.header("📩 Registro e Historial de Oficios Radicados")
-            col_rad_target = buscar_columna_por_patron(df_filtrado, ["radicado"])
-            if col_rad_target:
-                df_oficios_raw = df_filtrado.dropna(subset=[col_rad_target]).copy()
-                st.dataframe(df_oficios_raw, use_container_width=True)
+            st.markdown("### 📩 Registro e Historial de Oficios Radicados")
+            col_pdf_of = buscar_columna_por_patron(df_filtrado, ["enlace", "pdf", "drive", "url"])
+            if col_pdf_of:
+                st.dataframe(
+                    df_filtrado,
+                    use_container_width=True,
+                    column_config={
+                        col_pdf_of: st.column_config.LinkColumn(
+                            "Enlace PDF",
+                            help="Abrir documento en Google Drive",
+                            validate="^https://.*",
+                            display_text="🔴 Abrir PDF"
+                        )
+                    }
+                )
             else:
-                st.info("ℹ️ No se detectaron columnas de oficio radicado.")
+                st.dataframe(df_filtrado, use_container_width=True)
 
         elif nombre_tab == "Finalizadas":
-            st.header("🎉 Acciones Finalizadas")
+            st.markdown("### 🎉 Acciones Finalizadas")
             col_m1, col_m2 = st.columns([0.24, 1])
             with col_m1:
                 st.markdown('<div class="titulo-seccion-finaliz">📅 Cierre Mensual 2026</div>', unsafe_allow_html=True)
@@ -972,14 +958,31 @@ for nombre_tab, tab_obj in zip(pestañas_permitidas, tabs):
                     st.dataframe(df_finalizadas_tabla, use_container_width=True)
 
         elif nombre_tab == "Informes":
-            st.header("📑 Informes de Auditoría Interna por Vigencia")
+            st.markdown("### 📑 Informes de Auditoría Interna por Vigencia")
             if not df_informes_raw.empty:
                 df_inf_vista = df_informes_raw.copy()
                 col_vig_inf = buscar_columna_por_patron(df_inf_vista, ["vigencia"]) or df_inf_vista.columns[0]
+                col_pdf_inf = buscar_columna_por_patron(df_inf_vista, ["enlace", "pdf", "drive", "url"])
                 vigencias_unicas = sorted([v for v in df_inf_vista[col_vig_inf].dropna().unique() if str(v).lower() not in ["nan", "none", ""]])
+                
                 if vigencias_unicas:
                     subtabs = st.tabs([f"📅 Vigencia {v}" if str(v).isdigit() else str(v) for v in vigencias_unicas])
                     for i, vig in enumerate(vigencias_unicas):
                         with subtabs[i]:
                             df_sub_vig = df_inf_vista[df_inf_vista[col_vig_inf] == vig].copy().reset_index(drop=True)
-                            st.dataframe(df_sub_vig, use_container_width=True)
+                            
+                            if col_pdf_inf:
+                                st.dataframe(
+                                    df_sub_vig,
+                                    use_container_width=True,
+                                    column_config={
+                                        col_pdf_inf: st.column_config.LinkColumn(
+                                            "Enlace PDF",
+                                            help="Abrir informe en Google Drive",
+                                            validate="^https://.*",
+                                            display_text="🔴 Abrir PDF"
+                                        )
+                                    }
+                                )
+                            else:
+                                st.dataframe(df_sub_vig, use_container_width=True)

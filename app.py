@@ -1,3 +1,8 @@
+import sqlite3
+import smtplib
+from email.mime.text import MIMEText
+import random
+import string
 from datetime import date, datetime
 import io
 import os
@@ -6,9 +11,10 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+import bcrypt
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA (BARRA LATERAL SIEMPRE DESPLEGADA)
+# CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="Tablero de Control y Gestión - Auditoría Interna",
@@ -18,7 +24,85 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
-# SISTEMA DE AUTENTICACIÓN SEGURA (STREAMLIT SECRETS)
+# BASE DE DATOS LOCAL PARA USUARIOS Y CONTRASEÑAS (SQLITE)
+# ---------------------------------------------------------
+DB_PATH = "usuarios_app.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    # Tabla de usuarios
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS usuarios (
+            usuario TEXT PRIMARY KEY,
+            email TEXT UNIQUE,
+            password_hash TEXT,
+            autorizado INTEGER DEFAULT 1,
+            token_recuperacion TEXT
+        )
+    ''')
+    conn.commit()
+    
+    # Crear usuario administrador por defecto si la base de datos está vacía
+    c.execute("SELECT COUNT(*) FROM usuarios")
+    if c.fetchone()[0] == 0:
+        salt = bcrypt.gensalt()
+        pw_hash = bcrypt.hashpw("admin123".encode('utf-8'), salt).decode('utf-8')
+        c.execute("INSERT INTO usuarios (usuario, email, password_hash, autorizado) VALUES (?, ?, ?, 1)",
+                  ("admin", "admin@empresa.com", pw_hash))
+        conn.commit()
+    conn.close()
+
+init_db()
+
+# ---------------------------------------------------------
+# FUNCIONES DE AUTENTICACIÓN Y RECUPERACIÓN
+# ---------------------------------------------------------
+def verificar_password(password, hashed):
+    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+def hash_password(password):
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def enviar_correo_token(email_destino, token):
+    """
+    Configura tus credenciales SMTP en Streamlit Secrets o variables de entorno:
+    [smtp]
+    server = "smtp.gmail.com"
+    port = 587
+    user = "tu_correo@gmail.com"
+    password = "tu_password_de_aplicacion"
+    """
+    try:
+        smtp_config = st.secrets.get("smtp", {})
+        server_host = smtp_config.get("server", "smtp.gmail.com")
+        port = int(smtp_config.get("port", 587))
+        remitente = smtp_config.get("user", "")
+        password_remitente = smtp_config.get("password", "")
+
+        if not remitente or not password_remitente:
+            st.warning("⚠️ No se ha configurado el servidor SMTP en los secrets para enviar el correo real.")
+            return True # Retorna True para pruebas locales mostrando el token en pantalla
+
+        asunto = "Código de Recuperación de Contraseña - Tablero Auditoría"
+        cuerpo = f"Hola,\n\nTu código de verificación para restablecer la contraseña es: {token}\n\nSi no solicitaste este cambio, ignora este mensaje."
+
+        msg = MIMEText(cuerpo)
+        msg['Subject'] = asunto
+        msg['From'] = remitente
+        msg['To'] = email_destino
+
+        with smtplib.SMTP(server_host, port) as server:
+            server.starttls()
+            server.login(remitente, password_remitente)
+            server.sendmail(remitente, [email_destino], msg.as_string())
+        return True
+    except Exception as e:
+        st.error(f"Error al enviar correo: {e}")
+        return False
+
+# ---------------------------------------------------------
+# SISTEMA DE LOGIN Y RECUPERACIÓN DE CONTRASEÑA
 # ---------------------------------------------------------
 def validar_login():
     if "autenticado" not in st.session_state:
@@ -26,21 +110,105 @@ def validar_login():
 
     if not st.session_state["autenticado"]:
         st.markdown("## 🔒 Acceso Restringido")
-        st.caption("Por favor, ingresa tus credenciales para acceder al tablero de Auditoría Interna.")
+        st.caption("Ingresa tus credenciales para acceder al tablero de Auditoría Interna.")
         
-        c1, _ = st.columns([1.5, 2])
-        with c1:
-            usuario = st.text_input("Usuario", key="user_input_ai")
-            password = st.text_input("Contraseña", type="password", key="pass_input_ai")
-            
-            if st.button("Iniciar Sesión", type="primary", use_container_width=True):
-                usuarios_validos = st.secrets.get("passwords", {})
+        tab_login, tab_recovery = st.tabs(["🔑 Iniciar Sesión", "❓ Olvidé mi Contraseña"])
+        
+        # --- SUB-PESTAÑA 1: INICIO DE SESIÓN ---
+        with tab_login:
+            c1, _ = st.columns([1.5, 2])
+            with c1:
+                usuario = st.text_input("Usuario", key="user_input_ai")
+                password = st.text_input("Contraseña", type="password", key="pass_input_ai")
                 
-                if usuario in usuarios_validos and str(usuarios_validos[usuario]) == password:
-                    st.session_state["autenticado"] = True
-                    st.rerun()
-                else:
-                    st.error("❌ Usuario o contraseña incorrectos.")
+                if st.button("Iniciar Sesión", type="primary", use_container_width=True):
+                    conn = sqlite3.connect(DB_PATH)
+                    c = conn.cursor()
+                    c.execute("SELECT password_hash, autorizado FROM usuarios WHERE usuario = ?", (usuario.strip(),))
+                    row = c.fetchone()
+                    conn.close()
+
+                    if row:
+                        pw_hash, autorizado = row
+                        if autorizado == 0:
+                            st.error("🚫 Tu usuario no está autorizado para acceder. Contacta al administrador.")
+                        elif verificar_password(password, pw_hash):
+                            st.session_state["autenticado"] = True
+                            st.session_state["usuario_actual"] = usuario
+                            st.rerun()
+                        else:
+                            st.error("❌ Usuario o contraseña incorrectos.")
+                    else:
+                        st.error("❌ Usuario o contraseña incorrectos.")
+
+        # --- SUB-PESTAÑA 2: RECUPERACIÓN DE CONTRASEÑA ---
+        with tab_recovery:
+            c2, _ = st.columns([1.5, 2])
+            with c2:
+                st.markdown("##### Restablecer Contraseña")
+                paso = st.session_state.get("paso_recuperacion", 1)
+
+                if paso == 1:
+                    email_req = st.text_input("Ingresa tu correo electrónico registrado:")
+                    if st.button("Enviar Código de Verificación", use_container_width=True):
+                        conn = sqlite3.connect(DB_PATH)
+                        c = conn.cursor()
+                        c.execute("SELECT usuario, autorizado FROM usuarios WHERE email = ?", (email_req.strip().lower(),))
+                        row = c.fetchone()
+
+                        if row:
+                            user_found, aut = row
+                            if aut == 0:
+                                st.error("🚫 Este usuario no está autorizado.")
+                            else:
+                                # Genera código numérico de 6 dígitos
+                                token = "".join(random.choices(string.digits, k=6))
+                                c.execute("UPDATE usuarios SET token_recuperacion = ? WHERE email = ?", (token, email_req.strip().lower()))
+                                conn.commit()
+                                
+                                if enviar_correo_token(email_req.strip().lower(), token):
+                                    st.session_state["email_recuperacion"] = email_req.strip().lower()
+                                    st.session_state["paso_recuperacion"] = 2
+                                    st.success("✅ Código enviado a tu correo. Por favor revísalo.")
+                                    st.rerun()
+                        else:
+                            st.error("❌ El correo no se encuentra registrado en el sistema.")
+                        conn.close()
+
+                elif paso == 2:
+                    st.info(f"Código enviado a: **{st.session_state.get('email_recuperacion')}**")
+                    token_ingresado = st.text_input("Ingresa el código de 6 dígitos recibido:")
+                    nueva_pw = st.text_input("Nueva Contraseña:", type="password")
+                    nueva_pw_conf = st.text_input("Confirmar Nueva Contraseña:", type="password")
+
+                    if st.button("Restablecer Contraseña", type="primary", use_container_width=True):
+                        if nueva_pw != nueva_pw_conf:
+                            st.error("⚠️ Las contraseñas no coinciden.")
+                        elif len(nueva_pw) < 6:
+                            st.error("⚠️ La contraseña debe tener al menos 6 caracteres.")
+                        else:
+                            conn = sqlite3.connect(DB_PATH)
+                            c = conn.cursor()
+                            c.execute("SELECT token_recuperacion FROM usuarios WHERE email = ?", (st.session_state.get("email_recuperacion"),))
+                            row = c.fetchone()
+
+                            if row and row[0] == token_ingresado.strip():
+                                new_hash = hash_password(nueva_pw)
+                                c.execute("UPDATE usuarios SET password_hash = ?, token_recuperacion = NULL WHERE email = ?", 
+                                          (new_hash, st.session_state.get("email_recuperacion")))
+                                conn.commit()
+                                conn.close()
+
+                                st.success("🎉 ¡Contraseña actualizada con éxito! Ya puedes iniciar sesión.")
+                                st.session_state["paso_recuperacion"] = 1
+                                st.session_state["email_recuperacion"] = None
+                            else:
+                                st.error("❌ El código de verificación es incorrecto.")
+                                conn.close()
+
+                    if st.button("Volver a empezar"):
+                        st.session_state["paso_recuperacion"] = 1
+                        st.rerun()
         return False
     return True
 
@@ -68,7 +236,6 @@ st.markdown(
         button[title*="Manage app"] {display: none !important;}
         iframe[title*="manage-app"] {display: none !important;}
 
-        /* OCULTA BARRA DE HERRAMIENTAS FLOTANTE EN TABLAS Y GRÁFICOS */
         [data-testid="stElementToolbar"],
         .modebar,
         .plotly .modebar,
@@ -80,7 +247,6 @@ st.markdown(
             visibility: hidden !important;
         }
 
-        /* OCULTA EL BOTÓN/FLECHA PARA COLAPSAR O ESCONDER LA BARRA LATERAL */
         [data-testid="stSidebarCollapsedControl"],
         button[data-testid="stBaseButton-headerNoPadding"],
         button[aria-label="Close sidebar"],
@@ -92,7 +258,6 @@ st.markdown(
             pointer-events: none !important;
         }
 
-        /* BARRA LATERAL SIEMPRE FIJA Y VISIBLE */
         [data-testid="stSidebar"] {
             min-width: 320px !important;
             max-width: 320px !important;
@@ -271,7 +436,6 @@ st.markdown(
             color: #FFFFFF !important;
         }
 
-        /* --- ADAPTACIÓN RESPONSIVA PARA CELULARES --- */
         @media (max-width: 768px) {
             .block-container {
                 padding-left: 0.5rem !important;
@@ -310,7 +474,6 @@ st.markdown(
 # TÍTULO PRINCIPAL INTEGRAL
 st.markdown('<div class="titulo-tablero">📊 Tablero de Control y Gestión - Auditoría Interna</div>', unsafe_allow_html=True)
 
-
 # ---------------------------------------------------------
 # BÚSQUEDA 100% PORTABLE Y DINÁMICA DEL ARCHIVO EXCEL
 # ---------------------------------------------------------
@@ -343,9 +506,7 @@ def buscar_excel_inteligente():
 
     return os.path.join(dir_script, "TABLERO_PA_AI.xlsx")
 
-
 EXCEL_PATH = buscar_excel_inteligente()
-
 
 # ---------------------------------------------------------
 # EXTRAER FECHA DE ACTUALIZACIÓN DIRECTA DE LA HOJA 'TABLERO'
@@ -377,7 +538,6 @@ def obtener_fecha_excel():
             timestamp_mod = os.path.getmtime(EXCEL_PATH)
             return datetime.fromtimestamp(timestamp_mod).strftime("%d/%m/%Y")
         return None
-
 
 # ---------------------------------------------------------
 # EXPORTACIÓN EXCEL SIN PERDIDA DE DATOS
@@ -462,7 +622,6 @@ def generar_excel_formateado(df):
 
     return output.getvalue()
 
-
 # ---------------------------------------------------------
 # CARGA DE DATOS
 # ---------------------------------------------------------
@@ -495,12 +654,10 @@ def cargar_datos():
         st.error(f"Error al cargar el archivo Excel: {e}")
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
-
 df_raw, df_calc, df_informes_raw, df_paa_raw = cargar_datos()
 
 if df_raw.empty:
     st.stop()
-
 
 # ---------------------------------------------------------
 # DETECCIÓN DE COLUMNAS
@@ -520,7 +677,6 @@ def buscar_columna_por_patron(df, patrones):
             if pat in col_clean:
                 return col
     return None
-
 
 col_estado = buscar_columna_por_patron(df_raw, ["estado del compromiso", "estado compromiso", "estado"])
 col_responsable = buscar_columna_por_patron(df_raw, ["responsable", "area responsable"])
@@ -560,9 +716,8 @@ if not df_calc.empty:
                 clave_m = meses_es[idx_m]
                 conteo_meses[clave_m] = int(row[1]) if pd.notnull(row[1]) and str(row[1]).isdigit() else 0
 
-
 # ---------------------------------------------------------
-# FILTROS LATERALES, FECHA DE CORTE DEL EXCEL & CERRAR SESIÓN
+# BARRA LATERAL: FILTROS MULTISELECT, ADMIN USUARIOS Y CERRAR SESIÓN
 # ---------------------------------------------------------
 st.sidebar.title("🔍 Filtros del Tablero")
 
@@ -570,8 +725,40 @@ fecha_excel = obtener_fecha_excel()
 if fecha_excel:
     st.sidebar.markdown(f"📅 **Datos actualizados al:** {fecha_excel}")
 
+# Módulo de administración de usuarios (Solo visible si el usuario es "admin")
+if st.session_state.get("usuario_actual") == "admin":
+    with st.sidebar.expander("👤 Gestión de Usuarios (Admin)"):
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        
+        st.caption("Autorizar o Crear Usuario")
+        new_u = st.text_input("Usuario", key="new_u_adm")
+        new_e = st.text_input("Correo Electrónico", key="new_e_adm")
+        new_p = st.text_input("Contraseña Inicial", type="password", key="new_p_adm")
+        
+        if st.button("Guardar / Autorizar Usuario"):
+            if new_u and new_e and new_p:
+                try:
+                    c.execute("INSERT INTO usuarios (usuario, email, password_hash, autorizado) VALUES (?, ?, ?, 1)",
+                              (new_u.strip(), new_e.strip().lower(), hash_password(new_p)))
+                    conn.commit()
+                    st.success(f"Usuario {new_u} creado y autorizado.")
+                except sqlite3.IntegrityError:
+                    c.execute("UPDATE usuarios SET autorizado = 1 WHERE usuario = ? OR email = ?", (new_u.strip(), new_e.strip().lower()))
+                    conn.commit()
+                    st.info(f"Usuario {new_u} actualizado / autorizado.")
+            else:
+                st.warning("Completa todos los campos.")
+                
+        # Listado de usuarios
+        st.caption("Usuarios Registrados:")
+        df_users = pd.read_sql_query("SELECT usuario, email, autorizado FROM usuarios", conn)
+        st.dataframe(df_users, use_container_width=True)
+        conn.close()
+
 if st.sidebar.button("🚪 Cerrar Sesión"):
     st.session_state["autenticado"] = False
+    st.session_state["usuario_actual"] = None
     st.rerun()
 
 st.sidebar.markdown("---")
@@ -615,7 +802,6 @@ if col_auditoria:
         auditoria_sel = st.multiselect("Seleccione Auditorías:", options=aud_vals, default=[], key="multi_auditoria")
     if auditoria_sel:
         df_filtrado = df_filtrado[df_filtrado[col_auditoria].isin(auditoria_sel)]
-
 
 # ---------------------------------------------------------
 # MÉTRICAS Y GRÁFICOS (DONAS CORREGIDAS Y SIN RECORTES)
@@ -789,7 +975,6 @@ if col_auditoria in df_perf.columns:
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
         )
-
 
 # ---------------------------------------------------------
 # PESTAÑAS PRINCIPALES (ORDENADAS POR FLUJO DE PROCESO)

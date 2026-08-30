@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 import sqlite3
 import smtplib
 from email.mime.text import MIMEText
@@ -11,10 +13,9 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-import bcrypt
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA
+# CONFIGURACIÓN DE PÁGINA (BARRA LATERAL SIEMPRE DESPLEGADA)
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="Tablero de Control y Gestión - Auditoría Interna",
@@ -28,10 +29,16 @@ st.set_page_config(
 # ---------------------------------------------------------
 DB_PATH = "usuarios_app.db"
 
+def hash_password(password):
+    # Encriptación usando hashlib (Nativa de Python)
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
+
+def verificar_password(password, hashed):
+    return hmac.compare_digest(hash_password(password), hashed)
+
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    # Tabla de usuarios
     c.execute('''
         CREATE TABLE IF NOT EXISTS usuarios (
             usuario TEXT PRIMARY KEY,
@@ -43,11 +50,10 @@ def init_db():
     ''')
     conn.commit()
     
-    # Crear usuario administrador por defecto si la base de datos está vacía
+    # Crear usuario admin inicial si la tabla está vacía
     c.execute("SELECT COUNT(*) FROM usuarios")
     if c.fetchone()[0] == 0:
-        salt = bcrypt.gensalt()
-        pw_hash = bcrypt.hashpw("admin123".encode('utf-8'), salt).decode('utf-8')
+        pw_hash = hash_password("admin123")
         c.execute("INSERT INTO usuarios (usuario, email, password_hash, autorizado) VALUES (?, ?, ?, 1)",
                   ("admin", "admin@empresa.com", pw_hash))
         conn.commit()
@@ -55,24 +61,7 @@ def init_db():
 
 init_db()
 
-# ---------------------------------------------------------
-# FUNCIONES DE AUTENTICACIÓN Y RECUPERACIÓN
-# ---------------------------------------------------------
-def verificar_password(password, hashed):
-    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
-
-def hash_password(password):
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
 def enviar_correo_token(email_destino, token):
-    """
-    Configura tus credenciales SMTP en Streamlit Secrets o variables de entorno:
-    [smtp]
-    server = "smtp.gmail.com"
-    port = 587
-    user = "tu_correo@gmail.com"
-    password = "tu_password_de_aplicacion"
-    """
     try:
         smtp_config = st.secrets.get("smtp", {})
         server_host = smtp_config.get("server", "smtp.gmail.com")
@@ -81,8 +70,8 @@ def enviar_correo_token(email_destino, token):
         password_remitente = smtp_config.get("password", "")
 
         if not remitente or not password_remitente:
-            st.warning("⚠️ No se ha configurado el servidor SMTP en los secrets para enviar el correo real.")
-            return True # Retorna True para pruebas locales mostrando el token en pantalla
+            st.warning(f"🔑 [Entorno de Pruebas] Código generado para {email_destino}: **{token}**")
+            return True
 
         asunto = "Código de Recuperación de Contraseña - Tablero Auditoría"
         cuerpo = f"Hola,\n\nTu código de verificación para restablecer la contraseña es: {token}\n\nSi no solicitaste este cambio, ignora este mensaje."
@@ -161,7 +150,6 @@ def validar_login():
                             if aut == 0:
                                 st.error("🚫 Este usuario no está autorizado.")
                             else:
-                                # Genera código numérico de 6 dígitos
                                 token = "".join(random.choices(string.digits, k=6))
                                 c.execute("UPDATE usuarios SET token_recuperacion = ? WHERE email = ?", (token, email_req.strip().lower()))
                                 conn.commit()
@@ -169,7 +157,7 @@ def validar_login():
                                 if enviar_correo_token(email_req.strip().lower(), token):
                                     st.session_state["email_recuperacion"] = email_req.strip().lower()
                                     st.session_state["paso_recuperacion"] = 2
-                                    st.success("✅ Código enviado a tu correo. Por favor revísalo.")
+                                    st.success("✅ Código generado. Revisa el mensaje arriba o tu correo.")
                                     st.rerun()
                         else:
                             st.error("❌ El correo no se encuentra registrado en el sistema.")
@@ -725,7 +713,6 @@ fecha_excel = obtener_fecha_excel()
 if fecha_excel:
     st.sidebar.markdown(f"📅 **Datos actualizados al:** {fecha_excel}")
 
-# Módulo de administración de usuarios (Solo visible si el usuario es "admin")
 if st.session_state.get("usuario_actual") == "admin":
     with st.sidebar.expander("👤 Gestión de Usuarios (Admin)"):
         conn = sqlite3.connect(DB_PATH)
@@ -750,7 +737,6 @@ if st.session_state.get("usuario_actual") == "admin":
             else:
                 st.warning("Completa todos los campos.")
                 
-        # Listado de usuarios
         st.caption("Usuarios Registrados:")
         df_users = pd.read_sql_query("SELECT usuario, email, autorizado FROM usuarios", conn)
         st.dataframe(df_users, use_container_width=True)
@@ -804,7 +790,7 @@ if col_auditoria:
         df_filtrado = df_filtrado[df_filtrado[col_auditoria].isin(auditoria_sel)]
 
 # ---------------------------------------------------------
-# MÉTRICAS Y GRÁFICOS (DONAS CORREGIDAS Y SIN RECORTES)
+# MÉTRICAS Y GRÁFICOS
 # ---------------------------------------------------------
 abiertos = df_filtrado[col_estado].astype(str).str.contains("Abiert", case=False, na=False).sum() if col_estado else 0
 vencidos = df_filtrado[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
@@ -977,7 +963,7 @@ if col_auditoria in df_perf.columns:
         )
 
 # ---------------------------------------------------------
-# PESTAÑAS PRINCIPALES (ORDENADAS POR FLUJO DE PROCESO)
+# PESTAÑAS PRINCIPALES
 # ---------------------------------------------------------
 tab_principal, tab_paa, tab_metricas, tab_historico, tab_alertas, tab_oficios, tab_finalizadas, tab_informes = st.tabs([
     "📊 Tablero",
@@ -1144,7 +1130,6 @@ with tab_principal:
         use_container_width=False,
     )
 
-
 # =========================================================
 # PESTAÑA 2: PROGRAMA ANUAL DE AUDITORÍA (PAA)
 # =========================================================
@@ -1223,7 +1208,6 @@ with tab_paa:
     else:
         st.info("ℹ️ No se encontró información en la hoja 'Programa Anual de Auditoría' del archivo Excel.")
 
-
 # =========================================================
 # PESTAÑA 3: MÉTRICAS DE CUMPLIMIENTO
 # =========================================================
@@ -1259,7 +1243,6 @@ with tab_metricas:
         st.plotly_chart(fig_aud_horiz, use_container_width=True, key="fig_aud_horiz_key", config={'displayModeBar': False})
     else:
         st.info("No hay compromisos pendientes en las auditorías.")
-
 
 # =========================================================
 # PESTAÑA 4: COMPARATIVA HISTÓRICA DE PLANES DE MEJORAMIENTO
@@ -1376,7 +1359,6 @@ with tab_historico:
 
     else:
         st.warning("⚠️ No se detectó la columna 'Plan Auditoría / Vigencia' para estructurar la comparativa histórica.")
-
 
 # =========================================================
 # PESTAÑA 5: ALERTAS Y EDICIÓN
@@ -1609,7 +1591,6 @@ with tab_alertas:
             st.session_state["limpiar_key"] += 1
             st.rerun()
 
-
 # =========================================================
 # PESTAÑA 6: OFICIOS DE SOLICITUD
 # =========================================================
@@ -1721,7 +1702,6 @@ with tab_oficios:
     else:
         st.warning("⚠️ No se detectó la columna 'Radicado' en la hoja Base de datos.")
 
-
 # =========================================================
 # PESTAÑA 7: FINALIZADAS
 # =========================================================
@@ -1755,7 +1735,6 @@ with tab_finalizadas:
             )
         else:
             st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
-
 
 # =========================================================
 # PESTAÑA 8: INFORMES DE AUDITORÍA CON SUB-PESTAÑAS

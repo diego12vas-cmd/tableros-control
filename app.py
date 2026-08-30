@@ -152,7 +152,7 @@ def enviar_correo_token(email_destino, token):
         return False
 
 # ---------------------------------------------------------
-# SISTEMA DE LOGIN COMPACTO Y CENTRADO CON TÍTULO DEBAJO DEL LOGO
+# SISTEMA DE LOGIN Y RECUPERACIÓN DE CONTRASEÑA
 # ---------------------------------------------------------
 def validar_login():
     if "autenticado" not in st.session_state:
@@ -168,53 +168,49 @@ def validar_login():
         with col_main:
             st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
             
-            # Logo Centrado
             if LOGO_PATH:
                 st.image(LOGO_PATH, use_container_width=True)
             else:
                 st.markdown("<h1 style='text-align: center; color: #0077C8;'>🚌 LA TERMINAL</h1>", unsafe_allow_html=True)
             
-            # Subtítulo institucional debajo del logo
             st.markdown("<h4 style='text-align: center; color: #0077C8; font-weight: bold; margin-top: 5px; margin-bottom: 20px;'>Tablero de Control y Gestión - Auditoría Interna</h4>", unsafe_allow_html=True)
             
             st.markdown("### 🔒 Acceso Restringido")
             st.caption("Ingresa tus credenciales para acceder al sistema.")
             
-            tab_login, tab_recovery = st.tabs(["🔑 Iniciar Sesión", "❓ Olvidé mi Contraseña"])
+            usuario = st.text_input("Usuario", key="user_input_ai")
+            password = st.text_input("Contraseña", type="password", key="pass_input_ai")
             
-            with tab_login:
-                usuario = st.text_input("Usuario", key="user_input_ai")
-                password = st.text_input("Contraseña", type="password", key="pass_input_ai")
-                
-                if st.button("Iniciar Sesión", type="primary", use_container_width=True):
-                    conn = sqlite3.connect(DB_PATH)
-                    c = conn.cursor()
-                    c.execute("SELECT password_hash, autorizado, perm_pestañas FROM usuarios WHERE usuario = ?", (usuario.strip(),))
-                    row = c.fetchone()
-                    conn.close()
+            if st.button("Iniciar Sesión", type="primary", use_container_width=True):
+                conn = sqlite3.connect(DB_PATH)
+                c = conn.cursor()
+                c.execute("SELECT password_hash, autorizado, perm_pestañas FROM usuarios WHERE usuario = ?", (usuario.strip(),))
+                row = c.fetchone()
+                conn.close()
 
-                    if row:
-                        pw_hash, autorizado, perm_str = row
-                        if autorizado == 0:
-                            st.error("🚫 Tu usuario no está autorizado para acceder. Contacta al administrador.")
-                        elif verificar_password(password, pw_hash):
-                            st.session_state["autenticado"] = True
-                            st.session_state["usuario_actual"] = usuario.strip()
-                            
-                            perm_val = perm_str if perm_str else "TODOS"
-                            if perm_val == "TODOS" or usuario.strip() == "admin":
-                                st.session_state["permisos_usuario"] = TODAS_LAS_PESTANIAS
-                            else:
-                                st.session_state["permisos_usuario"] = [p.strip() for p in perm_val.split(",") if p.strip()]
-                                
-                            st.rerun()
+                if row:
+                    pw_hash, autorizado, perm_str = row
+                    if autorizado == 0:
+                        st.error("🚫 Tu usuario no está autorizado para acceder. Contacta al administrador.")
+                    elif verificar_password(password, pw_hash):
+                        st.session_state["autenticado"] = True
+                        st.session_state["usuario_actual"] = usuario.strip()
+                        
+                        perm_val = perm_str if perm_str else "TODOS"
+                        if perm_val == "TODOS" or usuario.strip() == "admin":
+                            st.session_state["permisos_usuario"] = TODAS_LAS_PESTANIAS
                         else:
-                            st.error("❌ Usuario o contraseña incorrectos.")
+                            st.session_state["permisos_usuario"] = [p.strip() for p in perm_val.split(",") if p.strip()]
+                            
+                        st.rerun()
                     else:
                         st.error("❌ Usuario o contraseña incorrectos.")
+                else:
+                    st.error("❌ Usuario o contraseña incorrectos.")
 
-            with tab_recovery:
-                st.markdown("##### Restablecer Contraseña")
+            st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+
+            with st.expander("❓ Olvidé mi Contraseña"):
                 paso = st.session_state.get("paso_recuperacion", 1)
 
                 if paso == 1:
@@ -284,7 +280,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS
+# ESTILOS CSS CON BOTÓN VERDE Y MENOS ESPACIO VERTICAL
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -351,15 +347,37 @@ st.markdown(
 
         .block-container {
             padding-top: 0.8rem !important;
-            padding-bottom: 2rem !important;
+            padding-bottom: 1rem !important;
+        }
+
+        /* Reducción de espacio en la línea divisoria */
+        hr {
+            margin-top: 0.2rem !important;
+            margin-bottom: 0.4rem !important;
+        }
+
+        div[data-testid="stPlotlyChart"] {
+            margin-bottom: -20px !important;
+        }
+
+        /* Botones Primarios en Verde Institucional */
+        button[kind="primary"] {
+            background-color: #7AB800 !important;
+            color: #FFFFFF !important;
+            border: none !important;
+            font-weight: bold !important;
+        }
+        button[kind="primary"]:hover {
+            background-color: #689E00 !important;
+            color: #FFFFFF !important;
         }
 
         .titulo-tablero {
             font-size: 1.35rem !important;
             font-weight: 700 !important;
             color: var(--text-color);
-            margin: 0 0 15px 0 !important;
-            padding-bottom: 8px !important;
+            margin: 0 0 10px 0 !important;
+            padding-bottom: 6px !important;
             line-height: 1.3 !important;
             display: flex !important;
             align-items: center !important;
@@ -392,7 +410,7 @@ st.markdown(
         }
 
         div[data-testid="stDataFrame"] {
-            margin-top: 12px !important;
+            margin-top: 8px !important;
             padding-top: 0px !important;
         }
 
@@ -955,6 +973,7 @@ for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
                 st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#FF5252;">🔴 Vencidos</div>', unsafe_allow_html=True)
                 st.plotly_chart(fig_dona_vencidos, use_container_width=True, key="fig_dona_vencidos_key", config={'displayModeBar': False})
 
+            st.markdown("<div style='margin-top: -15px;'></div>", unsafe_allow_html=True)
             st.markdown("---")
 
             col_sub, col_filtro_rapido = st.columns([2, 1])

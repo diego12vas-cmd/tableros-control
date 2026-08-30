@@ -49,7 +49,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS CON BARRA LATERAL FIJA E INMOVIBLE
+# ESTILOS CSS CON BARRA LATERAL FIJA Y PROTECCIÓN DE GRÁFICOS
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -296,6 +296,10 @@ st.markdown(
             div[data-testid="stDataFrame"] {
                 width: 100% !important;
                 overflow-x: auto !important;
+            }
+            div[data-testid="stPlotlyChart"] {
+                width: 100% !important;
+                overflow: visible !important;
             }
         }
     </style>
@@ -614,7 +618,7 @@ if col_auditoria:
 
 
 # ---------------------------------------------------------
-# MÉTRICAS Y GRÁFICOS (DONAS OPTIMIZADAS SIN RECORTAR)
+# MÉTRICAS Y GRÁFICOS (DONAS CORREGIDAS Y SIN RECORTES)
 # ---------------------------------------------------------
 abiertos = df_filtrado[col_estado].astype(str).str.contains("Abiert", case=False, na=False).sum() if col_estado else 0
 vencidos = df_filtrado[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
@@ -659,14 +663,28 @@ pct_abiertos = round((abiertos / total_planes_pendientes) * 100) if total_planes
 colors_abiertos = ["#00B050" if i < (pct_abiertos / 5) else "#E0E0E0" for i in range(20)]
 
 fig_dona_abiertos = go.Figure(data=[
-    go.Pie(values=[1]*20, hole=0.68, marker_colors=colors_abiertos, marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none")
+    go.Pie(
+        values=[1]*20, 
+        hole=0.68, 
+        marker_colors=colors_abiertos, 
+        marker_line=dict(color="#FFFFFF", width=2), 
+        textinfo="none", 
+        hoverinfo="none",
+        domain=dict(x=[0.05, 0.95], y=[0.05, 0.95])
+    )
 ])
-fig_dona_abiertos.add_annotation(text=f"<b>{pct_abiertos}%</b>", x=0.5, y=0.5, font=dict(size=24, color="var(--text-color)"), showarrow=False)
+fig_dona_abiertos.add_annotation(
+    text=f"<b>{pct_abiertos}%</b>", 
+    x=0.5, 
+    y=0.5, 
+    font=dict(size=18, color="var(--text-color)"), 
+    showarrow=False
+)
 fig_dona_abiertos.update_layout(
     showlegend=False,
-    height=160,
+    height=170,
     autosize=True,
-    margin=dict(t=10, b=10, l=10, r=10),
+    margin=dict(t=15, b=15, l=15, r=15),
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)"
 )
@@ -675,14 +693,28 @@ pct_vencidos = round((vencidos / total_planes_pendientes) * 100) if total_planes
 colors_vencidos = ["#FF5252" if i < (pct_vencidos / 5) else "#E0E0E0" for i in range(20)]
 
 fig_dona_vencidos = go.Figure(data=[
-    go.Pie(values=[1]*20, hole=0.68, marker_colors=colors_vencidos, marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none")
+    go.Pie(
+        values=[1]*20, 
+        hole=0.68, 
+        marker_colors=colors_vencidos, 
+        marker_line=dict(color="#FFFFFF", width=2), 
+        textinfo="none", 
+        hoverinfo="none",
+        domain=dict(x=[0.05, 0.95], y=[0.05, 0.95])
+    )
 ])
-fig_dona_vencidos.add_annotation(text=f"<b>{pct_vencidos}%</b>", x=0.5, y=0.5, font=dict(size=24, color="var(--text-color)"), showarrow=False)
+fig_dona_vencidos.add_annotation(
+    text=f"<b>{pct_vencidos}%</b>", 
+    x=0.5, 
+    y=0.5, 
+    font=dict(size=18, color="var(--text-color)"), 
+    showarrow=False
+)
 fig_dona_vencidos.update_layout(
     showlegend=False,
-    height=160,
+    height=170,
     autosize=True,
-    margin=dict(t=10, b=10, l=10, r=10),
+    margin=dict(t=15, b=15, l=15, r=15),
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)"
 )

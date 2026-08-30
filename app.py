@@ -426,12 +426,12 @@ def generar_excel_formateado(df):
 
 
 # ---------------------------------------------------------
-# CARGA DE DATOS
+# CARGA DE DATOS (BASE DE DATOS, INFORMES PDF Y PROGRAMA ANUAL)
 # ---------------------------------------------------------
 def cargar_datos():
     if not os.path.exists(EXCEL_PATH):
         st.error(f"⚠️ No se encontró el archivo Excel en la ruta:\n`{EXCEL_PATH}`")
-        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
     try:
         xls = pd.ExcelFile(EXCEL_PATH)
@@ -449,13 +449,17 @@ def cargar_datos():
         sheet_inf = "Informes PDF" if "Informes PDF" in xls.sheet_names else ("INFORMES PDF" if "INFORMES PDF" in xls.sheet_names else ("Informes pdf" if "Informes pdf" in xls.sheet_names else None))
         df_informes = pd.read_excel(xls, sheet_name=sheet_inf) if sheet_inf else pd.DataFrame()
 
-        return df_base, df_calc, df_informes
+        # Carga directa de la hoja 'Programa Anual de Auditoría'
+        sheet_paa = "Programa Anual de Auditoría" if "Programa Anual de Auditoría" in xls.sheet_names else ("Programa Anual de Auditoria" if "Programa Anual de Auditoria" in xls.sheet_names else None)
+        df_paa = pd.read_excel(xls, sheet_name=sheet_paa) if sheet_paa else pd.DataFrame()
+
+        return df_base, df_calc, df_informes, df_paa
     except Exception as e:
         st.error(f"Error al cargar el archivo Excel: {e}")
-        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
 
-df_raw, df_calc, df_informes_raw = cargar_datos()
+df_raw, df_calc, df_informes_raw, df_paa_raw = cargar_datos()
 
 if df_raw.empty:
     st.stop()
@@ -709,12 +713,13 @@ if col_auditoria in df_perf.columns:
 
 
 # ---------------------------------------------------------
-# PESTAÑAS PRINCIPALES (7 PESTAÑAS HORIZONTALES DIRECTAS)
+# PESTAÑAS PRINCIPALES (8 PESTAÑAS COMPLETAS E INTEGRADAS)
 # ---------------------------------------------------------
-tab_principal, tab_metricas, tab_historico, tab_alertas, tab_oficios, tab_finalizadas, tab_informes = st.tabs([
+tab_principal, tab_metricas, tab_historico, tab_paa, tab_alertas, tab_oficios, tab_finalizadas, tab_informes = st.tabs([
     "📊 Tablero",
     "📈 Métricas",
     "📊 Histórico",
+    "🗓️ Programa Anual",
     "🚨 Alertas y Edición",
     "📩 Oficios",
     "🎉 Finalizadas",
@@ -1031,7 +1036,89 @@ with tab_historico:
 
 
 # =========================================================
-# PESTAÑA 4: ALERTAS Y EDICIÓN
+# PESTAÑA 4: PROGRAMA ANUAL DE AUDITORÍA (NUEVA PESTAÑA AGREGADA)
+# =========================================================
+with tab_paa:
+    st.header("🗓️ Programa Anual de Auditoría (PAA)")
+    st.markdown("Relación de actividades, auditorías específicas y su estado de ejecución agrupadas por vigencia.")
+
+    if not df_paa_raw.empty:
+        df_paa_vista = df_paa_raw.copy()
+        
+        col_vig_paa = buscar_columna_por_patron(df_paa_vista, ["vigencia"]) or df_paa_vista.columns[0]
+        col_tipo_paa = buscar_columna_por_patron(df_paa_vista, ["tipologia", "tipo"]) or df_paa_vista.columns[1]
+        col_nom_paa = buscar_columna_por_patron(df_paa_vista, ["nombre", "auditoria"]) or df_paa_vista.columns[2]
+        col_est_paa = buscar_columna_por_patron(df_paa_vista, ["estado"]) or df_paa_vista.columns[3]
+
+        # Rellenar valores de celda combinada de Vigencia
+        df_paa_vista[col_vig_paa] = df_paa_vista[col_vig_paa].ffill()
+        df_paa_vista[col_vig_paa] = (
+            df_paa_vista[col_vig_paa]
+            .astype(str)
+            .str.replace(".0", "", regex=False)
+            .str.strip()
+        )
+
+        # Rellenar Tipología si viene combinada
+        if col_tipo_paa:
+            df_paa_vista[col_tipo_paa] = df_paa_vista[col_tipo_paa].ffill()
+
+        vigencias_paa_unicas = sorted([
+            v for v in df_paa_vista[col_vig_paa].dropna().unique() 
+            if str(v).lower() not in ["nan", "none", ""]
+        ])
+
+        if vigencias_paa_unicas:
+            subtabs_paa = st.tabs([f"📅 Vigencia {v}" if str(v).isdigit() else str(v) for v in vigencias_paa_unicas])
+
+            for i, vig in enumerate(vigencias_paa_unicas):
+                with subtabs_paa[i]:
+                    df_sub_paa = df_paa_vista[df_paa_vista[col_vig_paa] == vig].copy().reset_index(drop=True)
+                    
+                    tot_p = len(df_sub_paa)
+                    fin_p = df_sub_paa[col_est_paa].astype(str).str.contains("Finaliz", case=False, na=False).sum() if col_est_paa else 0
+                    asig_p = tot_p - fin_p
+                    pct_p = round((fin_p / tot_p) * 100) if tot_p > 0 else 0
+
+                    m_p1, m_p2, m_p3, m_p4 = st.columns(4)
+                    m_p1.metric("📋 Total Auditorías Programadas", tot_p)
+                    m_p2.metric("✅ Auditorías Finalizadas", fin_p)
+                    m_p3.metric("⏳ Asignadas / En Proceso", asig_p)
+                    m_p4.metric("📊 Tasa de Ejecución", f"{pct_p}%")
+
+                    st.markdown("---")
+
+                    df_sub_paa.index = range(1, len(df_sub_paa) + 1)
+
+                    # Aplicar formato de resalte visual a las filas finalizadas (verde claro)
+                    def resaltar_finalizadas(row):
+                        val_est = str(row[col_est_paa]).lower() if col_est_paa and pd.notnull(row[col_est_paa]) else ""
+                        if "finaliz" in val_est:
+                            return ["background-color: #D9EAD3; color: #000000; font-weight: bold;"] * len(row)
+                        return [""] * len(row)
+
+                    st.dataframe(
+                        df_sub_paa.style.apply(resaltar_finalizadas, axis=1),
+                        use_container_width=True
+                    )
+
+            st.markdown("---")
+            st.download_button(
+                label="📥 Descargar Programa Anual de Auditoría (.xlsx)",
+                data=generar_excel_formateado(df_paa_vista),
+                file_name=f"Programa_Anual_Auditoria_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="btn_download_paa",
+                use_container_width=False,
+            )
+        else:
+            st.info("ℹ️ No hay vigencias registradas en la hoja 'Programa Anual de Auditoría'.")
+    else:
+        st.info("ℹ️ No se encontró información en la hoja 'Programa Anual de Auditoría' del archivo Excel.")
+
+
+# =========================================================
+# PESTAÑA 5: ALERTAS Y EDICIÓN
 # =========================================================
 with tab_alertas:
     st.header("🚨 Alertas Críticas y Edición Directa")
@@ -1263,7 +1350,7 @@ with tab_alertas:
 
 
 # =========================================================
-# PESTAÑA 5: OFICIOS DE SOLICITUD
+# PESTAÑA 6: OFICIOS DE SOLICITUD
 # =========================================================
 with tab_oficios:
     st.header("📩 Registro e Historial de Oficios Radicados")
@@ -1375,7 +1462,7 @@ with tab_oficios:
 
 
 # =========================================================
-# PESTAÑA 6: FINALIZADAS
+# PESTAÑA 7: FINALIZADAS
 # =========================================================
 with tab_finalizadas:
     st.header("🎉 Acciones Finalizadas")
@@ -1410,7 +1497,7 @@ with tab_finalizadas:
 
 
 # =========================================================
-# PESTAÑA 7: INFORMES DE AUDITORÍA (CON SUB-TABS POR VIGENCIA)
+# PESTAÑA 8: INFORMES DE AUDITORÍA CON SUB-PESTAÑAS
 # =========================================================
 with tab_informes:
     st.header("📑 Informes de Auditoría Interna por Vigencia")

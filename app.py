@@ -152,7 +152,7 @@ def enviar_correo_token(email_destino, token):
         return False
 
 # ---------------------------------------------------------
-# SISTEMA DE LOGIN COMPACTO Y CENTRADO CON LOGO GRANDE
+# SISTEMA DE LOGIN COMPACTO Y CENTRADO CON TÍTULO DEBAJO DEL LOGO
 # ---------------------------------------------------------
 def validar_login():
     if "autenticado" not in st.session_state:
@@ -163,19 +163,20 @@ def validar_login():
         st.session_state["permisos_usuario"] = []
 
     if not st.session_state["autenticado"]:
-        # Espaciado horizontal en 3 columnas para achicar el cuadro de login
         _, col_main, _ = st.columns([1, 1.8, 1])
         
         with col_main:
-            st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
             
-            # Logo Agrandado y Centrado
+            # Logo Centrado
             if LOGO_PATH:
                 st.image(LOGO_PATH, use_container_width=True)
             else:
                 st.markdown("<h1 style='text-align: center; color: #0077C8;'>🚌 LA TERMINAL</h1>", unsafe_allow_html=True)
             
-            st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
+            # Subtítulo institucional debajo del logo
+            st.markdown("<h4 style='text-align: center; color: #0077C8; font-weight: bold; margin-top: 5px; margin-bottom: 20px;'>Tablero de Control y Gestión - Auditoría Interna</h4>", unsafe_allow_html=True)
+            
             st.markdown("### 🔒 Acceso Restringido")
             st.caption("Ingresa tus credenciales para acceder al sistema.")
             

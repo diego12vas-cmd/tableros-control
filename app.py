@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA (BARRA LATERAL SIEMPRE ABIERTA)
+# CONFIGURACIÓN DE PÁGINA (BARRA LATERAL SIEMPRE DESPLEGADA)
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="Tablero de Control y Gestión - Auditoría Interna",
@@ -49,7 +49,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS RESPONSIVOS (SIN BARRA LATERAL OCULTABLE)
+# ESTILOS CSS CON BARRA LATERAL FIJA E INMOVIBLE
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -68,7 +68,7 @@ st.markdown(
         button[title*="Manage app"] {display: none !important;}
         iframe[title*="manage-app"] {display: none !important;}
 
-        /* OCULTA BOTONES Y HERRAMIENTAS FLOTANTES SOBRE GRÁFICOS Y TABLAS */
+        /* OCULTA BARRA DE HERRAMIENTAS FLOTANTE EN TABLAS Y GRÁFICOS */
         [data-testid="stElementToolbar"],
         .modebar,
         .plotly .modebar,
@@ -78,6 +78,27 @@ st.markdown(
             display: none !important;
             opacity: 0 !important;
             visibility: hidden !important;
+        }
+
+        /* OCULTA EL BOTÓN/FLECHA PARA COLAPSAR O ESCONDER LA BARRA LATERAL */
+        [data-testid="stSidebarCollapsedControl"],
+        button[data-testid="stBaseButton-headerNoPadding"],
+        button[aria-label="Close sidebar"],
+        button[aria-label="Open sidebar"],
+        button[aria-label="Collapse sidebar"],
+        button[aria-label="Expand sidebar"] {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+
+        /* BARRA LATERAL SIEMPRE FIJA Y VISIBLE */
+        [data-testid="stSidebar"] {
+            min-width: 320px !important;
+            max-width: 320px !important;
+            display: block !important;
+            visibility: visible !important;
+            transform: none !important;
         }
 
         header[data-testid="stHeader"] {
@@ -98,11 +119,6 @@ st.markdown(
             padding: 0 !important;
             line-height: 1.3 !important;
             display: block !important;
-        }
-
-        [data-testid="stSidebar"] {
-            min-width: 320px !important;
-            max-width: 320px !important;
         }
 
         div[data-baseweb="popover"] {
@@ -598,7 +614,7 @@ if col_auditoria:
 
 
 # ---------------------------------------------------------
-# MÉTRICAS Y GRÁFICOS (DONAS CORREGIDAS SIN RECORTAR)
+# MÉTRICAS Y GRÁFICOS (DONAS OPTIMIZADAS SIN RECORTAR)
 # ---------------------------------------------------------
 abiertos = df_filtrado[col_estado].astype(str).str.contains("Abiert", case=False, na=False).sum() if col_estado else 0
 vencidos = df_filtrado[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0

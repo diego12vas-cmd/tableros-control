@@ -965,6 +965,18 @@ for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
                     df_tabla = df_tabla[df_tabla[col_estado].astype(str).str.contains("Vencid", case=False, na=False)]
                 elif "Estado: Sin definir" in filtro_elegido and col_estado:
                     df_tabla = df_tabla[df_tabla[col_estado].astype(str).str.contains("Sin", case=False, na=False)]
+                elif "Alerta: Próximos a 5 días" in filtro_elegido and col_a5:
+                    s_val = df_tabla[col_a5].fillna("").astype(str).str.strip().str.lower()
+                    df_tabla = df_tabla[~s_val.isin(["nan", "none", "", "0", "0.0", "false"])]
+                elif "Alerta: Próximos a 10 días" in filtro_elegido and col_a10:
+                    s_val = df_tabla[col_a10].fillna("").astype(str).str.strip().str.lower()
+                    df_tabla = df_tabla[~s_val.isin(["nan", "none", "", "0", "0.0", "false"])]
+                elif "Alerta: Próximos a 20 días" in filtro_elegido and col_a20:
+                    s_val = df_tabla[col_a20].fillna("").astype(str).str.strip().str.lower()
+                    df_tabla = df_tabla[~s_val.isin(["nan", "none", "", "0", "0.0", "false"])]
+                elif "Alerta: Próximos a 30 días" in filtro_elegido and col_a30:
+                    s_val = df_tabla[col_a30].fillna("").astype(str).str.strip().str.lower()
+                    df_tabla = df_tabla[~s_val.isin(["nan", "none", "", "0", "0.0", "false"])]
 
             df_tabla.index = range(1, len(df_tabla) + 1)
             st.dataframe(df_tabla, use_container_width=True)
@@ -1201,7 +1213,7 @@ for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
             if col_plan_filtro and col_plan_filtro in df_edicion_temp.columns:
                 opciones_plan_v += sorted([str(x) for x in df_edicion_temp[col_plan_filtro].dropna().unique() if str(x).strip()])
             with col_f_plan:
-                plan_v_seleccionado = st.selectbox("3. Filtrar por Plan / Vigencia:", options=plan_v_seleccionado if 'plan_v_seleccionado' in locals() else opciones_plan_v, key="f_plan_edit")
+                plan_v_seleccionado = st.selectbox("3. Filtrar por Plan / Vigencia:", options=opciones_plan_v, key="f_plan_edit")
 
             if plan_v_seleccionado != "(Todos)":
                 df_edicion_temp = df_edicion_temp[df_edicion_temp[col_plan_filtro].astype(str).str.strip().str.lower() == plan_v_seleccionado.strip().lower()]

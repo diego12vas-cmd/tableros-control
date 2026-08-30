@@ -274,7 +274,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS
+# ESTILOS CSS CON PADDING EN SIDEBAR
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -315,6 +315,7 @@ st.markdown(
             pointer-events: none !important;
         }
 
+        /* Barra Lateral con borde superior Verde y espacio interno (Padding) */
         [data-testid="stSidebar"] {
             min-width: 320px !important;
             max-width: 320px !important;
@@ -322,6 +323,12 @@ st.markdown(
             visibility: visible !important;
             transform: none !important;
             border-top: 5px solid #7AB800 !important;
+            padding-top: 15px !important;
+        }
+
+        /* Ajuste de margen para la primera imagen en sidebar */
+        [data-testid="stSidebar"] [data-testid="stImage"] {
+            margin-top: 10px !important;
         }
 
         header[data-testid="stHeader"] {
@@ -330,7 +337,7 @@ st.markdown(
         }
 
         .block-container {
-            padding-top: 1.2rem !important;
+            padding-top: 1.5rem !important;
             padding-bottom: 2rem !important;
         }
 
@@ -352,7 +359,7 @@ st.markdown(
             font-weight: bold;
             font-size: 0.85rem;
             color: var(--text-color);
-            margin-bottom: 2px;
+            margin-bottom: 4px;
             margin-top: 2px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -930,9 +937,9 @@ for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
 
             with c4:
                 st.markdown('<div class="block-header">Porcentaje de Acciones Pendientes</div>', unsafe_allow_html=True)
-                st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:-4px; margin-top:0px; color:#00B050;">🟢 En tiempo (Abiertos)</div>', unsafe_allow_html=True)
+                st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#00B050;">🟢 En tiempo (Abiertos)</div>', unsafe_allow_html=True)
                 st.plotly_chart(fig_dona_abiertos, use_container_width=True, key="fig_dona_abiertos_key", config={'displayModeBar': False})
-                st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:-4px; margin-top:2px; color:#FF5252;">🔴 Vencidos</div>', unsafe_allow_html=True)
+                st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#FF5252;">🔴 Vencidos</div>', unsafe_allow_html=True)
                 st.plotly_chart(fig_dona_vencidos, use_container_width=True, key="fig_dona_vencidos_key", config={'displayModeBar': False})
 
             st.markdown("---")

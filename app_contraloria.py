@@ -8,12 +8,13 @@ import plotly.graph_objects as go
 import streamlit as st
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA
+# CONFIGURACIÓN DE PÁGINA (BARRA LATERAL SIEMPRE DESPLEGADA)
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="Tablero de Control - Planes de Acción Contraloría de Bogotá",
     page_icon="🏛️",
     layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 # ---------------------------------------------------------
@@ -48,12 +49,11 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS COMPACTOS & RESPONSIVOS (OCULTA EL BOTÓN NEGRO)
+# ESTILOS CSS CON BARRA LATERAL FIJA Y SIN HERRAMIENTAS FLOTANTES
 # ---------------------------------------------------------
 st.markdown(
     """
     <style>
-        /* Ocultar menús nativos y marcas de Streamlit para usuarios finales */
         #MainMenu {visibility: hidden;}
         header {visibility: hidden;}
         footer {visibility: hidden;}
@@ -63,19 +63,51 @@ st.markdown(
         [data-testid="stDecoration"] {display:none !important;}
         [data-testid="stStatusWidget"] {display:none !important;}
 
-        /* Oculta la pestaña negra inferior de gestión de Streamlit */
         div[data-testid="stManageApp"] {display: none !important;}
         div[class*="stManageApp"] {display: none !important;}
         button[title*="Manage app"] {display: none !important;}
         iframe[title*="manage-app"] {display: none !important;}
 
+        /* OCULTA BARRA DE HERRAMIENTAS FLOTANTE EN TABLAS Y GRÁFICOS */
+        [data-testid="stElementToolbar"],
+        .modebar,
+        .plotly .modebar,
+        button[title="View fullscreen"],
+        button[title="Download"],
+        button[title="Search"] {
+            display: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+        }
+
+        /* OCULTA EL BOTÓN/FLECHA PARA COLAPSAR O ESCONDER LA BARRA LATERAL */
+        [data-testid="stSidebarCollapsedControl"],
+        button[data-testid="stBaseButton-headerNoPadding"],
+        button[aria-label="Close sidebar"],
+        button[aria-label="Open sidebar"],
+        button[aria-label="Collapse sidebar"],
+        button[aria-label="Expand sidebar"] {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+
+        /* BARRA LATERAL SIEMPRE FIJA Y VISIBLE */
+        [data-testid="stSidebar"] {
+            min-width: 320px !important;
+            max-width: 320px !important;
+            display: block !important;
+            visibility: visible !important;
+            transform: none !important;
+        }
+
         header[data-testid="stHeader"] {
-            height: 2.5rem !important;
+            height: 0rem !important;
             background: transparent !important;
         }
 
         .block-container {
-            padding-top: 2rem !important;
+            padding-top: 1.5rem !important;
             padding-bottom: 2rem !important;
         }
 
@@ -89,10 +121,6 @@ st.markdown(
             display: block !important;
         }
 
-        [data-testid="stSidebar"] {
-            min-width: 320px !important;
-            max-width: 360px !important;
-        }
         div[data-baseweb="popover"] {
             z-index: 99999999 !important;
             position: fixed !important;
@@ -243,15 +271,16 @@ st.markdown(
             color: #FFFFFF !important;
         }
 
+        /* --- ADAPTACIÓN RESPONSIVA PARA CELULARES --- */
         @media (max-width: 768px) {
             .block-container {
-                padding-left: 0.8rem !important;
-                padding-right: 0.8rem !important;
-                padding-top: 1.2rem !important;
+                padding-left: 0.5rem !important;
+                padding-right: 0.5rem !important;
+                padding-top: 1rem !important;
             }
             .titulo-tablero {
                 font-size: 1.1rem !important;
-                text-align: center;
+                text-align: center !important;
             }
             .card-box {
                 font-size: 0.95rem !important;
@@ -260,9 +289,17 @@ st.markdown(
             .block-header {
                 font-size: 0.78rem !important;
             }
+            [data-testid="stHorizontalBlock"] {
+                flex-direction: column !important;
+                gap: 12px !important;
+            }
             div[data-testid="stDataFrame"] {
                 width: 100% !important;
                 overflow-x: auto !important;
+            }
+            div[data-testid="stPlotlyChart"] {
+                width: 100% !important;
+                overflow: visible !important;
             }
         }
     </style>
@@ -439,7 +476,7 @@ def generar_excel_formateado(df):
 
 
 # ---------------------------------------------------------
-# CARGA DE DATOS (BASE DE DATOS E INFORMES DE LA HOJA 'Enlace PDF')
+# CARGA DE DATOS
 # ---------------------------------------------------------
 def cargar_datos():
     if not os.path.exists(EXCEL_PATH):
@@ -460,7 +497,6 @@ def cargar_datos():
             if df_base[col].dtype == "object":
                 df_base[col] = df_base[col].astype(str).str.strip()
 
-        # Lectura directa de la hoja 'Enlace PDF' para Informes de Auditoría
         sheet_inf = "Enlace PDF" if "Enlace PDF" in xls.sheet_names else ("Enlace pdf" if "Enlace pdf" in xls.sheet_names else None)
         df_informes = pd.read_excel(xls, sheet_name=sheet_inf) if sheet_inf else pd.DataFrame()
 
@@ -626,7 +662,7 @@ if col_fecha_cierre_aud and col_fecha_cierre_aud in df_filtrado.columns:
 
 
 # ---------------------------------------------------------
-# MÉTRICAS Y FIGURAS EXCLUYENDO FINALIZADAS
+# MÉTRICAS Y FIGURAS (DONAS OPTIMIZADAS Y SIN RECORTES)
 # ---------------------------------------------------------
 df_activos = df_filtrado[~df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else df_filtrado.copy()
 
@@ -660,24 +696,66 @@ fig_bar.update_layout(
     plot_bgcolor="rgba(0,0,0,0)"
 )
 
-# DONAS
+# DONAS OPTIMIZADAS
 pct_abiertos = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
 colors_abiertos = ["#00B050" if i < (pct_abiertos / 5) else "#E0E0E0" for i in range(20)]
 
 fig_dona_abiertos = go.Figure(data=[
-    go.Pie(values=[1]*20, hole=0.68, marker_colors=colors_abiertos, marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none")
+    go.Pie(
+        values=[1]*20, 
+        hole=0.68, 
+        marker_colors=colors_abiertos, 
+        marker_line=dict(color="#FFFFFF", width=2), 
+        textinfo="none", 
+        hoverinfo="none",
+        domain=dict(x=[0.05, 0.95], y=[0.05, 0.95])
+    )
 ])
-fig_dona_abiertos.add_annotation(text=f"<b>{pct_abiertos}%</b>", x=0.5, y=0.5, font=dict(size=28, color="var(--text-color)"), showarrow=False)
-fig_dona_abiertos.update_layout(autosize=True, showlegend=False, height=145, margin=dict(t=2, b=2, l=2, r=2), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+fig_dona_abiertos.add_annotation(
+    text=f"<b>{pct_abiertos}%</b>", 
+    x=0.5, 
+    y=0.5, 
+    font=dict(size=18, color="var(--text-color)"), 
+    showarrow=False
+)
+fig_dona_abiertos.update_layout(
+    showlegend=False,
+    height=170,
+    autosize=True,
+    margin=dict(t=15, b=15, l=15, r=15),
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)"
+)
 
 pct_vencidos = round((vencidos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
 colors_vencidos = ["#FF5252" if i < (pct_vencidos / 5) else "#E0E0E0" for i in range(20)]
 
 fig_dona_vencidos = go.Figure(data=[
-    go.Pie(values=[1]*20, hole=0.68, marker_colors=colors_vencidos, marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none")
+    go.Pie(
+        values=[1]*20, 
+        hole=0.68, 
+        marker_colors=colors_vencidos, 
+        marker_line=dict(color="#FFFFFF", width=2), 
+        textinfo="none", 
+        hoverinfo="none",
+        domain=dict(x=[0.05, 0.95], y=[0.05, 0.95])
+    )
 ])
-fig_dona_vencidos.add_annotation(text=f"<b>{pct_vencidos}%</b>", x=0.5, y=0.5, font=dict(size=28, color="var(--text-color)"), showarrow=False)
-fig_dona_vencidos.update_layout(autosize=True, showlegend=False, height=145, margin=dict(t=2, b=2, l=2, r=2), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+fig_dona_vencidos.add_annotation(
+    text=f"<b>{pct_vencidos}%</b>", 
+    x=0.5, 
+    y=0.5, 
+    font=dict(size=18, color="var(--text-color)"), 
+    showarrow=False
+)
+fig_dona_vencidos.update_layout(
+    showlegend=False,
+    height=170,
+    autosize=True,
+    margin=dict(t=15, b=15, l=15, r=15),
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)"
+)
 
 
 # --- CÁLCULO ÁREAS ---
@@ -912,16 +990,16 @@ with tab_principal:
         )
 
         st.markdown('<div class="block-header" style="margin-top:2px;">Distribución de Planes Pendientes</div>', unsafe_allow_html=True)
-        st.plotly_chart(fig_bar, use_container_width=True, key="fig_bar_contraloria")
+        st.plotly_chart(fig_bar, use_container_width=True, key="fig_bar_contraloria", config={'displayModeBar': False})
 
     with c4:
         st.markdown('<div class="block-header">Porcentaje de Acciones Pendientes</div>', unsafe_allow_html=True)
         
         st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#00B050;">🟢 En tiempo (Abiertos)</div>', unsafe_allow_html=True)
-        st.plotly_chart(fig_dona_abiertos, use_container_width=True, key="fig_dona_abiertos_c")
+        st.plotly_chart(fig_dona_abiertos, use_container_width=True, key="fig_dona_abiertos_c", config={'displayModeBar': False})
         
         st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#FF5252;">🔴 Vencidos</div>', unsafe_allow_html=True)
-        st.plotly_chart(fig_dona_vencidos, use_container_width=True, key="fig_dona_vencidos_c")
+        st.plotly_chart(fig_dona_vencidos, use_container_width=True, key="fig_dona_vencidos_c", config={'displayModeBar': False})
 
     st.markdown("---")
     st.subheader("📋 Detalle General de Compromisos Pendientes Contraloría")
@@ -960,7 +1038,7 @@ with tab_metricas:
     st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_area}</div>', unsafe_allow_html=True)
 
     if fig_area_horiz is not None:
-        st.plotly_chart(fig_area_horiz, use_container_width=True, key="fig_area_contraloria")
+        st.plotly_chart(fig_area_horiz, use_container_width=True, key="fig_area_contraloria", config={'displayModeBar': False})
     else:
         st.success("🎉 ¡Excelente! No hay compromisos pendientes en ninguna área.")
 
@@ -970,7 +1048,7 @@ with tab_metricas:
     st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_aud}</div>', unsafe_allow_html=True)
 
     if fig_aud_horiz is not None:
-        st.plotly_chart(fig_aud_horiz, use_container_width=True, key="fig_aud_contraloria")
+        st.plotly_chart(fig_aud_horiz, use_container_width=True, key="fig_aud_contraloria", config={'displayModeBar': False})
     else:
         st.info("No hay compromisos pendientes en las vigencias.")
 
@@ -1207,7 +1285,7 @@ with tab_finalizadas:
 
 
 # =========================================================
-# PESTAÑA 5: INFORMES DE AUDITORÍA (LECTURA DE LA HOJA 'Enlace PDF')
+# PESTAÑA 5: INFORMES DE AUDITORÍA (HOJA 'Enlace PDF')
 # =========================================================
 with tab_informes:
     st.header("📑 Informes de Auditoría de la Contraloría")
@@ -1216,7 +1294,6 @@ with tab_informes:
     if not df_informes_raw.empty:
         df_inf_vista = df_informes_raw.copy()
         
-        # Limpieza y formateo de columnas
         col_vig_inf = buscar_columna_por_patron(df_inf_vista, ["vigencia"]) or df_inf_vista.columns[0]
         col_nom_inf = buscar_columna_por_patron(df_inf_vista, ["nombre", "informe"]) or df_inf_vista.columns[1]
         col_link_inf = buscar_columna_por_patron(df_inf_vista, ["enlace", "pdf", "link", "drive"]) or df_inf_vista.columns[2]
@@ -1231,18 +1308,15 @@ with tab_informes:
             lambda v: f"Vigencia {v}" if v.isdigit() else v
         )
 
-        # Formateo del link para asegurar https://
         def asegurar_link(u):
             val = str(u).strip()
             if val and val.lower() not in ["nan", "none", ""] and not val.startswith("http"):
                 return f"https://{val}"
             return val
 
-        df_inf_vista[col_link_inf] = df_inf_vista[col_link_inf].apply_series(asegurar_link) if hasattr(df_inf_vista[col_link_inf], 'apply_series') else df_inf_vista[col_link_inf].apply(asegurar_link)
-
+        df_inf_vista[col_link_inf] = df_inf_vista[col_link_inf].apply(asegurar_link)
         df_inf_vista.index = range(1, len(df_inf_vista) + 1)
 
-        # Métricas
         mi1, mi2 = st.columns(2)
         mi1.metric("📑 Total Informes Registrados", len(df_inf_vista))
         mi2.metric("📅 Vigencias Cubiertas", df_inf_vista[col_vig_inf].nunique())

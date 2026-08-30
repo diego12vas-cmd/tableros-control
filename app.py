@@ -710,7 +710,7 @@ if col_auditoria in df_perf.columns:
 
 
 # ---------------------------------------------------------
-# PESTAÑAS PRINCIPALES (7 PESTAÑAS INTEGRADAS)
+# PESTAÑAS PRINCIPALES (7 PESTAÑAS)
 # ---------------------------------------------------------
 tab_principal, tab_metricas, tab_historico, tab_alertas, tab_oficios, tab_finalizadas, tab_informes = st.tabs([
     "📊 Tablero Principal",
@@ -919,7 +919,7 @@ with tab_metricas:
 # =========================================================
 with tab_historico:
     st.header("📈 Análisis Histórico e Interanual de Planes de Mejoramiento")
-    st.markdown("Evolución del volumen de Planes de Mejoramiento por vigencia y distribución por Área Responsable.")
+    st.markdown("Evolución del volumen de **Planes de Mejoramiento** por vigencia y distribución por Área Responsable.")
 
     if col_plan_filtro and col_plan_filtro in df_raw.columns:
         df_hist_calc = df_raw.copy()
@@ -1103,7 +1103,7 @@ with tab_alertas:
     if col_plan_filtro and col_plan_filtro in df_edicion_temp.columns:
         opciones_plan_v += sorted([str(x) for x in df_edicion_temp[col_plan_filtro].dropna().unique() if str(x).strip()])
     with col_f_plan:
-        plan_v_seleccionado = st.selectbox("3. Filtrar por Plan / Vigencia:", options=plan_v_seleccionado, key="f_plan_edit") if 'plan_v_seleccionado' in locals() else st.selectbox("3. Filtrar por Plan / Vigencia:", options=opciones_plan_v, key="f_plan_edit")
+        plan_v_seleccionado = st.selectbox("3. Filtrar por Plan / Vigencia:", options=opciones_plan_v, key="f_plan_edit")
 
     if plan_v_seleccionado != "(Todos)":
         df_edicion_temp = df_edicion_temp[df_edicion_temp[col_plan_filtro].astype(str).str.strip().str.lower() == plan_v_seleccionado.strip().lower()]
@@ -1411,16 +1411,15 @@ with tab_finalizadas:
 
 
 # =========================================================
-# PESTAÑA 7: INFORMES DE AUDITORÍA (LECTURA DE LA HOJA 'Informes PDF')
+# PESTAÑA 7: INFORMES DE AUDITORÍA CON SUB-PESTAÑAS POR VIGENCIA
 # =========================================================
 with tab_informes:
-    st.header("📑 Informes de Auditoría Interna")
-    st.markdown("Relación consolidada de los informes de auditoría interna generados agrupados por vigencia.")
+    st.header("📑 Informes de Auditoría Interna por Vigencia")
+    st.markdown("Consulta rápida y organizada de los informes de auditoría interna mediante pestañas independientes por cada vigencia.")
 
     if not df_informes_raw.empty:
         df_inf_vista = df_informes_raw.copy()
         
-        # Limpieza y formateo de columnas
         col_vig_inf = buscar_columna_por_patron(df_inf_vista, ["vigencia"]) or df_inf_vista.columns[0]
         col_nom_inf = buscar_columna_por_patron(df_inf_vista, ["nombre", "informe"]) or df_inf_vista.columns[1]
         col_link_inf = buscar_columna_por_patron(df_inf_vista, ["enlace", "pdf", "link", "drive"]) or df_inf_vista.columns[2]
@@ -1431,9 +1430,6 @@ with tab_informes:
             .str.replace(".0", "", regex=False)
             .str.strip()
         )
-        df_inf_vista[col_vig_inf] = df_inf_vista[col_vig_inf].apply(
-            lambda v: f"Vigencia {v}" if v.isdigit() else v
-        )
 
         def asegurar_link(u):
             val = str(u).strip()
@@ -1442,34 +1438,68 @@ with tab_informes:
             return val
 
         df_inf_vista[col_link_inf] = df_inf_vista[col_link_inf].apply(asegurar_link)
-        df_inf_vista.index = range(1, len(df_inf_vista) + 1)
 
-        # Métricas
-        mi1, mi2 = st.columns(2)
-        mi1.metric("📑 Total Informes Registrados", len(df_inf_vista))
-        mi2.metric("📅 Vigencias Cubiertas", df_inf_vista[col_vig_inf].nunique())
+        # Extraer lista ordenada de vigencias (ej. 2023, 2024, 2025, 2026)
+        vigencias_unicas = sorted([
+            v for v in df_inf_vista[col_vig_inf].dropna().unique() 
+            if str(v).lower() not in ["nan", "none", ""]
+        ])
 
-        st.markdown("---")
+        if vigencias_unicas:
+            # Crear sub-pestañas para cada vigencia + opción 'Todas'
+            nombres_subtabs = [f"📅 Vigencia {v}" if str(v).isdigit() else str(v) for v in vigencias_unicas]
+            nombres_subtabs.insert(0, "📊 Todas las Vigencias")
 
-        st.dataframe(
-            df_inf_vista,
-            use_container_width=True,
-            column_config={
-                col_link_inf: st.column_config.LinkColumn(
-                    "Soporte PDF",
-                    help="Haz clic para abrir el archivo del informe en PDF",
-                    display_text="📄 Ver PDF"
+            subtabs = st.tabs(nombres_subtabs)
+
+            # 1. Pestaña General (Todas)
+            with subtabs[0]:
+                st.markdown(f"**Visualizando el consolidado total de {len(df_inf_vista)} informes.**")
+                df_mostrar_todas = df_inf_vista.copy().reset_index(drop=True)
+                df_mostrar_todas.index = range(1, len(df_mostrar_todas) + 1)
+                
+                st.dataframe(
+                    df_mostrar_todas,
+                    use_container_width=True,
+                    column_config={
+                        col_link_inf: st.column_config.LinkColumn(
+                            "Soporte PDF",
+                            help="Haz clic para abrir el archivo del informe en PDF",
+                            display_text="📄 Ver PDF"
+                        )
+                    }
                 )
-            }
-        )
 
-        st.download_button(
-            label="📥 Descargar Relación de Informes (.xlsx)",
-            data=generar_excel_formateado(df_inf_vista),
-            file_name=f"Relacion_Informes_Auditoria_Interna_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            key="btn_download_informes_pdf_ai",
-            use_container_width=False,
-        )
+            # 2. Sub-pestañas individuales por Vigencia
+            for i, vig in enumerate(vigencias_unicas):
+                with subtabs[i + 1]:
+                    df_sub_vig = df_inf_vista[df_inf_vista[col_vig_inf] == vig].copy().reset_index(drop=True)
+                    df_sub_vig.index = range(1, len(df_sub_vig) + 1)
+                    
+                    st.markdown(f"**Listado de informes correspondientes a la Vigencia {vig} ({len(df_sub_vig)} informe/s registrado/s):**")
+                    
+                    st.dataframe(
+                        df_sub_vig,
+                        use_container_width=True,
+                        column_config={
+                            col_link_inf: st.column_config.LinkColumn(
+                                "Soporte PDF",
+                                help="Haz clic para abrir el archivo del informe en PDF",
+                                display_text="📄 Ver PDF"
+                            )
+                        }
+                    )
+
+            st.markdown("---")
+            st.download_button(
+                label="📥 Descargar Relación Completa de Informes (.xlsx)",
+                data=generar_excel_formateado(df_inf_vista),
+                file_name=f"Relacion_Informes_Auditoria_Interna_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="btn_download_informes_pdf_ai_subtabs",
+                use_container_width=False,
+            )
+        else:
+            st.info("ℹ️ No hay vigencias válidas registradas en los informes.")
     else:
         st.info("ℹ️ Aún no hay informes registrados en la hoja 'Informes PDF' del archivo Excel.")

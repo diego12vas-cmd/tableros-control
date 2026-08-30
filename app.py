@@ -636,6 +636,7 @@ def buscar_excel_contraloria():
 
 EXCEL_PATH_C = buscar_excel_contraloria()
 
+# LECTURA EXACTA DE FECHA Y HERA DE LA HOJA 'Tablero'
 def obtener_fecha_excel(ruta_target):
     if not ruta_target or not os.path.exists(ruta_target):
         return None
@@ -647,14 +648,25 @@ def obtener_fecha_excel(ruta_target):
                 for row_idx, val in enumerate(df_tablero[col].dropna()):
                     val_str = str(val).strip()
                     if "última fecha de actualización" in val_str.lower() or "ultima fecha" in val_str.lower():
-                        match = re.search(r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})", val_str)
+                        match = re.search(r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\s+\d{1,2}:\d{2}(?::\d{2})?)", val_str)
                         if match:
                             return match.group(1)
+                        match_simple = re.search(r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})", val_str)
+                        if match_simple:
+                            return match_simple.group(1)
+                        if row_idx + 1 < len(df_tablero):
+                            val_next = str(df_tablero[col].iloc[row_idx + 1]).strip()
+                            match_next = re.search(r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\s+\d{1,2}:\d{2})", val_next)
+                            if match_next:
+                                return match_next.group(1)
+                            match_next_simple = re.search(r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})", val_next)
+                            if match_next_simple:
+                                return match_next_simple.group(1)
         timestamp_mod = os.path.getmtime(ruta_target)
-        return datetime.fromtimestamp(timestamp_mod).strftime("%d/%m/%Y")
+        return datetime.fromtimestamp(timestamp_mod).strftime("%d/%m/%Y %H:%M")
     except Exception:
         if os.path.exists(ruta_target):
-            return datetime.fromtimestamp(os.path.getmtime(ruta_target)).strftime("%d/%m/%Y")
+            return datetime.fromtimestamp(os.path.getmtime(ruta_target)).strftime("%d/%m/%Y %H:%M")
         return None
 
 def generar_excel_formateado(df):
@@ -1636,7 +1648,7 @@ if entorno_activo == "Auditoría Interna":
                             use_container_width=False,
                         )
                     else:
-                        st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
+                        st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros applied.")
 
             elif nombre_tab_real == "Informes":
                 st.header("📑 Informes de Auditoría Interna por Vigencia")
@@ -1879,7 +1891,7 @@ else:
         plot_bgcolor="rgba(0,0,0,0)"
     )
 
-    # Donas
+    # Donas Paralelas
     pct_abiertos_c = round((abiertos_c / total_planes_c) * 100) if total_planes_c > 0 else 0
     colors_abiertos_c = ["#00B050" if i < (pct_abiertos_c / 5) else "#E0E0E0" for i in range(20)]
 
@@ -2087,6 +2099,7 @@ else:
                 plot_bgcolor="rgba(0,0,0,0)"
             )
 
+    # 4 PESTAÑAS DE CONTRALORÍA
     tab_c1, tab_c2, tab_c4, tab_c5 = st.tabs([
         "📊 Tablero Principal",
         "📈 Métricas de Cumplimiento",

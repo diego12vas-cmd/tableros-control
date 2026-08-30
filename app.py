@@ -48,7 +48,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS COMPACTOS & RESPONSIVOS (OCULTA BOTÓN NEGRO)
+# ESTILOS CSS COMPACTOS, ELEGANTES Y RESPONSIVOS (PC Y MÓVIL)
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -241,15 +241,16 @@ st.markdown(
             color: #FFFFFF !important;
         }
 
+        /* --- ADAPTACIÓN RESPONSIVA PARA CELULARES (MÓVILES) --- */
         @media (max-width: 768px) {
             .block-container {
-                padding-left: 0.8rem !important;
-                padding-right: 0.8rem !important;
-                padding-top: 1.5rem !important;
+                padding-left: 0.5rem !important;
+                padding-right: 0.5rem !important;
+                padding-top: 1rem !important;
             }
             .titulo-tablero {
                 font-size: 1.1rem !important;
-                text-align: center;
+                text-align: center !important;
             }
             .card-box {
                 font-size: 0.95rem !important;
@@ -258,9 +259,16 @@ st.markdown(
             .block-header {
                 font-size: 0.78rem !important;
             }
+            [data-testid="stHorizontalBlock"] {
+                flex-direction: column !important;
+                gap: 12px !important;
+            }
             div[data-testid="stDataFrame"] {
                 width: 100% !important;
                 overflow-x: auto !important;
+            }
+            [data-testid="stSidebar"] {
+                min-width: 100% !important;
             }
         }
     </style>
@@ -273,27 +281,26 @@ st.markdown('<div class="titulo-tablero">📊 Tablero de Control y Gestión - Au
 
 
 # ---------------------------------------------------------
-# BÚSQUEDA ROBUSTA Y DINÁMICA DEL ARCHIVO EXCEL
+# BÚSQUEDA 100% PORTABLE Y DINÁMICA DEL ARCHIVO EXCEL
 # ---------------------------------------------------------
 def buscar_excel_inteligente():
     dir_script = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
     dir_padre = os.path.dirname(dir_script)
 
-    rutas_candidatas = [
-        r"C:\Users\diego\OneDrive\Escritorio\Tableros de Control\1. Auditorías Internas\TABLERO_PA_AI.xlsm",
-        r"C:\Users\diego\OneDrive\Escritorio\Tableros de Control\1. Auditoría Interna\TABLERO_PA_I.xlsm",
-        r"C:\Users\diego\OneDrive\Escritorio\Tableros de Control\1. Auditoria Interna\TABLERO_PA_I.xlsm",
-        r"C:\Users\diego\OneDrive\Escritorio\Tableros de Control\1. Auditorías Internas\TABLERO_PA_AI.xlsx",
-        r"C:\Users\diego\OneDrive\Escritorio\Tableros de Control\1. Auditoría Interna\TABLERO_PA_I.xlsx",
-        os.path.join(dir_script, "TABLERO_PA_AI.xlsm"),
-        os.path.join(dir_script, "TABLERO_PA_I.xlsm"),
-        os.path.join(dir_script, "TABLERO_PA_AI.xlsx"),
-        os.path.join(dir_script, "TABLERO_PA_I.xlsx"),
-        os.path.join(dir_padre, "TABLERO_PA_AI.xlsm"),
-        os.path.join(dir_padre, "TABLERO_PA_I.xlsm"),
+    nombres_posibles = [
+        "TABLERO_PA_AI.xlsm",
+        "TABLERO_PA_AI.xlsx",
+        "TABLERO_PA_I.xlsm",
+        "TABLERO_PA_I.xlsx"
     ]
 
-    for ruta in rutas_candidatas:
+    for nombre in nombres_posibles:
+        ruta = os.path.join(dir_script, nombre)
+        if os.path.exists(ruta):
+            return ruta
+
+    for nombre in nombres_posibles:
+        ruta = os.path.join(dir_padre, nombre)
         if os.path.exists(ruta):
             return ruta
 
@@ -303,7 +310,7 @@ def buscar_excel_inteligente():
                 if file.endswith((".xlsm", ".xlsx")) and ("TABLERO" in file.upper() or "PA_" in file.upper()) and not file.startswith("~$"):
                     return os.path.join(folder, file)
 
-    return rutas_candidatas[0]
+    return os.path.join(dir_script, "TABLERO_PA_AI.xlsx")
 
 
 EXCEL_PATH = buscar_excel_inteligente()

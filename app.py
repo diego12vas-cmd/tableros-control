@@ -152,7 +152,7 @@ def enviar_correo_token(email_destino, token):
         return False
 
 # ---------------------------------------------------------
-# SISTEMA DE LOGIN Y RECUPERACIÓN DE CONTRASEÑA
+# SISTEMA DE LOGIN Y RECUPERACIÓN DE CONTRASEÑA (PERSONALIZADO)
 # ---------------------------------------------------------
 def validar_login():
     if "autenticado" not in st.session_state:
@@ -163,14 +163,27 @@ def validar_login():
         st.session_state["permisos_usuario"] = []
 
     if not st.session_state["autenticado"]:
-        st.markdown("## 🔒 Acceso Restringido")
-        st.caption("Ingresa tus credenciales para acceder al tablero de Auditoría Interna.")
+        col_logo, col_form = st.columns([1.2, 1.8], gap="large")
         
-        tab_login, tab_recovery = st.tabs(["🔑 Iniciar Sesión", "❓ Olvidé mi Contraseña"])
-        
-        with tab_login:
-            c1, _ = st.columns([1.5, 2])
-            with c1:
+        with col_logo:
+            if LOGO_PATH:
+                st.image(LOGO_PATH, use_container_width=True)
+            else:
+                st.markdown("### 🚌 **LA TERMINAL**")
+            st.markdown("""
+                <div style='background-color: #EAF5D6; padding: 18px; border-radius: 8px; border-left: 5px solid #7AB800; margin-top: 15px;'>
+                    <h4 style='color: #0077C8; margin: 0 0 6px 0;'>Sistema de Gestión</h4>
+                    <p style='margin: 0; font-size: 0.92rem; color: #333;'>Tablero de Control e Indicadores de Gestión para la Oficina de Auditoría Interna.</p>
+                </div>
+            """, unsafe_allow_html=True)
+
+        with col_form:
+            st.markdown("## 🔒 Acceso Restringido")
+            st.caption("Ingresa tus credenciales para acceder al sistema.")
+            
+            tab_login, tab_recovery = st.tabs(["🔑 Iniciar Sesión", "❓ Olvidé mi Contraseña"])
+            
+            with tab_login:
                 usuario = st.text_input("Usuario", key="user_input_ai")
                 password = st.text_input("Contraseña", type="password", key="pass_input_ai")
                 
@@ -201,9 +214,7 @@ def validar_login():
                     else:
                         st.error("❌ Usuario o contraseña incorrectos.")
 
-        with tab_recovery:
-            c2, _ = st.columns([1.5, 2])
-            with c2:
+            with tab_recovery:
                 st.markdown("##### Restablecer Contraseña")
                 paso = st.session_state.get("paso_recuperacion", 1)
 
@@ -274,7 +285,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS CON REDUCCIÓN DE ESPACIO VERTICAL
+# ESTILOS CSS CON REDUCCIÓN DE ESPACIO VERTICAL Y ALINEACIÓN DE LOGO
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -315,7 +326,6 @@ st.markdown(
             pointer-events: none !important;
         }
 
-        /* Barra Lateral alineada completamente arriba */
         [data-testid="stSidebar"] {
             min-width: 320px !important;
             max-width: 320px !important;
@@ -345,13 +355,11 @@ st.markdown(
             padding-bottom: 1rem !important;
         }
 
-        /* Reducción de margen en las líneas divisorias */
         hr {
             margin-top: 0.5rem !important;
             margin-bottom: 0.5rem !important;
         }
 
-        /* Ajuste de margen inferior en gráficos de Streamlit */
         div[data-testid="stPlotlyChart"] {
             margin-bottom: -20px !important;
         }
@@ -374,7 +382,7 @@ st.markdown(
             font-weight: bold;
             font-size: 0.85rem;
             color: var(--text-color);
-            margin-bottom: 2px;
+            margin-bottom: 4px;
             margin-top: 2px;
             text-transform: uppercase;
             letter-spacing: 0.5px;

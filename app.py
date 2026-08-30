@@ -1657,7 +1657,7 @@ if modulo_seleccionado == "📊 Auditoría Interna":
                 st.info("ℹ️ No hay vigencias válidas registradas en los informes.")
 
 # =========================================================
-# VISTA 2: CONTRALORÍA DE BOGOTÁ (CÓDIGO INTEGRADO DE CONTRALORÍA)
+# VISTA 2: CONTRALORÍA DE BOGOTÁ (ENTORNO 100% EXCLUSIVO)
 # =========================================================
 else:
     def limpiar_nombre_area(texto):
@@ -1811,6 +1811,7 @@ else:
 
     total_planes_c = abiertos_c + vencidos_c
 
+    # Gráfica de Barras Ampliada
     max_val_c = max([abiertos_c, vencidos_c, 1])
     df_bar_c = pd.DataFrame({"Estado": ["Abiertos", "Vencidos"], "Cantidad": [abiertos_c, vencidos_c]})
 
@@ -1819,7 +1820,7 @@ else:
     fig_bar_c.update_layout(
         autosize=True,
         showlegend=False, 
-        height=180, 
+        height=220, 
         margin=dict(t=25, b=5, l=5, r=5), 
         xaxis_title=None, 
         yaxis_title=None, 
@@ -1829,6 +1830,7 @@ else:
         plot_bgcolor="rgba(0,0,0,0)"
     )
 
+    # Donas
     pct_abiertos_c = round((abiertos_c / total_planes_c) * 100) if total_planes_c > 0 else 0
     colors_abiertos_c = ["#00B050" if i < (pct_abiertos_c / 5) else "#E0E0E0" for i in range(20)]
 
@@ -1852,9 +1854,39 @@ else:
     )
     fig_dona_abiertos_c.update_layout(
         showlegend=False,
-        height=170,
+        height=140,
         autosize=True,
-        margin=dict(t=15, b=15, l=15, r=15),
+        margin=dict(t=5, b=5, l=5, r=5),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)"
+    )
+
+    pct_vencidos_c = round((vencidos_c / total_planes_c) * 100) if total_planes_c > 0 else 0
+    colors_vencidos_c = ["#FF5252" if i < (pct_vencidos_c / 5) else "#E0E0E0" for i in range(20)]
+
+    fig_dona_vencidos_c = go.Figure(data=[
+        go.Pie(
+            values=[1]*20, 
+            hole=0.68, 
+            marker_colors=colors_vencidos_c, 
+            marker_line=dict(color="#FFFFFF", width=2), 
+            textinfo="none", 
+            hoverinfo="none",
+            domain=dict(x=[0.05, 0.95], y=[0.05, 0.95])
+        )
+    ])
+    fig_dona_vencidos_c.add_annotation(
+        text=f"<b>{pct_vencidos_c}%</b>", 
+        x=0.5, 
+        y=0.5, 
+        font=dict(size=18, color="var(--text-color)"), 
+        showarrow=False
+    )
+    fig_dona_vencidos_c.update_layout(
+        showlegend=False,
+        height=140,
+        autosize=True,
+        margin=dict(t=5, b=5, l=5, r=5),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)"
     )
@@ -1935,10 +1967,81 @@ else:
                 plot_bgcolor="rgba(0,0,0,0)"
             )
 
-    tab_c1, tab_c2, tab_c3, tab_c4, tab_c5 = st.tabs([
+    fig_aud_horiz_c = None
+    total_acciones_aud_c = 0
+
+    if col_auditoria_c in df_perf_c.columns:
+        df_aud_pend_raw_c = df_perf_c[~s_est_c.str.contains("Finaliz|Cerrad", case=False, na=False)].copy()
+        
+        if not df_aud_pend_raw_c.empty:
+            total_acciones_aud_c = len(df_aud_pend_raw_c)
+            
+            df_aud_pend_raw_c["Vigencia_Etiqueta"] = (
+                df_aud_pend_raw_c[col_auditoria_c]
+                .fillna("SIN VIGENCIA")
+                .astype(str)
+                .str.replace(".0", "", regex=False)
+                .str.strip()
+            )
+            df_aud_pend_raw_c["Vigencia_Etiqueta"] = df_aud_pend_raw_c["Vigencia_Etiqueta"].apply(
+                lambda v: f"Vigencia {v}" if v.isdigit() else v
+            )
+
+            df_aud_grouped_c = df_aud_pend_raw_c.groupby(["Vigencia_Etiqueta", "Estado_Normalizado"]).size().reset_index(name="Cantidad")
+            df_totales_aud_c = df_aud_grouped_c.groupby("Vigencia_Etiqueta")["Cantidad"].sum().reset_index(name="Total_Pendientes").sort_values(by="Total_Pendientes", ascending=False)
+            
+            df_aud_grouped_c["Vigencia_Etiqueta"] = pd.Categorical(
+                df_aud_grouped_c["Vigencia_Etiqueta"],
+                categories=df_totales_aud_c["Vigencia_Etiqueta"],
+                ordered=True
+            )
+            df_aud_grouped_c["Texto_Etiqueta"] = df_aud_grouped_c["Cantidad"].apply(lambda x: f"<b>{x}</b>" if x > 0 else "")
+
+            calc_height_auds_c = max(280, len(df_totales_aud_c) * 90)
+            fig_aud_horiz_c = px.bar(
+                df_aud_grouped_c,
+                y="Vigencia_Etiqueta",
+                x="Cantidad",
+                color="Estado_Normalizado",
+                text="Texto_Etiqueta",
+                orientation="h",
+                barmode="stack",
+                color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252"}
+            )
+            fig_aud_horiz_c.update_traces(
+                textposition="inside",
+                insidetextanchor="middle",
+                textfont=dict(size=12, color="white", family="Arial Black"),
+                cliponaxis=False
+            )
+
+            for _, row in df_totales_aud_c.iterrows():
+                fig_aud_horiz_c.add_annotation(
+                    y=row["Vigencia_Etiqueta"],
+                    x=row["Total_Pendientes"],
+                    text=f" <b>{row['Total_Pendientes']}</b>",
+                    showarrow=False,
+                    xanchor="left",
+                    yanchor="middle",
+                    font=dict(size=13, color="var(--text-color)")
+                )
+            max_pend_aud_c = df_totales_aud_c["Total_Pendientes"].max() if not df_totales_aud_c.empty else 10
+            fig_aud_horiz_c.update_layout(
+                autosize=True,
+                height=calc_height_auds_c,
+                coloraxis_showscale=False,
+                yaxis=dict(type="category", autorange="reversed", title=None, automargin=True, tickfont=dict(color="var(--text-color)")),
+                xaxis=dict(showticklabels=False, title=None, visible=False, showgrid=False, zeroline=False, range=[0, max_pend_aud_c * 1.25]),
+                legend_title_text="Estado",
+                margin=dict(l=140, r=40, t=20, b=20),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)"
+            )
+
+    # 4 PESTAÑAS DE CONTRALORÍA (SIN ALERTAS Y EDICIÓN)
+    tab_c1, tab_c2, tab_c4, tab_c5 = st.tabs([
         "📊 Tablero Principal",
         "📈 Métricas de Cumplimiento",
-        "🚨 Alertas y Edición Directa",
         "🎉 Finalizadas",
         "📑 Informes de Auditoría",
     ])
@@ -1969,7 +2072,10 @@ else:
 
         with cc4:
             st.markdown('<div class="block-header">PORCENTAJE EN TIEMPO</div>', unsafe_allow_html=True)
-            st.plotly_chart(fig_dona_abiertos_c, use_container_width=True, key="fig_dona_contraloria_view", config={'displayModeBar': False})
+            st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#00B050;">🟢 En tiempo (Abiertos)</div>', unsafe_allow_html=True)
+            st.plotly_chart(fig_dona_abiertos_c, use_container_width=True, key="fig_dona_abiertos_c_view", config={'displayModeBar': False})
+            st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#FF5252;">🔴 Vencidos</div>', unsafe_allow_html=True)
+            st.plotly_chart(fig_dona_vencidos_c, use_container_width=True, key="fig_dona_vencidos_c_view", config={'displayModeBar': False})
 
         st.markdown("---")
         st.subheader("📋 Detalle de Compromisos Contraloría")
@@ -1987,7 +2093,7 @@ else:
         )
 
     with tab_c2:
-        st.header("📈 Métricas de Cumplimiento - Contraloría")
+        st.header("📈 Resumen de Estado y Desempeño - Contraloría")
         st.markdown("Planes de Acción Pendientes")
         st.markdown(f"## {total_planes_c}")
         
@@ -2002,31 +2108,15 @@ else:
         else:
             st.success("🎉 ¡Excelente! No hay compromisos pendientes en ninguna área.")
 
-    with tab_c3:
-        st.header("🚨 Alertas y Edición Directa - Contraloría")
-        st.info("Módulo de edición de compromisos para Contraloría.")
+        st.markdown("---")
+        st.subheader("🔬 Distribución de Compromisos Pendientes por Vigencia de Auditoría")
+        st.caption("Distribución por estado del 100% de los compromisos pendientes agrupados por vigencia.")
+        st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_aud_c}</div>', unsafe_allow_html=True)
 
-        df_alertas_c = df_filtrado_c.copy()
-        hoy_c = pd.to_datetime(date.today())
-
-        if col_fecha_cierre_c and col_fecha_cierre_c in df_alertas_c.columns:
-            df_alertas_c["Fecha_DT"] = pd.to_datetime(df_alertas_c[col_fecha_cierre_c], errors="coerce")
-            df_alertas_c["Dias_Atraso"] = (hoy_c - df_alertas_c["Fecha_DT"]).dt.days
-            df_alertas_c["Dias_Atraso"] = df_alertas_c["Dias_Atraso"].apply(lambda x: x if x > 0 else 0)
+        if fig_aud_horiz_c is not None:
+            st.plotly_chart(fig_aud_horiz_c, use_container_width=True, key="fig_aud_contraloria_view", config={'displayModeBar': False})
         else:
-            df_alertas_c["Dias_Atraso"] = 0
-
-        df_criticos_30_c = df_alertas_c[(~df_alertas_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)) & (df_alertas_c["Dias_Atraso"] >= 30)].sort_values(by="Dias_Atraso", ascending=False)
-
-        col_ac1_c, col_ac2_c = st.columns(2)
-        col_ac1_c.metric("🔴 Planes Críticos (≥ 30 Días Mora)", len(df_criticos_30_c))
-        prom_mora_c = int(df_criticos_30_c["Dias_Atraso"].mean()) if not df_criticos_30_c.empty else 0
-        col_ac2_c.metric("⏱️ Promedio Días Vencidos", f"{prom_mora_c} días")
-
-        if not df_criticos_30_c.empty:
-            df_criticos_30_c.index = range(1, len(df_criticos_30_c) + 1)
-            st.subheader("📋 Tabla de Compromisos Críticos")
-            st.dataframe(df_criticos_30_c, use_container_width=True)
+            st.info("No hay compromisos pendientes en las vigencias.")
 
     with tab_c4:
         st.header("🎉 Acciones Finalizadas Contraloría")
@@ -2049,7 +2139,9 @@ else:
                 st.info("ℹ️ No hay acciones finalizadas en Contraloría.")
 
     with tab_c5:
-        st.header("📑 Informes de Auditoría - Contraloría")
+        st.header("📑 Informes de Auditoría de la Contraloría")
+        st.markdown("Relación consolidada de los informes de auditoría dejados por la Contraloría de Bogotá agrupados por vigencia.")
+
         if not df_informes_raw_c.empty:
             df_inf_c = df_informes_raw_c.copy()
             col_link_c = buscar_columna_por_patron(df_inf_c, ["enlace", "pdf", "link", "drive"]) or df_inf_c.columns[-1]
@@ -2061,6 +2153,7 @@ else:
                 return val
 
             df_inf_c[col_link_c] = df_inf_c[col_link_c].apply(asegurar_link)
+            df_inf_c.index = range(1, len(df_inf_c) + 1)
             
             st.dataframe(
                 df_inf_c,

@@ -45,6 +45,7 @@ DB_PATH = "usuarios_app.db"
 
 TODAS_LAS_PESTANIAS = [
     "Tablero", 
+    "Contraloría",
     "Programa Anual", 
     "Métricas", 
     "Histórico", 
@@ -163,7 +164,6 @@ def validar_login():
         st.session_state["permisos_usuario"] = []
 
     if not st.session_state["autenticado"]:
-        # Inyección forzada de CSS verde institucional para el botón
         st.markdown(
             """
             <style>
@@ -546,7 +546,7 @@ with col_head_title:
     st.markdown('<div class="titulo-tablero">Tablero de Control y Gestión - Auditoría Interna</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# BÚSQUEDA DEL EXCEL
+# BÚSQUEDA DEL EXCEL AUDITORÍA
 # ---------------------------------------------------------
 def buscar_excel_inteligente():
     dir_script = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
@@ -565,6 +565,27 @@ def buscar_excel_inteligente():
     return os.path.join(dir_script, "TABLERO_PA_AI.xlsx")
 
 EXCEL_PATH = buscar_excel_inteligente()
+
+# ---------------------------------------------------------
+# BÚSQUEDA DEL EXCEL CONTRALORÍA
+# ---------------------------------------------------------
+def buscar_excel_contraloria():
+    dir_script = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
+    dir_padre = os.path.dirname(dir_script)
+    nombres_posibles = ["TABLERO_PA_C.xlsx", "TABLERO_PA_C.xlsm"]
+
+    for nombre in nombres_posibles:
+        ruta = os.path.join(dir_script, nombre)
+        if os.path.exists(ruta):
+            return ruta
+    for nombre in nombres_posibles:
+        ruta = os.path.join(dir_padre, nombre)
+        if os.path.exists(ruta):
+            return ruta
+
+    return os.path.join(dir_script, "TABLERO_PA_C.xlsx")
+
+EXCEL_PATH_CONTRALORIA = buscar_excel_contraloria()
 
 def obtener_fecha_excel():
     if not EXCEL_PATH or not os.path.exists(EXCEL_PATH):
@@ -659,7 +680,23 @@ def cargar_datos():
         st.error(f"Error al cargar el archivo Excel: {e}")
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
+def cargar_datos_contraloria():
+    if not os.path.exists(EXCEL_PATH_CONTRALORIA):
+        return pd.DataFrame()
+    try:
+        xls = pd.ExcelFile(EXCEL_PATH_CONTRALORIA)
+        sheet_b = "Base de datos" if "Base de datos" in xls.sheet_names else ("Base de Datos" if "Base de Datos" in xls.sheet_names else xls.sheet_names[0])
+        df_c = pd.read_excel(xls, sheet_name=sheet_b)
+        df_c.columns = [str(c).strip() for c in df_c.columns]
+        for col in df_c.columns:
+            if df_c[col].dtype == "object":
+                df_c[col] = df_c[col].astype(str).str.strip()
+        return df_c
+    except Exception:
+        return pd.DataFrame()
+
 df_raw, df_calc, df_informes_raw, df_paa_raw = cargar_datos()
+df_contraloria_raw = cargar_datos_contraloria()
 
 if df_raw.empty:
     st.stop()
@@ -906,6 +943,7 @@ if col_auditoria in df_perf.columns:
 # ---------------------------------------------------------
 dict_pestanias = {
     "Tablero": "📊 Tablero",
+    "Contraloría": "🏛️ Contraloría",
     "Programa Anual": "🗓️ Programa Anual",
     "Métricas": "📈 Métricas",
     "Histórico": "📊 Histórico",
@@ -999,7 +1037,6 @@ for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
                 st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#FF5252;">🔴 Vencidos</div>', unsafe_allow_html=True)
                 st.plotly_chart(fig_dona_vencidos, use_container_width=True, key="fig_dona_vencidos_key", config={'displayModeBar': False})
 
-            st.markdown("<div style='margin-top: -20px;'></div>", unsafe_allow_html=True)
             st.markdown("---")
 
             col_sub, col_filtro_rapido = st.columns([2, 1])
@@ -1051,6 +1088,77 @@ for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=False,
             )
+
+        elif nombre_tab_real == "Contraloría":
+            st.header("🏛️ Tablero de Control - Contraloría de Bogotá")
+            st.markdown("Seguimiento y métricas consolidadas de los compromisos derivados de las auditorías de la Contraloría.")
+
+            if not df_contraloria_raw.empty:
+                col_est_c = buscar_columna_por_patron(df_contraloria_raw, ["estado"]) or "ESTADO"
+                col_hall_c = buscar_columna_por_patron(df_contraloria_raw, ["hallazgo", "descripcion"]) or "DESCRIPCIÓN HALLAZGO"
+
+                df_c_activos = df_contraloria_raw[~df_contraloria_raw[col_est_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_est_c in df_contraloria_raw.columns else df_contraloria_raw.copy()
+
+                c_abiertos = df_contraloria_raw[col_est_c].astype(str).str.contains("Abiert", case=False, na=False).sum() if col_est_c in df_contraloria_raw.columns else 0
+                c_vencidos = df_contraloria_raw[col_est_c].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_est_c in df_contraloria_raw.columns else 0
+                c_total_pend = c_abiertos + c_vencidos
+
+                c_hall_unicos = df_c_activos[col_hall_c].dropna().nunique() if col_hall_c in df_c_activos.columns else len(df_c_activos)
+
+                cc2, cc3, cc4 = st.columns([2.5, 2.5, 2.0])
+
+                with cc2:
+                    st.markdown('<div class="block-header">Total Hallazgos Pendientes Contraloría</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="card-box" style="background-color:#4B92DB; font-size:1.3rem; height:34px; line-height:26px;">{c_hall_unicos}</div>', unsafe_allow_html=True)
+
+                    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+                    st.markdown('<div class="block-header" style="font-size:0.78rem;">Planes de Acción Pendientes</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="card-box" style="background-color:#00B050; height:36px; line-height:26px; font-size:1.4rem; margin-bottom:8px;">{c_total_pend}</div>', unsafe_allow_html=True)
+
+                    st.markdown('<div class="block-header" style="font-size:0.78rem;">Detalle de Estados Pendientes</div>', unsafe_allow_html=True)
+                    ce1, ce2 = st.columns(2)
+                    with ce1:
+                        st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none;">Abiertos</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="card-box" style="background-color:#58C57A; font-size:1.1rem; padding:6px;">{c_abiertos}</div>', unsafe_allow_html=True)
+                    with ce2:
+                        st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none;">Vencidos</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="card-box" style="background-color:#FF5252; color:#FFFFFF; font-size:1.1rem; padding:6px;">{c_vencidos}</div>', unsafe_allow_html=True)
+
+                with cc3:
+                    c_max = max([c_abiertos, c_vencidos, 1])
+                    df_c_bar = pd.DataFrame({"Estado": ["Abiertos", "Vencidos"], "Cantidad": [c_abiertos, c_vencidos]})
+                    fig_c_bar = px.bar(df_c_bar, x="Estado", y="Cantidad", text="Cantidad", color="Estado", color_discrete_map={"Abiertos": "#58C57A", "Vencidos": "#FF5252"})
+                    fig_c_bar.update_traces(textposition="outside", textfont=dict(size=12, color="var(--text-color)", family="Arial"), cliponaxis=False)
+                    fig_c_bar.update_layout(showlegend=False, height=180, margin=dict(t=25, b=5, l=5, r=5), xaxis_title=None, yaxis_title=None, yaxis=dict(showticklabels=False, range=[0, c_max * 1.25]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+
+                    st.markdown('<div class="block-header">Distribución de Planes Pendientes</div>', unsafe_allow_html=True)
+                    st.plotly_chart(fig_c_bar, use_container_width=True, key="fig_bar_contraloria_tab", config={'displayModeBar': False})
+
+                with cc4:
+                    c_pct_ab = round((c_abiertos / c_total_pend) * 100) if c_total_pend > 0 else 0
+                    fig_c_dona = go.Figure(data=[go.Pie(values=[1]*20, hole=0.68, marker_colors=["#00B050" if i < (c_pct_ab / 5) else "#E0E0E0" for i in range(20)], marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none", domain=dict(x=[0.05, 0.95], y=[0.05, 0.95]))])
+                    fig_c_dona.add_annotation(text=f"<b>{c_pct_ab}%</b>", x=0.5, y=0.5, font=dict(size=18, color="var(--text-color)"), showarrow=False)
+                    fig_c_dona.update_layout(showlegend=False, height=170, autosize=True, margin=dict(t=10, b=10, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+
+                    st.markdown('<div class="block-header">Porcentaje en Tiempo</div>', unsafe_allow_html=True)
+                    st.plotly_chart(fig_c_dona, use_container_width=True, key="fig_dona_contraloria_tab", config={'displayModeBar': False})
+
+                st.markdown("---")
+                st.subheader("📋 Detalle de Compromisos Contraloría")
+
+                df_c_tabla = df_c_activos.copy()
+                df_c_tabla.index = range(1, len(df_c_tabla) + 1)
+                st.dataframe(df_c_tabla, use_container_width=True)
+
+                st.download_button(
+                    label="📥 Descargar Excel Contraloría (.xlsx)",
+                    data=generar_excel_formateado(df_c_tabla),
+                    file_name=f"Detalle_Contraloria_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=False,
+                )
+            else:
+                st.info("ℹ️ No se encontró información en el archivo de Contraloría (`TABLERO_PA_C.xlsx`).")
 
         elif nombre_tab_real == "Programa Anual":
             st.header("🗓️ Programa Anual de Auditoría (PAA)")

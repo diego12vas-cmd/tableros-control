@@ -716,7 +716,7 @@ tab_principal, tab_metricas, tab_historico, tab_alertas, tab_oficios, tab_finali
     "📊 Tablero Principal",
     "📈 Métricas de Cumplimiento",
     "📈 Comparativa Histórica",
-    "🚨 Alertas y Edición Directa",
+    "🚨 Alertas y Edición",
     "📩 Oficios de Solicitud",
     "🎉 Finalizadas",
     "📑 Informes de Auditoría",
@@ -919,7 +919,7 @@ with tab_metricas:
 # =========================================================
 with tab_historico:
     st.header("📈 Análisis Histórico e Interanual de Planes de Mejoramiento")
-    st.markdown("Evolución del volumen de **Planes de Mejoramiento** por vigencia y distribución por Área Responsable.")
+    st.markdown("Evolución del volumen de Planes de Mejoramiento por vigencia y distribución por Área Responsable.")
 
     if col_plan_filtro and col_plan_filtro in df_raw.columns:
         df_hist_calc = df_raw.copy()
@@ -1032,10 +1032,10 @@ with tab_historico:
 
 
 # =========================================================
-# PESTAÑA 4: ALERTAS CRÍTICAS Y EDICIÓN EN MEMORIA
+# PESTAÑA 4: ALERTAS CRÍTICAS Y EDICIÓN EN MEMORIA (NOMBRE AJUSTADO)
 # =========================================================
 with tab_alertas:
-    st.header("🚨 Alertas Críticas y Edición Directa")
+    st.header("🚨 Alertas Críticas y Edición")
 
     df_alertas = df_filtrado.copy()
     hoy = pd.to_datetime(date.today())
@@ -1424,7 +1424,6 @@ with tab_informes:
         col_nom_inf = buscar_columna_por_patron(df_inf_vista, ["nombre", "informe"]) or df_inf_vista.columns[1]
         col_link_inf = buscar_columna_por_patron(df_inf_vista, ["enlace", "pdf", "link", "drive"]) or df_inf_vista.columns[2]
 
-        # Normalizar años/vigencias
         df_inf_vista[col_vig_inf] = (
             df_inf_vista[col_vig_inf]
             .astype(str)
@@ -1440,14 +1439,12 @@ with tab_informes:
 
         df_inf_vista[col_link_inf] = df_inf_vista[col_link_inf].apply(asegurar_link)
 
-        # Extraer lista ordenada de años/vigencias
         vigencias_unicas = sorted([
             v for v in df_inf_vista[col_vig_inf].dropna().unique() 
             if str(v).lower() not in ["nan", "none", ""]
         ])
 
         if vigencias_unicas:
-            # Crear pestañas clicables exclusivas por año
             nombres_subtabs = [f"📅 Vigencia {v}" if str(v).isdigit() else str(v) for v in vigencias_unicas]
             subtabs = st.tabs(nombres_subtabs)
 

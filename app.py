@@ -15,7 +15,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA
+# CONFIGURACIÓN DE PÁGINA (BARRA LATERAL SIEMPRE DESPLEGADA)
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="Tablero de Control - La Terminal",
@@ -274,7 +274,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS CON VERDE INSTITUCIONAL EN LÍNEAS DE SEPARACIÓN
+# ESTILOS CSS CON BARRA LATERAL FIJA Y LÍNEA VERDE INSTITUCIONAL
 # ---------------------------------------------------------
 st.markdown(
     """

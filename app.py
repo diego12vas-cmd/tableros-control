@@ -30,7 +30,6 @@ st.set_page_config(
 DB_PATH = "usuarios_app.db"
 
 def hash_password(password):
-    # Encriptación usando hashlib (Nativa de Python)
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 def verificar_password(password, hashed):
@@ -50,13 +49,11 @@ def init_db():
     ''')
     conn.commit()
     
-    # Crear usuario admin inicial si la tabla está vacía
-    c.execute("SELECT COUNT(*) FROM usuarios")
-    if c.fetchone()[0] == 0:
-        pw_hash = hash_password("admin123")
-        c.execute("INSERT INTO usuarios (usuario, email, password_hash, autorizado) VALUES (?, ?, ?, 1)",
-                  ("admin", "admin@empresa.com", pw_hash))
-        conn.commit()
+    # INSERT OR REPLACE asegura actualizar el hash al formato SHA256 actual
+    pw_hash = hash_password("admin123")
+    c.execute("INSERT OR REPLACE INTO usuarios (usuario, email, password_hash, autorizado) VALUES (?, ?, ?, 1)",
+              ("admin", "admin@empresa.com", pw_hash))
+    conn.commit()
     conn.close()
 
 init_db()

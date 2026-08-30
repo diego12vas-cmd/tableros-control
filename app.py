@@ -1411,11 +1411,11 @@ with tab_finalizadas:
 
 
 # =========================================================
-# PESTAÑA 7: INFORMES DE AUDITORÍA CON SUB-PESTAÑAS POR VIGENCIA
+# PESTAÑA 7: INFORMES DE AUDITORÍA CON SUB-PESTAÑAS EXCLUSIVAS POR VIGENCIA
 # =========================================================
 with tab_informes:
     st.header("📑 Informes de Auditoría Interna por Vigencia")
-    st.markdown("Consulta rápida y organizada de los informes de auditoría interna mediante pestañas independientes por cada vigencia.")
+    st.markdown("Haz clic en cualquier año para consultar únicamente los informes de esa vigencia específica.")
 
     if not df_informes_raw.empty:
         df_inf_vista = df_informes_raw.copy()
@@ -1424,6 +1424,7 @@ with tab_informes:
         col_nom_inf = buscar_columna_por_patron(df_inf_vista, ["nombre", "informe"]) or df_inf_vista.columns[1]
         col_link_inf = buscar_columna_por_patron(df_inf_vista, ["enlace", "pdf", "link", "drive"]) or df_inf_vista.columns[2]
 
+        # Normalizar años/vigencias
         df_inf_vista[col_vig_inf] = (
             df_inf_vista[col_vig_inf]
             .astype(str)
@@ -1439,44 +1440,23 @@ with tab_informes:
 
         df_inf_vista[col_link_inf] = df_inf_vista[col_link_inf].apply(asegurar_link)
 
-        # Extraer lista ordenada de vigencias (ej. 2023, 2024, 2025, 2026)
+        # Extraer lista ordenada de años/vigencias
         vigencias_unicas = sorted([
             v for v in df_inf_vista[col_vig_inf].dropna().unique() 
             if str(v).lower() not in ["nan", "none", ""]
         ])
 
         if vigencias_unicas:
-            # Crear sub-pestañas para cada vigencia + opción 'Todas'
+            # Crear pestañas clicables exclusivas por año
             nombres_subtabs = [f"📅 Vigencia {v}" if str(v).isdigit() else str(v) for v in vigencias_unicas]
-            nombres_subtabs.insert(0, "📊 Todas las Vigencias")
-
             subtabs = st.tabs(nombres_subtabs)
 
-            # 1. Pestaña General (Todas)
-            with subtabs[0]:
-                st.markdown(f"**Visualizando el consolidado total de {len(df_inf_vista)} informes.**")
-                df_mostrar_todas = df_inf_vista.copy().reset_index(drop=True)
-                df_mostrar_todas.index = range(1, len(df_mostrar_todas) + 1)
-                
-                st.dataframe(
-                    df_mostrar_todas,
-                    use_container_width=True,
-                    column_config={
-                        col_link_inf: st.column_config.LinkColumn(
-                            "Soporte PDF",
-                            help="Haz clic para abrir el archivo del informe en PDF",
-                            display_text="📄 Ver PDF"
-                        )
-                    }
-                )
-
-            # 2. Sub-pestañas individuales por Vigencia
             for i, vig in enumerate(vigencias_unicas):
-                with subtabs[i + 1]:
+                with subtabs[i]:
                     df_sub_vig = df_inf_vista[df_inf_vista[col_vig_inf] == vig].copy().reset_index(drop=True)
                     df_sub_vig.index = range(1, len(df_sub_vig) + 1)
                     
-                    st.markdown(f"**Listado de informes correspondientes a la Vigencia {vig} ({len(df_sub_vig)} informe/s registrado/s):**")
+                    st.markdown(f"**Listado de informes de la Vigencia {vig} ({len(df_sub_vig)} informe/s):**")
                     
                     st.dataframe(
                         df_sub_vig,
@@ -1496,7 +1476,7 @@ with tab_informes:
                 data=generar_excel_formateado(df_inf_vista),
                 file_name=f"Relacion_Informes_Auditoria_Interna_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                key="btn_download_informes_pdf_ai_subtabs",
+                key="btn_download_informes_pdf_ai_subtabs_exclusivas",
                 use_container_width=False,
             )
         else:

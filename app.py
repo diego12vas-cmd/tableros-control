@@ -636,7 +636,7 @@ def buscar_excel_contraloria():
 
 EXCEL_PATH_C = buscar_excel_contraloria()
 
-# LECTURA EXACTA DE FECHA Y HERA DE LA HOJA 'Tablero'
+# EXTRAE EXCLUSIVAMENTE LA FECHA DE LA CELDA (SIN HORA NI TEXTOS EXTRA)
 def obtener_fecha_excel(ruta_target):
     if not ruta_target or not os.path.exists(ruta_target):
         return None
@@ -648,25 +648,19 @@ def obtener_fecha_excel(ruta_target):
                 for row_idx, val in enumerate(df_tablero[col].dropna()):
                     val_str = str(val).strip()
                     if "última fecha de actualización" in val_str.lower() or "ultima fecha" in val_str.lower():
-                        match = re.search(r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\s+\d{1,2}:\d{2}(?::\d{2})?)", val_str)
+                        match = re.search(r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})", val_str)
                         if match:
                             return match.group(1)
-                        match_simple = re.search(r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})", val_str)
-                        if match_simple:
-                            return match_simple.group(1)
                         if row_idx + 1 < len(df_tablero):
                             val_next = str(df_tablero[col].iloc[row_idx + 1]).strip()
-                            match_next = re.search(r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\s+\d{1,2}:\d{2})", val_next)
+                            match_next = re.search(r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})", val_next)
                             if match_next:
                                 return match_next.group(1)
-                            match_next_simple = re.search(r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})", val_next)
-                            if match_next_simple:
-                                return match_next_simple.group(1)
         timestamp_mod = os.path.getmtime(ruta_target)
-        return datetime.fromtimestamp(timestamp_mod).strftime("%d/%m/%Y %H:%M")
+        return datetime.fromtimestamp(timestamp_mod).strftime("%d/%m/%Y")
     except Exception:
         if os.path.exists(ruta_target):
-            return datetime.fromtimestamp(os.path.getmtime(ruta_target)).strftime("%d/%m/%Y %H:%M")
+            return datetime.fromtimestamp(os.path.getmtime(ruta_target)).strftime("%d/%m/%Y")
         return None
 
 def generar_excel_formateado(df):
@@ -1648,7 +1642,7 @@ if entorno_activo == "Auditoría Interna":
                             use_container_width=False,
                         )
                     else:
-                        st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros applied.")
+                        st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
 
             elif nombre_tab_real == "Informes":
                 st.header("📑 Informes de Auditoría Interna por Vigencia")

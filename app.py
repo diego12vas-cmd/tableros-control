@@ -54,6 +54,11 @@ TODAS_LAS_PESTANIAS = [
     "Informes"
 ]
 
+TODOS_LOS_ENTORNOS = [
+    "Auditoría Interna",
+    "Contraloría de Bogotá"
+]
+
 def hash_password(password):
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
@@ -80,10 +85,16 @@ def init_db():
     except sqlite3.OperationalError:
         pass
 
+    try:
+        c.execute("ALTER TABLE usuarios ADD COLUMN perm_entornos TEXT DEFAULT 'TODOS'")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
     pw_hash = hash_password("admin123")
     c.execute('''
-        INSERT OR IGNORE INTO usuarios (usuario, email, password_hash, autorizado, perm_pestañas) 
-        VALUES (?, ?, ?, 1, 'TODOS')
+        INSERT OR IGNORE INTO usuarios (usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos) 
+        VALUES (?, ?, ?, 1, 'TODOS', 'TODOS')
     ''', ("admin", "admin@empresa.com", pw_hash))
     conn.commit()
     conn.close()
@@ -92,33 +103,36 @@ init_db()
 
 def obtener_usuarios_df():
     conn = sqlite3.connect(DB_PATH)
-    df = pd.read_sql_query("SELECT usuario, email, autorizado, perm_pestañas FROM usuarios", conn)
+    df = pd.read_sql_query("SELECT usuario, email, autorizado, perm_pestañas, perm_entornos FROM usuarios", conn)
     conn.close()
     return df
 
-def actualizar_permisos_usuario(usuario, lista_pestañas):
+def actualizar_permisos_usuario(usuario, lista_pestañas, lista_entornos):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     perm_str = ",".join(lista_pestañas) if lista_pestañas else ""
-    c.execute("UPDATE usuarios SET perm_pestañas = ? WHERE usuario = ?", (perm_str, usuario))
+    ent_str = ",".join(lista_entornos) if lista_entornos else ""
+    c.execute("UPDATE usuarios SET perm_pestañas = ?, perm_entornos = ? WHERE usuario = ?", (perm_str, ent_str, usuario))
     conn.commit()
     conn.close()
 
-def guardar_o_actualizar_usuario(usuario, email, password, permisos_list):
+def guardar_o_actualizar_usuario(usuario, email, password, permisos_list, entornos_list):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     pw_hash = hash_password(password)
     perm_str = ",".join(permisos_list) if permisos_list else "TODOS"
+    ent_str = ",".join(entornos_list) if entornos_list else "TODOS"
     
     c.execute('''
-        INSERT INTO usuarios (usuario, email, password_hash, autorizado, perm_pestañas)
-        VALUES (?, ?, ?, 1, ?)
+        INSERT INTO usuarios (usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos)
+        VALUES (?, ?, ?, 1, ?, ?)
         ON CONFLICT(usuario) DO UPDATE SET
             email=excluded.email,
             password_hash=excluded.password_hash,
             autorizado=1,
-            perm_pestañas=excluded.perm_pestañas
-    ''', (usuario, email, pw_hash, perm_str))
+            perm_pestañas=excluded.perm_pestañas,
+            perm_entornos=excluded.perm_entornos
+    ''', (usuario, email, pw_hash, perm_str, ent_str))
     conn.commit()
     conn.close()
 
@@ -161,6 +175,8 @@ def validar_login():
         st.session_state["usuario_actual"] = ""
     if "permisos_usuario" not in st.session_state:
         st.session_state["permisos_usuario"] = []
+    if "permisos_entornos" not in st.session_state:
+        st.session_state["permisos_entornos"] = []
 
     if not st.session_state["autenticado"]:
         st.markdown(
@@ -208,12 +224,12 @@ def validar_login():
             if st.button("Iniciar Sesión", type="primary", use_container_width=True):
                 conn = sqlite3.connect(DB_PATH)
                 c = conn.cursor()
-                c.execute("SELECT password_hash, autorizado, perm_pestañas FROM usuarios WHERE usuario = ?", (usuario.strip(),))
+                c.execute("SELECT password_hash, autorizado, perm_pestañas, perm_entornos FROM usuarios WHERE usuario = ?", (usuario.strip(),))
                 row = c.fetchone()
                 conn.close()
 
                 if row:
-                    pw_hash, autorizado, perm_str = row
+                    pw_hash, autorizado, perm_str, ent_str = row
                     if autorizado == 0:
                         st.error("🚫 Tu usuario no está autorizado para acceder. Contacta al administrador.")
                     elif verificar_password(password, pw_hash):
@@ -225,6 +241,12 @@ def validar_login():
                             st.session_state["permisos_usuario"] = TODAS_LAS_PESTANIAS
                         else:
                             st.session_state["permisos_usuario"] = [p.strip() for p in perm_val.split(",") if p.strip()]
+                            
+                        ent_val = ent_str if ent_str else "TODOS"
+                        if ent_val == "TODOS" or usuario.strip() == "admin":
+                            st.session_state["permisos_entornos"] = TODOS_LOS_ENTORNOS
+                        else:
+                            st.session_state["permisos_entornos"] = [e.strip() for e in ent_val.split(",") if e.strip()]
                             
                         st.rerun()
                     else:
@@ -534,17 +556,27 @@ st.markdown(
 )
 
 # ---------------------------------------------------------
-# SELECTOR DE MÓDULO (AUDITORÍA INTERNA VS CONTRALORÍA)
+# SELECTOR DINÁMICO DE ENTORNO SEGÚN PERMISOS DE USUARIO
 # ---------------------------------------------------------
 if LOGO_PATH:
     st.sidebar.image(LOGO_PATH, use_container_width=True)
 
-modulo_seleccionado = st.sidebar.radio(
-    "📌 Seleccione Entorno de Gestión:",
-    ["📊 Auditoría Interna", "🏛️ Contraloría de Bogotá"],
-    index=0,
-    key="radio_modulo_global"
-)
+entornos_permitidos = [e for e in TODOS_LOS_ENTORNOS if e in st.session_state.get("permisos_entornos", [])]
+
+if not entornos_permitidos:
+    st.warning("⚠️ No tienes permisos asignados para ver ningún Entorno de Gestión. Contacta al administrador.")
+    st.stop()
+
+if len(entornos_permitidos) > 1:
+    modulo_seleccionado = st.sidebar.radio(
+        "📌 Seleccione Entorno de Gestión:",
+        [f"📊 {e}" if e == "Auditoría Interna" else f"🏛️ {e}" for e in entornos_permitidos],
+        index=0,
+        key="radio_modulo_global"
+    )
+    entorno_activo = "Auditoría Interna" if "Auditoría" in modulo_seleccionado else "Contraloría de Bogotá"
+else:
+    entorno_activo = entornos_permitidos[0]
 
 st.sidebar.markdown("---")
 
@@ -557,7 +589,7 @@ with col_head_logo:
         st.markdown("🚌 **LA TERMINAL**")
 
 with col_head_title:
-    if modulo_seleccionado == "📊 Auditoría Interna":
+    if entorno_activo == "Auditoría Interna":
         st.markdown('<div class="titulo-tablero">Tablero de Control y Gestión - Auditoría Interna</div>', unsafe_allow_html=True)
     else:
         st.markdown('<div class="titulo-tablero">Tablero de Control - Planes de Acción Contraloría de Bogotá</div>', unsafe_allow_html=True)
@@ -679,7 +711,7 @@ def buscar_columna_por_patron(df, patrones):
 # =========================================================
 # VISTA 1: AUDITORÍA INTERNA
 # =========================================================
-if modulo_seleccionado == "📊 Auditoría Interna":
+if entorno_activo == "Auditoría Interna":
     def cargar_datos_ai():
         if not os.path.exists(EXCEL_PATH_AI):
             st.error(f"⚠️ No se encontró el archivo Excel en: `{EXCEL_PATH_AI}`")
@@ -758,6 +790,12 @@ if modulo_seleccionado == "📊 Auditoría Interna":
             new_e = st.text_input("Correo Electrónico", key="new_e_adm")
             new_p = st.text_input("Contraseña Inicial", type="password", key="new_p_adm")
             
+            st.markdown("**Permisos de Acceso a Entornos:**")
+            u_entornos = []
+            for ent in TODOS_LOS_ENTORNOS:
+                if st.checkbox(f"🌐 Entorno: {ent}", value=True, key=f"chk_ent_{ent}"):
+                    u_entornos.append(ent)
+
             st.markdown("**Permisos de Acceso a Pestañas:**")
             u_permisos = []
             for pestania in TODAS_LAS_PESTANIAS:
@@ -766,7 +804,7 @@ if modulo_seleccionado == "📊 Auditoría Interna":
 
             if st.button("Guardar / Autorizar Usuario"):
                 if new_u and new_e and new_p:
-                    guardar_o_actualizar_usuario(new_u.strip(), new_e.strip().lower(), new_p, u_permisos)
+                    guardar_o_actualizar_usuario(new_u.strip(), new_e.strip().lower(), new_p, u_permisos, u_entornos)
                     st.success(f"Usuario `{new_u}` actualizado.")
                 else:
                     st.warning("Completa todos los campos.")
@@ -779,15 +817,24 @@ if modulo_seleccionado == "📊 Auditoría Interna":
             if user_sel:
                 row_u = df_users[df_users['usuario'] == user_sel].iloc[0]
                 p_actuales = row_u['perm_pestañas'].split(",") if row_u['perm_pestañas'] != "TODOS" else TODAS_LAS_PESTANIAS
+                e_actuales = row_u['perm_entornos'].split(",") if row_u['perm_entornos'] != "TODOS" else TODOS_LOS_ENTORNOS
                 
+                st.markdown("**Modificar Entornos Permitidos:**")
+                nuevos_ents = []
+                for e in TODOS_LOS_ENTORNOS:
+                    chk_e = st.checkbox(f"Acceso a {e}", value=(e in e_actuales), key=f"edit_ent_{user_sel}_{e}")
+                    if chk_e:
+                        nuevos_ents.append(e)
+
+                st.markdown("**Modificar Pestañas Permitidas:**")
                 nuevos_perms = []
                 for p in TODAS_LAS_PESTANIAS:
-                    chk = st.checkbox(f"Acceso a {p}", value=(p in p_actuales), key=f"edit_perm_{user_sel}_{p}")
-                    if chk:
+                    chk_p = st.checkbox(f"Acceso a {p}", value=(p in p_actuales), key=f"edit_perm_{user_sel}_{p}")
+                    if chk_p:
                         nuevos_perms.append(p)
                         
                 if st.button(f"Actualizar Permisos de {user_sel}"):
-                    actualizar_permisos_usuario(user_sel, nuevos_perms)
+                    actualizar_permisos_usuario(user_sel, nuevos_perms, nuevos_ents)
                     st.success("Permisos guardados.")
                     st.rerun()
 
@@ -818,6 +865,7 @@ if modulo_seleccionado == "📊 Auditoría Interna":
         st.session_state["autenticado"] = False
         st.session_state["usuario_actual"] = ""
         st.session_state["permisos_usuario"] = []
+        st.session_state["permisos_entornos"] = []
         st.rerun()
 
     st.sidebar.markdown("---")
@@ -1748,6 +1796,7 @@ else:
         st.session_state["autenticado"] = False
         st.session_state["usuario_actual"] = ""
         st.session_state["permisos_usuario"] = []
+        st.session_state["permisos_entornos"] = []
         st.rerun()
 
     st.sidebar.markdown("---")
@@ -2038,7 +2087,6 @@ else:
                 plot_bgcolor="rgba(0,0,0,0)"
             )
 
-    # 4 PESTAÑAS DE CONTRALORÍA (SIN ALERTAS Y EDICIÓN)
     tab_c1, tab_c2, tab_c4, tab_c5 = st.tabs([
         "📊 Tablero Principal",
         "📈 Métricas de Cumplimiento",

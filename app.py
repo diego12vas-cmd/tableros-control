@@ -274,7 +274,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS REFINADOS PARA COMPACTAR MÁRGENES Y ESPACIOS
+# ESTILOS CSS PARALELOS Y ALINEADOS
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -315,7 +315,6 @@ st.markdown(
             pointer-events: none !important;
         }
 
-        /* Barra Lateral con borde superior Verde Institucional */
         [data-testid="stSidebar"] {
             min-width: 320px !important;
             max-width: 320px !important;
@@ -331,21 +330,16 @@ st.markdown(
         }
 
         .block-container {
-            padding-top: 1rem !important;
-            padding-bottom: 1.5rem !important;
-        }
-
-        /* Ajuste de márgenes en componentes Plotly para evitar saltos de línea */
-        .stPlotlyChart {
-            margin-bottom: -15px !important;
+            padding-top: 1.5rem !important;
+            padding-bottom: 2rem !important;
         }
 
         .titulo-tablero {
             font-size: 1.35rem !important;
             font-weight: 700 !important;
             color: var(--text-color);
-            margin: 0 0 10px 0 !important;
-            padding-bottom: 6px !important;
+            margin: 0 0 15px 0 !important;
+            padding-bottom: 8px !important;
             line-height: 1.3 !important;
             display: flex !important;
             align-items: center !important;
@@ -356,58 +350,120 @@ st.markdown(
         .block-header {
             text-align: center;
             font-weight: bold;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             color: var(--text-color);
-            margin-bottom: 2px;
-            margin-top: 0px;
+            margin-bottom: 4px;
+            margin-top: 2px;
             text-transform: uppercase;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.5px;
         }
         .card-box {
             border-radius: 6px;
-            padding: 2px 8px;
+            padding: 4px 8px;
             text-align: center;
             font-weight: bold;
             color: #000;
             box-shadow: 0px 2px 4px rgba(0,0,0,0.08);
-            margin-bottom: 2px;
+            margin-bottom: 4px;
         }
 
         [data-testid="stHorizontalBlock"] {
             align-items: flex-start !important;
-            gap: 1rem !important;
         }
 
         div[data-testid="stDataFrame"] {
-            margin-top: 8px !important;
+            margin-top: 12px !important;
             padding-top: 0px !important;
         }
 
+        .titulo-seccion-finaliz {
+            font-size: 1.15rem !important;
+            font-weight: 700 !important;
+            color: var(--text-color);
+            margin: 0 0 10px 0 !important;
+            padding: 0 !important;
+            line-height: 1.2 !important;
+            white-space: nowrap !important;
+        }
+
+        .month-container {
+            margin-left: 0 !important;
+            margin-top: 8px !important;
+        }
+        .month-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px 0;
+            font-weight: bold;
+            font-size: 0.82rem;
+            color: var(--text-color);
+            width: 120px !important;
+        }
+        .month-box {
+            background-color: #D9EAD3;
+            width: 44px;
+            text-align: center;
+            padding: 2px 0;
+            border-radius: 4px;
+            color: #000;
+        }
         .alert-row-compact {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 2px;
+            gap: 12px;
+            margin-bottom: 4px;
             font-weight: bold;
-            font-size: 0.82rem;
+            font-size: 0.85rem;
             color: var(--text-color);
         }
         .alert-item-label {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            width: 80px;
+            width: 85px;
         }
         .alert-val-box {
             background-color: #EFEFEF;
-            width: 40px;
+            width: 44px;
             text-align: center;
-            padding: 2px 0;
+            padding: 3px 0;
             border-radius: 4px;
             color: #000;
             font-weight: bold;
+            font-size: 0.85rem;
+        }
+        .small-note {
+            background-color: rgba(75, 146, 219, 0.15);
+            border-left: 4px solid #2B6CB0;
+            padding: 8px 14px;
+            border-radius: 4px;
             font-size: 0.82rem;
+            color: var(--text-color);
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+        .total-acciones-box {
+            background-color: rgba(241, 245, 249, 0.15);
+            border: 1px solid #CBD5E1;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--text-color);
+            display: inline-block;
+            margin-bottom: 12px;
+        }
+        div[data-testid="stDownloadButton"] button {
+            background-color: #28A745 !important;
+            color: #FFFFFF !important;
+            border: 1px solid #218838 !important;
+            font-weight: bold !important;
+        }
+        div[data-testid="stDownloadButton"] button:hover {
+            background-color: #218838 !important;
+            color: #FFFFFF !important;
         }
     </style>
 """,
@@ -705,7 +761,7 @@ if col_auditoria:
         df_filtrado = df_filtrado[df_filtrado[col_auditoria].isin(auditoria_sel)]
 
 # ---------------------------------------------------------
-# MÉTRICAS Y FIGURAS COMPACTAS
+# MÉTRICAS Y FIGURAS EXACTAMENTE ALINEADAS
 # ---------------------------------------------------------
 abiertos = df_filtrado[col_estado].astype(str).str.contains("Abiert", case=False, na=False).sum() if col_estado else 0
 vencidos = df_filtrado[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
@@ -720,23 +776,32 @@ r_alto = df_activos[col_riesgo].astype(str).str.contains("Alto", case=False, na=
 r_medio = df_activos[col_riesgo].astype(str).str.contains("Medio", case=False, na=False).sum() if col_riesgo else 0
 r_bajo = df_activos[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False).sum() if col_riesgo else 0
 
-# Barras Compactas
+# Barras (Ajustadas a 180px de alto exactos para calzar paralelo)
 max_val_pend = max([abiertos, vencidos, sin_plan])
 df_bar = pd.DataFrame({"Estado": ["Abiertos", "Vencidos", "Sin definir"], "Cantidad": [abiertos, vencidos, sin_plan]})
 fig_bar = px.bar(df_bar, x="Estado", y="Cantidad", text="Cantidad", color="Estado", color_discrete_map={"Abiertos": "#58C57A", "Vencidos": "#FF5252", "Sin definir": "#F8A583"})
-fig_bar.update_traces(textposition="outside", textfont=dict(size=11, color="var(--text-color)", family="Arial"), cliponaxis=False)
-fig_bar.update_layout(showlegend=False, height=140, margin=dict(t=15, b=0, l=5, r=5), xaxis_title=None, yaxis_title=None, yaxis=dict(showticklabels=False, range=[0, max_val_pend * 1.25 if max_val_pend > 0 else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+fig_bar.update_traces(textposition="outside", textfont=dict(size=12, color="var(--text-color)", family="Arial"), cliponaxis=False)
+fig_bar.update_layout(
+    showlegend=False,
+    height=180,
+    margin=dict(t=20, b=0, l=5, r=5),
+    xaxis_title=None,
+    yaxis_title=None,
+    yaxis=dict(showticklabels=False, range=[0, max_val_pend * 1.25 if max_val_pend > 0 else 10]),
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)"
+)
 
-# Donas Compactas
+# Donas (Ajustadas a 170px de alto para encajar simétricamente con la columna 1)
 pct_abiertos = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
 fig_dona_abiertos = go.Figure(data=[go.Pie(values=[1]*20, hole=0.68, marker_colors=["#00B050" if i < (pct_abiertos / 5) else "#E0E0E0" for i in range(20)], marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none", domain=dict(x=[0.05, 0.95], y=[0.05, 0.95]))])
-fig_dona_abiertos.add_annotation(text=f"<b>{pct_abiertos}%</b>", x=0.5, y=0.5, font=dict(size=16, color="var(--text-color)"), showarrow=False)
-fig_dona_abiertos.update_layout(showlegend=False, height=135, autosize=True, margin=dict(t=5, b=5, l=5, r=5), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+fig_dona_abiertos.add_annotation(text=f"<b>{pct_abiertos}%</b>", x=0.5, y=0.5, font=dict(size=18, color="var(--text-color)"), showarrow=False)
+fig_dona_abiertos.update_layout(showlegend=False, height=170, autosize=True, margin=dict(t=10, b=10, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
 pct_vencidos = round((vencidos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
 fig_dona_vencidos = go.Figure(data=[go.Pie(values=[1]*20, hole=0.68, marker_colors=["#FF5252" if i < (pct_vencidos / 5) else "#E0E0E0" for i in range(20)], marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none", domain=dict(x=[0.05, 0.95], y=[0.05, 0.95]))])
-fig_dona_vencidos.add_annotation(text=f"<b>{pct_vencidos}%</b>", x=0.5, y=0.5, font=dict(size=16, color="var(--text-color)"), showarrow=False)
-fig_dona_vencidos.update_layout(showlegend=False, height=135, autosize=True, margin=dict(t=5, b=5, l=5, r=5), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+fig_dona_vencidos.add_annotation(text=f"<b>{pct_vencidos}%</b>", x=0.5, y=0.5, font=dict(size=18, color="var(--text-color)"), showarrow=False)
+fig_dona_vencidos.update_layout(showlegend=False, height=170, autosize=True, margin=dict(t=10, b=10, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
 # Áreas y Auditorías
 df_perf = df_filtrado.copy()
@@ -811,33 +876,35 @@ for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
 
             with c2:
                 st.markdown('<div class="block-header">Total Hallazgos Pendientes</div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="card-box" style="background-color:#4B92DB; font-size:1.2rem; height:30px; line-height:24px;">{total_hallazgos_unicos_pendientes}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="card-box" style="background-color:#4B92DB; font-size:1.3rem; height:34px; line-height:26px;">{total_hallazgos_unicos_pendientes}</div>', unsafe_allow_html=True)
 
+                st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
                 r1, r2, r3 = st.columns(3)
                 with r1:
-                    st.markdown('<div class="block-header" style="font-size:0.68rem;">Riesgo Alto</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="card-box" style="background-color:#FFB000; font-size:0.9rem;">{r_alto}</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="block-header" style="font-size:0.72rem;">Riesgo Alto</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="card-box" style="background-color:#FFB000; font-size:1rem;">{r_alto}</div>', unsafe_allow_html=True)
                 with r2:
-                    st.markdown('<div class="block-header" style="font-size:0.68rem;">Riesgo Medio</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="card-box" style="background-color:#FFFF00; font-size:0.9rem;">{r_medio}</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="block-header" style="font-size:0.72rem;">Riesgo Medio</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="card-box" style="background-color:#FFFF00; font-size:1rem;">{r_medio}</div>', unsafe_allow_html=True)
                 with r3:
-                    st.markdown('<div class="block-header" style="font-size:0.68rem;">Riesgo Bajo</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="card-box" style="background-color:#00B050; font-size:0.9rem;">{r_bajo}</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="block-header" style="font-size:0.72rem;">Riesgo Bajo</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="card-box" style="background-color:#00B050; font-size:1rem;">{r_bajo}</div>', unsafe_allow_html=True)
 
-                st.markdown('<div class="block-header" style="font-size:0.75rem;">Planes de Acción Pendientes</div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="card-box" style="background-color:#00B050; height:32px; line-height:24px; font-size:1.25rem; margin-bottom:4px;">{total_planes_pendientes}</div>', unsafe_allow_html=True)
+                st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
+                st.markdown('<div class="block-header" style="font-size:0.78rem;">Planes de Acción Pendientes</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="card-box" style="background-color:#00B050; height:36px; line-height:26px; font-size:1.4rem; margin-bottom:8px;">{total_planes_pendientes}</div>', unsafe_allow_html=True)
 
-                st.markdown('<div class="block-header" style="font-size:0.75rem;">Detalle de Estados Pendientes</div>', unsafe_allow_html=True)
+                st.markdown('<div class="block-header" style="font-size:0.78rem;">Detalle de Estados Pendientes</div>', unsafe_allow_html=True)
                 e1, e2, e3 = st.columns(3)
                 with e1:
-                    st.markdown('<div class="block-header" style="font-size:0.68rem; text-transform:none;">Abiertos</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="card-box" style="background-color:#58C57A; font-size:0.95rem; padding:2px;">{abiertos}</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Abiertos</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="card-box" style="background-color:#58C57A; font-size:1.05rem; padding:4px;">{abiertos}</div>', unsafe_allow_html=True)
                 with e2:
-                    st.markdown('<div class="block-header" style="font-size:0.68rem; text-transform:none;">Vencidos</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="card-box" style="background-color:#FF5252; color:#FFFFFF; font-size:0.95rem; padding:2px;">{vencidos}</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Vencidos</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="card-box" style="background-color:#FF5252; color:#FFFFFF; font-size:1.05rem; padding:4px;">{vencidos}</div>', unsafe_allow_html=True)
                 with e3:
-                    st.markdown('<div class="block-header" style="font-size:0.68rem; text-transform:none;">Sin definir</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="card-box" style="background-color:#F8A583; font-size:0.95rem; padding:2px;">{sin_plan}</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Sin definir</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="card-box" style="background-color:#F8A583; font-size:1.05rem; padding:4px;">{sin_plan}</div>', unsafe_allow_html=True)
 
             with c3:
                 st.markdown('<div class="block-header">Acciones próximas a vencer</div>', unsafe_allow_html=True)
@@ -872,9 +939,9 @@ for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
 
             with c4:
                 st.markdown('<div class="block-header">Porcentaje de Acciones Pendientes</div>', unsafe_allow_html=True)
-                st.markdown('<div class="block-header" style="font-size:0.72rem; text-transform:none; margin-bottom:-5px; color:#00B050;">🟢 En tiempo (Abiertos)</div>', unsafe_allow_html=True)
+                st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#00B050;">🟢 En tiempo (Abiertos)</div>', unsafe_allow_html=True)
                 st.plotly_chart(fig_dona_abiertos, use_container_width=True, key="fig_dona_abiertos_key", config={'displayModeBar': False})
-                st.markdown('<div class="block-header" style="font-size:0.72rem; text-transform:none; margin-bottom:-5px; color:#FF5252;">🔴 Vencidos</div>', unsafe_allow_html=True)
+                st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#FF5252;">🔴 Vencidos</div>', unsafe_allow_html=True)
                 st.plotly_chart(fig_dona_vencidos, use_container_width=True, key="fig_dona_vencidos_key", config={'displayModeBar': False})
 
             st.markdown("---")

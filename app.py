@@ -8,12 +8,13 @@ import plotly.graph_objects as go
 import streamlit as st
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA
+# CONFIGURACIÓN DE PÁGINA (BARRA LATERAL SIEMPRE ABIERTA)
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="Tablero de Control y Gestión - Auditoría Interna",
     page_icon="📊",
     layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 # ---------------------------------------------------------
@@ -48,14 +49,17 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS CON BOTÓN DE MENÚ LATERAL SIEMPRE VISIBLE
+# ESTILOS CSS RESPONSIVOS (SIN BARRA LATERAL OCULTABLE)
 # ---------------------------------------------------------
 st.markdown(
     """
     <style>
         #MainMenu {visibility: hidden;}
+        header {visibility: hidden;}
         footer {visibility: hidden;}
         .stAppDeployButton {display:none !important;}
+        [data-testid="stHeader"] {display:none !important;}
+        [data-testid="stToolbar"] {display:none !important;}
         [data-testid="stDecoration"] {display:none !important;}
         [data-testid="stStatusWidget"] {display:none !important;}
         
@@ -64,7 +68,7 @@ st.markdown(
         button[title*="Manage app"] {display: none !important;}
         iframe[title*="manage-app"] {display: none !important;}
 
-        /* OCULTA BARRA DE HERRAMIENTAS FLOTANTE EN TABLAS Y GRÁFICOS */
+        /* OCULTA BOTONES Y HERRAMIENTAS FLOTANTES SOBRE GRÁFICOS Y TABLAS */
         [data-testid="stElementToolbar"],
         .modebar,
         .plotly .modebar,
@@ -76,38 +80,13 @@ st.markdown(
             visibility: hidden !important;
         }
 
-        /* FORZAR VISIBILIDAD DEL BOTÓN PARA DESPLEGAR LA BARRA LATERAL (FLECHA Y MENÚ) */
-        [data-testid="stSidebarCollapsedControl"],
-        button[data-testid="stBaseButton-headerNoPadding"],
-        button[aria-label="Open sidebar"],
-        button[aria-label="Expand sidebar"] {
-            display: flex !important;
-            visibility: visible !important;
-            position: fixed !important;
-            top: 0.6rem !important;
-            left: 0.6rem !important;
-            z-index: 9999999 !important;
-            background-color: #1F4E78 !important;
-            color: #FFFFFF !important;
-            border: 1px solid #103050 !important;
-            border-radius: 6px !important;
-            padding: 6px 10px !important;
-            box-shadow: 0px 2px 8px rgba(0,0,0,0.3) !important;
-        }
-
-        [data-testid="stSidebarCollapsedControl"] svg,
-        button[aria-label="Open sidebar"] svg {
-            fill: #FFFFFF !important;
-            color: #FFFFFF !important;
-        }
-
         header[data-testid="stHeader"] {
-            height: 2.8rem !important;
+            height: 0rem !important;
             background: transparent !important;
         }
 
         .block-container {
-            padding-top: 2.5rem !important;
+            padding-top: 1.5rem !important;
             padding-bottom: 2rem !important;
         }
 
@@ -122,8 +101,8 @@ st.markdown(
         }
 
         [data-testid="stSidebar"] {
-            min-width: 360px !important;
-            max-width: 360px !important;
+            min-width: 320px !important;
+            max-width: 320px !important;
         }
 
         div[data-baseweb="popover"] {
@@ -281,7 +260,7 @@ st.markdown(
             .block-container {
                 padding-left: 0.5rem !important;
                 padding-right: 0.5rem !important;
-                padding-top: 1.8rem !important;
+                padding-top: 1rem !important;
             }
             .titulo-tablero {
                 font-size: 1.1rem !important;
@@ -619,7 +598,7 @@ if col_auditoria:
 
 
 # ---------------------------------------------------------
-# MÉTRICAS Y GRÁFICOS (SIN BARRA DE HERRAMIENTAS FLOTANTE)
+# MÉTRICAS Y GRÁFICOS (DONAS CORREGIDAS SIN RECORTAR)
 # ---------------------------------------------------------
 abiertos = df_filtrado[col_estado].astype(str).str.contains("Abiert", case=False, na=False).sum() if col_estado else 0
 vencidos = df_filtrado[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
@@ -659,15 +638,22 @@ fig_bar.update_layout(
     plot_bgcolor="rgba(0,0,0,0)",
 )
 
-# --- DONAS ---
+# --- DONAS OPTIMIZADAS ---
 pct_abiertos = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
 colors_abiertos = ["#00B050" if i < (pct_abiertos / 5) else "#E0E0E0" for i in range(20)]
 
 fig_dona_abiertos = go.Figure(data=[
     go.Pie(values=[1]*20, hole=0.68, marker_colors=colors_abiertos, marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none")
 ])
-fig_dona_abiertos.add_annotation(text=f"<b>{pct_abiertos}%</b>", x=0.5, y=0.5, font=dict(size=28, color="var(--text-color)"), showarrow=False)
-fig_dona_abiertos.update_layout(showlegend=False, height=145, margin=dict(t=2, b=2, l=2, r=2), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+fig_dona_abiertos.add_annotation(text=f"<b>{pct_abiertos}%</b>", x=0.5, y=0.5, font=dict(size=24, color="var(--text-color)"), showarrow=False)
+fig_dona_abiertos.update_layout(
+    showlegend=False,
+    height=160,
+    autosize=True,
+    margin=dict(t=10, b=10, l=10, r=10),
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)"
+)
 
 pct_vencidos = round((vencidos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
 colors_vencidos = ["#FF5252" if i < (pct_vencidos / 5) else "#E0E0E0" for i in range(20)]
@@ -675,8 +661,15 @@ colors_vencidos = ["#FF5252" if i < (pct_vencidos / 5) else "#E0E0E0" for i in r
 fig_dona_vencidos = go.Figure(data=[
     go.Pie(values=[1]*20, hole=0.68, marker_colors=colors_vencidos, marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none")
 ])
-fig_dona_vencidos.add_annotation(text=f"<b>{pct_vencidos}%</b>", x=0.5, y=0.5, font=dict(size=28, color="var(--text-color)"), showarrow=False)
-fig_dona_vencidos.update_layout(showlegend=False, height=145, margin=dict(t=2, b=2, l=2, r=2), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+fig_dona_vencidos.add_annotation(text=f"<b>{pct_vencidos}%</b>", x=0.5, y=0.5, font=dict(size=24, color="var(--text-color)"), showarrow=False)
+fig_dona_vencidos.update_layout(
+    showlegend=False,
+    height=160,
+    autosize=True,
+    margin=dict(t=10, b=10, l=10, r=10),
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)"
+)
 
 # --- ÁREAS Y AUDITORÍAS ---
 df_perf = df_filtrado.copy()

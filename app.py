@@ -48,17 +48,14 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS RESPONSIVOS (OCULTA HERRAMIENTAS Y MANTIENE MENÚ)
+# ESTILOS CSS CON BOTÓN DE MENÚ LATERAL SIEMPRE VISIBLE
 # ---------------------------------------------------------
 st.markdown(
     """
     <style>
         #MainMenu {visibility: hidden;}
-        header {visibility: hidden;}
         footer {visibility: hidden;}
         .stAppDeployButton {display:none !important;}
-        [data-testid="stHeader"] {display:none !important;}
-        [data-testid="stToolbar"] {display:none !important;}
         [data-testid="stDecoration"] {display:none !important;}
         [data-testid="stStatusWidget"] {display:none !important;}
         
@@ -67,7 +64,7 @@ st.markdown(
         button[title*="Manage app"] {display: none !important;}
         iframe[title*="manage-app"] {display: none !important;}
 
-        /* OCULTA BARRA DE HERRAMIENTAS Y BOTONES FLOTANTES EN TABLAS Y GRÁFICOS */
+        /* OCULTA BARRA DE HERRAMIENTAS FLOTANTE EN TABLAS Y GRÁFICOS */
         [data-testid="stElementToolbar"],
         .modebar,
         .plotly .modebar,
@@ -79,29 +76,38 @@ st.markdown(
             visibility: hidden !important;
         }
 
-        /* FORCE VISIBILIDAD DEL BOTÓN PARA DESPLEGAR LA BARRA LATERAL EN MÓVIL Y PC */
+        /* FORZAR VISIBILIDAD DEL BOTÓN PARA DESPLEGAR LA BARRA LATERAL (FLECHA Y MENÚ) */
         [data-testid="stSidebarCollapsedControl"],
-        button[data-testid="stBaseButton-headerNoPadding"] {
+        button[data-testid="stBaseButton-headerNoPadding"],
+        button[aria-label="Open sidebar"],
+        button[aria-label="Expand sidebar"] {
             display: flex !important;
             visibility: visible !important;
             position: fixed !important;
-            top: 0.5rem !important;
-            left: 0.5rem !important;
+            top: 0.6rem !important;
+            left: 0.6rem !important;
             z-index: 9999999 !important;
-            background-color: var(--background-color) !important;
-            border: 1px solid #CBD5E1 !important;
+            background-color: #1F4E78 !important;
+            color: #FFFFFF !important;
+            border: 1px solid #103050 !important;
             border-radius: 6px !important;
-            padding: 4px !important;
-            box-shadow: 0px 2px 6px rgba(0,0,0,0.15) !important;
+            padding: 6px 10px !important;
+            box-shadow: 0px 2px 8px rgba(0,0,0,0.3) !important;
+        }
+
+        [data-testid="stSidebarCollapsedControl"] svg,
+        button[aria-label="Open sidebar"] svg {
+            fill: #FFFFFF !important;
+            color: #FFFFFF !important;
         }
 
         header[data-testid="stHeader"] {
-            height: 2.5rem !important;
+            height: 2.8rem !important;
             background: transparent !important;
         }
 
         .block-container {
-            padding-top: 2.2rem !important;
+            padding-top: 2.5rem !important;
             padding-bottom: 2rem !important;
         }
 
@@ -275,7 +281,7 @@ st.markdown(
             .block-container {
                 padding-left: 0.5rem !important;
                 padding-right: 0.5rem !important;
-                padding-top: 1.2rem !important;
+                padding-top: 1.8rem !important;
             }
             .titulo-tablero {
                 font-size: 1.1rem !important;

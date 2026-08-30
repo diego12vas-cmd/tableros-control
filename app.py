@@ -449,7 +449,6 @@ def cargar_datos():
         sheet_inf = "Informes PDF" if "Informes PDF" in xls.sheet_names else ("INFORMES PDF" if "INFORMES PDF" in xls.sheet_names else ("Informes pdf" if "Informes pdf" in xls.sheet_names else None))
         df_informes = pd.read_excel(xls, sheet_name=sheet_inf) if sheet_inf else pd.DataFrame()
 
-        # Carga directa de la hoja 'Programa Anual de Auditoría'
         sheet_paa = "Programa Anual de Auditoría" if "Programa Anual de Auditoría" in xls.sheet_names else ("Programa Anual de Auditoria" if "Programa Anual de Auditoria" in xls.sheet_names else None)
         df_paa = pd.read_excel(xls, sheet_name=sheet_paa) if sheet_paa else pd.DataFrame()
 
@@ -1036,7 +1035,7 @@ with tab_historico:
 
 
 # =========================================================
-# PESTAÑA 4: PROGRAMA ANUAL DE AUDITORÍA (NUEVA PESTAÑA AGREGADA)
+# PESTAÑA 4: PROGRAMA ANUAL DE AUDITORÍA
 # =========================================================
 with tab_paa:
     st.header("🗓️ Programa Anual de Auditoría (PAA)")
@@ -1050,7 +1049,6 @@ with tab_paa:
         col_nom_paa = buscar_columna_por_patron(df_paa_vista, ["nombre", "auditoria"]) or df_paa_vista.columns[2]
         col_est_paa = buscar_columna_por_patron(df_paa_vista, ["estado"]) or df_paa_vista.columns[3]
 
-        # Rellenar valores de celda combinada de Vigencia
         df_paa_vista[col_vig_paa] = df_paa_vista[col_vig_paa].ffill()
         df_paa_vista[col_vig_paa] = (
             df_paa_vista[col_vig_paa]
@@ -1059,7 +1057,6 @@ with tab_paa:
             .str.strip()
         )
 
-        # Rellenar Tipología si viene combinada
         if col_tipo_paa:
             df_paa_vista[col_tipo_paa] = df_paa_vista[col_tipo_paa].ffill()
 
@@ -1090,11 +1087,11 @@ with tab_paa:
 
                     df_sub_paa.index = range(1, len(df_sub_paa) + 1)
 
-                    # Aplicar formato de resalte visual a las filas finalizadas (verde claro)
+                    # Formato sin negrita en las filas finalizadas (solo fondo verde suave)
                     def resaltar_finalizadas(row):
                         val_est = str(row[col_est_paa]).lower() if col_est_paa and pd.notnull(row[col_est_paa]) else ""
                         if "finaliz" in val_est:
-                            return ["background-color: #D9EAD3; color: #000000; font-weight: bold;"] * len(row)
+                            return ["background-color: #D9EAD3; color: #000000; font-weight: normal;"] * len(row)
                         return [""] * len(row)
 
                     st.dataframe(

@@ -426,12 +426,12 @@ def generar_excel_formateado(df):
 
 
 # ---------------------------------------------------------
-# CARGA DE DATOS
+# CARGA DE DATOS (BASE DE DATOS E INFORMES PDF)
 # ---------------------------------------------------------
 def cargar_datos():
     if not os.path.exists(EXCEL_PATH):
         st.error(f"⚠️ No se encontró el archivo Excel en la ruta:\n`{EXCEL_PATH}`")
-        return pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
     try:
         xls = pd.ExcelFile(EXCEL_PATH)
@@ -446,13 +446,17 @@ def cargar_datos():
         sheet_c = "Calculos" if "Calculos" in xls.sheet_names else ("Cálculos" if "Cálculos" in xls.sheet_names else None)
         df_calc = pd.read_excel(xls, sheet_name=sheet_c, header=None) if sheet_c else pd.DataFrame()
 
-        return df_base, df_calc
+        # Carga directa de la hoja 'Informes PDF'
+        sheet_inf = "Informes PDF" if "Informes PDF" in xls.sheet_names else ("INFORMES PDF" if "INFORMES PDF" in xls.sheet_names else ("Informes pdf" if "Informes pdf" in xls.sheet_names else None))
+        df_informes = pd.read_excel(xls, sheet_name=sheet_inf) if sheet_inf else pd.DataFrame()
+
+        return df_base, df_calc, df_informes
     except Exception as e:
         st.error(f"Error al cargar el archivo Excel: {e}")
-        return pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
 
-df_raw, df_calc = cargar_datos()
+df_raw, df_calc, df_informes_raw = cargar_datos()
 
 if df_raw.empty:
     st.stop()
@@ -706,15 +710,16 @@ if col_auditoria in df_perf.columns:
 
 
 # ---------------------------------------------------------
-# PESTAÑAS PRINCIPALES
+# PESTAÑAS PRINCIPALES (7 PESTAÑAS INTEGRADAS)
 # ---------------------------------------------------------
-tab_principal, tab_metricas, tab_historico, tab_alertas, tab_oficios, tab_finalizadas = st.tabs([
+tab_principal, tab_metricas, tab_historico, tab_alertas, tab_oficios, tab_finalizadas, tab_informes = st.tabs([
     "📊 Tablero Principal",
     "📈 Métricas de Cumplimiento",
     "📈 Comparativa Histórica",
     "🚨 Alertas y Edición Directa",
     "📩 Oficios de Solicitud",
     "🎉 Finalizadas",
+    "📑 Informes de Auditoría",
 ])
 
 # =========================================================
@@ -914,7 +919,7 @@ with tab_metricas:
 # =========================================================
 with tab_historico:
     st.header("📈 Análisis Histórico e Interanual de Planes de Mejoramiento")
-    st.markdown("Evolución de **Planes de Mejoramiento** por vigencia y distribución por Área Responsable.")
+    st.markdown("Evolución del volumen de Planes de Mejoramiento por vigencia y distribución por Área Responsable.")
 
     if col_plan_filtro and col_plan_filtro in df_raw.columns:
         df_hist_calc = df_raw.copy()
@@ -923,7 +928,6 @@ with tab_historico:
         c_h1, c_h2 = st.columns(2)
 
         with c_h1:
-            # Gráfico 1: Evolución por Vigencia
             df_vigencia_totales = df_hist_calc.groupby("Vigencia_Limpia").size().reset_index(name="Total_Planes").sort_values(by="Vigencia_Limpia")
             max_hall_v = df_vigencia_totales["Total_Planes"].max() if not df_vigencia_totales.empty else 10
             sum_tot_g1 = df_vigencia_totales["Total_Planes"].sum() if not df_vigencia_totales.empty else 0
@@ -952,7 +956,6 @@ with tab_historico:
             st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Planes de Mejoramiento Históricos: <b>{sum_tot_g1}</b></div>', unsafe_allow_html=True)
 
         with c_h2:
-            # Gráfico 2: Comparativa de Estados por Vigencia con Valores Internos
             df_hist_grouped = df_hist_calc.groupby(["Vigencia_Limpia", col_estado]).size().reset_index(name="Cantidad")
             df_hist_grouped["Texto_Etiqueta"] = df_hist_grouped["Cantidad"].apply(lambda x: str(x) if x > 0 else "")
             max_hist_st = df_hist_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().max() if not df_hist_grouped.empty else 10
@@ -1002,7 +1005,6 @@ with tab_historico:
 
         st.markdown("---")
 
-        # TABLA DE MATRIZ COMPARATIVA INTERANUAL POR ÁREA
         st.subheader("👥 Matriz Comparativa Interanual por Área Responsable")
         st.markdown('<div class="small-note">Detalle del comportamiento y distribución de los <b>Planes de Mejoramiento</b> asignados a cada Área en las distintas vigencias.</div>', unsafe_allow_html=True)
 
@@ -1101,7 +1103,7 @@ with tab_alertas:
     if col_plan_filtro and col_plan_filtro in df_edicion_temp.columns:
         opciones_plan_v += sorted([str(x) for x in df_edicion_temp[col_plan_filtro].dropna().unique() if str(x).strip()])
     with col_f_plan:
-        plan_v_seleccionado = st.selectbox("3. Filtrar por Plan / Vigencia:", options=opciones_plan_v, key="f_plan_edit")
+        plan_v_seleccionado = st.selectbox("3. Filtrar por Plan / Vigencia:", options=plan_v_seleccionado, key="f_plan_edit") if 'plan_v_seleccionado' in locals() else st.selectbox("3. Filtrar por Plan / Vigencia:", options=opciones_plan_v, key="f_plan_edit")
 
     if plan_v_seleccionado != "(Todos)":
         df_edicion_temp = df_edicion_temp[df_edicion_temp[col_plan_filtro].astype(str).str.strip().str.lower() == plan_v_seleccionado.strip().lower()]
@@ -1406,3 +1408,68 @@ with tab_finalizadas:
             )
         else:
             st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
+
+
+# =========================================================
+# PESTAÑA 7: INFORMES DE AUDITORÍA (LECTURA DE LA HOJA 'Informes PDF')
+# =========================================================
+with tab_informes:
+    st.header("📑 Informes de Auditoría Interna")
+    st.markdown("Relación consolidada de los informes de auditoría interna generados agrupados por vigencia.")
+
+    if not df_informes_raw.empty:
+        df_inf_vista = df_informes_raw.copy()
+        
+        # Limpieza y formateo de columnas
+        col_vig_inf = buscar_columna_por_patron(df_inf_vista, ["vigencia"]) or df_inf_vista.columns[0]
+        col_nom_inf = buscar_columna_por_patron(df_inf_vista, ["nombre", "informe"]) or df_inf_vista.columns[1]
+        col_link_inf = buscar_columna_por_patron(df_inf_vista, ["enlace", "pdf", "link", "drive"]) or df_inf_vista.columns[2]
+
+        df_inf_vista[col_vig_inf] = (
+            df_inf_vista[col_vig_inf]
+            .astype(str)
+            .str.replace(".0", "", regex=False)
+            .str.strip()
+        )
+        df_inf_vista[col_vig_inf] = df_inf_vista[col_vig_inf].apply(
+            lambda v: f"Vigencia {v}" if v.isdigit() else v
+        )
+
+        def asegurar_link(u):
+            val = str(u).strip()
+            if val and val.lower() not in ["nan", "none", ""] and not val.startswith("http"):
+                return f"https://{val}"
+            return val
+
+        df_inf_vista[col_link_inf] = df_inf_vista[col_link_inf].apply(asegurar_link)
+        df_inf_vista.index = range(1, len(df_inf_vista) + 1)
+
+        # Métricas
+        mi1, mi2 = st.columns(2)
+        mi1.metric("📑 Total Informes Registrados", len(df_inf_vista))
+        mi2.metric("📅 Vigencias Cubiertas", df_inf_vista[col_vig_inf].nunique())
+
+        st.markdown("---")
+
+        st.dataframe(
+            df_inf_vista,
+            use_container_width=True,
+            column_config={
+                col_link_inf: st.column_config.LinkColumn(
+                    "Soporte PDF",
+                    help="Haz clic para abrir el archivo del informe en PDF",
+                    display_text="📄 Ver PDF"
+                )
+            }
+        )
+
+        st.download_button(
+            label="📥 Descargar Relación de Informes (.xlsx)",
+            data=generar_excel_formateado(df_inf_vista),
+            file_name=f"Relacion_Informes_Auditoria_Interna_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="btn_download_informes_pdf_ai",
+            use_container_width=False,
+        )
+    else:
+        st.info("ℹ️ Aún no hay informes registrados en la hoja 'Informes PDF' del archivo Excel.")

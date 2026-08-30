@@ -709,7 +709,7 @@ if col_auditoria in df_perf.columns:
 
 
 # ---------------------------------------------------------
-# PESTAÑAS PRINCIPALES (4 PESTAÑAS LIMPIAS Y SOBERANAS)
+# PESTAÑAS PRINCIPALES (4 PESTAÑAS SOBERANAS)
 # ---------------------------------------------------------
 tab_principal, tab_analitica, tab_gestion, tab_informes = st.tabs([
     "📊 Dashboard Principal",
@@ -874,16 +874,21 @@ with tab_principal:
 
 
 # =========================================================
-# PESTAÑA 2: ANALÍTICA E HISTÓRICO (AGRUPADA CON SUB-TABS)
+# PESTAÑA 2: ANALÍTICA E HISTÓRICO (SELECTBOX DE NAVEGACIÓN)
 # =========================================================
 with tab_analitica:
-    subtab_metricas, subtab_historico = st.tabs([
-        "📈 Métricas de Cumplimiento",
-        "📊 Comparativa Histórica"
-    ])
+    col_nav1, _ = st.columns([1.8, 2.2])
+    with col_nav1:
+        vista_analitica = st.selectbox(
+            "📌 Seleccione la vista de análisis:",
+            options=["📈 Métricas de Cumplimiento", "📊 Comparativa Histórica"],
+            key="select_vista_analitica"
+        )
 
-    # --- SUB-TAB 1: MÉTRICAS DE CUMPLIMIENTO ---
-    with subtab_metricas:
+    st.markdown("---")
+
+    # --- VISTA 1: MÉTRICAS DE CUMPLIMIENTO ---
+    if vista_analitica == "📈 Métricas de Cumplimiento":
         st.header("📈 Resumen de Estado y Desempeño")
         st.markdown("Vista general del avance de compromisos por área y auditoría.")
 
@@ -916,8 +921,8 @@ with tab_analitica:
         else:
             st.info("No hay compromisos pendientes en las auditorías.")
 
-    # --- SUB-TAB 2: COMPARATIVA HISTÓRICA ---
-    with subtab_historico:
+    # --- VISTA 2: COMPARATIVA HISTÓRICA ---
+    elif vista_analitica == "📊 Comparativa Histórica":
         st.header("📈 Análisis Histórico e Interanual de Planes de Mejoramiento")
         st.markdown("Evolución del volumen de **Planes de Mejoramiento** por vigencia y distribución por Área Responsable.")
 
@@ -1032,17 +1037,21 @@ with tab_analitica:
 
 
 # =========================================================
-# PESTAÑA 3: GESTIÓN Y REGISTRO (AGRUPADA CON SUB-TABS)
+# PESTAÑA 3: GESTIÓN DE PLANES (SELECTBOX DE NAVEGACIÓN)
 # =========================================================
 with tab_gestion:
-    subtab_alertas, subtab_oficios, subtab_finalizadas = st.tabs([
-        "🚨 Alertas y Edición",
-        "📩 Oficios Radicados",
-        "🎉 Acciones Finalizadas"
-    ])
+    col_nav2, _ = st.columns([1.8, 2.2])
+    with col_nav2:
+        vista_gestion = st.selectbox(
+            "📌 Seleccione la herramienta de gestión:",
+            options=["🚨 Alertas y Edición", "📩 Oficios Radicados", "🎉 Acciones Finalizadas"],
+            key="select_vista_gestion"
+        )
 
-    # --- SUB-TAB 1: ALERTAS Y EDICIÓN ---
-    with subtab_alertas:
+    st.markdown("---")
+
+    # --- VISTA 1: ALERTAS Y EDICIÓN ---
+    if vista_gestion == "🚨 Alertas y Edición":
         st.header("🚨 Alertas Críticas y Edición Directa")
 
         df_alertas = df_filtrado.copy()
@@ -1267,8 +1276,8 @@ with tab_gestion:
                 st.session_state["limpiar_key"] += 1
                 st.rerun()
 
-    # --- SUB-TAB 2: OFICIOS DE SOLICITUD ---
-    with subtab_oficios:
+    # --- VISTA 2: OFICIOS DE SOLICITUD ---
+    elif vista_gestion == "📩 Oficios Radicados":
         st.header("📩 Registro e Historial de Oficios Radicados")
         st.markdown("Consulta y trazabilidad formal de los oficios enviados para soporte de modificaciones.")
 
@@ -1376,8 +1385,8 @@ with tab_gestion:
         else:
             st.warning("⚠️ No se detectó la columna 'Radicado' en la hoja Base de datos.")
 
-    # --- SUB-TAB 3: ACCIONES FINALIZADAS ---
-    with subtab_finalizadas:
+    # --- VISTA 3: ACCIONES FINALIZADAS ---
+    elif vista_gestion == "🎉 Acciones Finalizadas":
         st.header("🎉 Acciones Finalizadas")
 
         col_m1, col_m2 = st.columns([0.24, 1])
@@ -1410,11 +1419,10 @@ with tab_gestion:
 
 
 # =========================================================
-# PESTAÑA 4: INFORMES DE AUDITORÍA (CON SUB-TABS POR VIGENCIA)
+# PESTAÑA 4: INFORMES DE AUDITORÍA
 # =========================================================
 with tab_informes:
     st.header("📑 Informes de Auditoría Interna por Vigencia")
-    st.markdown("Haz clic en cualquier año para consultar únicamente los informes de esa vigencia específica.")
 
     if not df_informes_raw.empty:
         df_inf_vista = df_informes_raw.copy()
@@ -1444,27 +1452,33 @@ with tab_informes:
         ])
 
         if vigencias_unicas:
-            nombres_subtabs = [f"📅 Vigencia {v}" if str(v).isdigit() else str(v) for v in vigencias_unicas]
-            subtabs = st.tabs(nombres_subtabs)
+            col_vig_select, _ = st.columns([1.8, 2.2])
+            with col_vig_select:
+                vigencia_elegida = st.selectbox(
+                    "📅 Seleccione la Vigencia de los Informes:",
+                    options=vigencias_unicas,
+                    format_func=lambda x: f"Vigencia {x}" if str(x).isdigit() else str(x),
+                    key="select_vigencia_informes"
+                )
 
-            for i, vig in enumerate(vigencias_unicas):
-                with subtabs[i]:
-                    df_sub_vig = df_inf_vista[df_inf_vista[col_vig_inf] == vig].copy().reset_index(drop=True)
-                    df_sub_vig.index = range(1, len(df_sub_vig) + 1)
-                    
-                    st.markdown(f"**Listado de informes de la Vigencia {vig} ({len(df_sub_vig)} informe/s):**")
-                    
-                    st.dataframe(
-                        df_sub_vig,
-                        use_container_width=True,
-                        column_config={
-                            col_link_inf: st.column_config.LinkColumn(
-                                "Soporte PDF",
-                                help="Haz clic para abrir el archivo del informe en PDF",
-                                display_text="📄 Ver PDF"
-                            )
-                        }
+            st.markdown("---")
+
+            df_sub_vig = df_inf_vista[df_inf_vista[col_vig_inf] == vigencia_elegida].copy().reset_index(drop=True)
+            df_sub_vig.index = range(1, len(df_sub_vig) + 1)
+            
+            st.markdown(f"**Listado de informes de la Vigencia {vigencia_elegida} ({len(df_sub_vig)} informe/s):**")
+            
+            st.dataframe(
+                df_sub_vig,
+                use_container_width=True,
+                column_config={
+                    col_link_inf: st.column_config.LinkColumn(
+                        "Soporte PDF",
+                        help="Haz clic para abrir el archivo del informe en PDF",
+                        display_text="📄 Ver PDF"
                     )
+                }
+            )
 
             st.markdown("---")
             st.download_button(

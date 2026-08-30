@@ -15,20 +15,14 @@ import plotly.graph_objects as go
 import streamlit as st
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA Y PALETA INSTITUCIONAL
+# CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="Tablero de Control - La Terminal",
-    page_icon="🚌",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-# Colores de marca La Terminal
-COLOR_AZUL_PRINCIPAL = "#0077C8"
-COLOR_VERDE_INSTITUCIONAL = "#7AB800"
-COLOR_VERDE_CLARO = "#EAF5D6"
-COLOR_ROJO_ALERTAS = "#D9534F"
 
 # ---------------------------------------------------------
 # BASE DE DATOS LOCAL Y GESTIÓN DE ROLES/PERMISOS (SQLITE)
@@ -155,12 +149,8 @@ def validar_login():
         st.session_state["permisos_usuario"] = []
 
     if not st.session_state["autenticado"]:
-        st.markdown("""
-            <div style='text-align: center; margin-bottom: 20px;'>
-                <h2 style='color: #0077C8; font-weight: bold;'>🚌 LA TERMINAL - AUDITORÍA INTERNA</h2>
-            </div>
-        """, unsafe_allow_html=True)
-        st.caption("Ingresa tus credenciales para acceder al tablero de control.")
+        st.markdown("## 🔒 Acceso Restringido")
+        st.caption("Ingresa tus credenciales para acceder al tablero de Auditoría Interna.")
         
         tab_login, tab_recovery = st.tabs(["🔑 Iniciar Sesión", "❓ Olvidé mi Contraseña"])
         
@@ -270,131 +260,217 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS CON COLORES INSTITUCIONALES (LA TERMINAL)
+# ESTILOS CSS
 # ---------------------------------------------------------
 st.markdown(
-    f"""
+    """
     <style>
-        #MainMenu {{visibility: hidden;}}
-        header {{visibility: hidden;}}
-        footer {{visibility: hidden;}}
-        .stAppDeployButton {{display:none !important;}}
-        [data-testid="stHeader"] {{display:none !important;}}
-        [data-testid="stToolbar"] {{display:none !important;}}
-        [data-testid="stDecoration"] {{display:none !important;}}
-        [data-testid="stStatusWidget"] {{display:none !important;}}
+        #MainMenu {visibility: hidden;}
+        header {visibility: hidden;}
+        footer {visibility: hidden;}
+        .stAppDeployButton {display:none !important;}
+        [data-testid="stHeader"] {display:none !important;}
+        [data-testid="stToolbar"] {display:none !important;}
+        [data-testid="stDecoration"] {display:none !important;}
+        [data-testid="stStatusWidget"] {display:none !important;}
         
-        div[data-testid="stManageApp"] {{display: none !important;}}
-        div[class*="stManageApp"] {{display: none !important;}}
-        button[title*="Manage app"] {{display: none !important;}}
-        iframe[title*="manage-app"] {{display: none !important;}}
+        div[data-testid="stManageApp"] {display: none !important;}
+        div[class*="stManageApp"] {display: none !important;}
+        button[title*="Manage app"] {display: none !important;}
+        iframe[title*="manage-app"] {display: none !important;}
+
+        [data-testid="stElementToolbar"],
+        .modebar,
+        .plotly .modebar,
+        button[title="View fullscreen"],
+        button[title="Download"],
+        button[title="Search"] {
+            display: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+        }
 
         [data-testid="stSidebarCollapsedControl"],
         button[data-testid="stBaseButton-headerNoPadding"],
         button[aria-label="Close sidebar"],
         button[aria-label="Open sidebar"],
         button[aria-label="Collapse sidebar"],
-        button[aria-label="Expand sidebar"] {{
+        button[aria-label="Expand sidebar"] {
             display: none !important;
             visibility: hidden !important;
-        }}
+            pointer-events: none !important;
+        }
 
-        [data-testid="stSidebar"] {{
+        /* Borde superior e integración verde institucional */
+        [data-testid="stSidebar"] {
             min-width: 320px !important;
             max-width: 320px !important;
-            background-color: #F8F9FA !important;
-        }}
+            display: block !important;
+            visibility: visible !important;
+            transform: none !important;
+            border-top: 5px solid #7AB800 !important;
+        }
 
-        .block-container {{
-            padding-top: 1rem !important;
+        header[data-testid="stHeader"] {
+            height: 0rem !important;
+            background: transparent !important;
+        }
+
+        .block-container {
+            padding-top: 1.5rem !important;
             padding-bottom: 2rem !important;
-        }}
+        }
 
-        .titulo-tablero {{
-            font-size: 1.45rem !important;
-            font-weight: 800 !important;
-            color: {COLOR_AZUL_PRINCIPAL} !important;
+        /* Línea horizontal en Verde Institucional */
+        .titulo-tablero {
+            font-size: 1.35rem !important;
+            font-weight: 700 !important;
+            color: var(--text-color);
             margin: 0 0 15px 0 !important;
-            padding: 8px 12px !important;
-            border-bottom: 3px solid {COLOR_VERDE_INSTITUCIONAL};
+            padding-bottom: 8px !important;
+            line-height: 1.3 !important;
             display: flex !important;
             align-items: center !important;
-            justify-content: space-between !important;
-        }}
+            gap: 15px !important;
+            border-bottom: 3px solid #7AB800 !important;
+        }
 
-        .card-box {{
-            border-radius: 6px;
-            padding: 4px 8px;
-            text-align: center;
-            font-weight: bold;
-            color: #FFFFFF;
-            box-shadow: 0px 2px 4px rgba(0,0,0,0.08);
-            margin-bottom: 4px;
-        }}
-        .block-header {{
+        .block-header {
             text-align: center;
             font-weight: bold;
             font-size: 0.85rem;
-            color: {COLOR_AZUL_PRINCIPAL};
+            color: var(--text-color);
             margin-bottom: 4px;
             margin-top: 2px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-        }}
-        
-        div[data-testid="stDownloadButton"] button {{
-            background-color: {COLOR_VERDE_INSTITUCIONAL} !important;
-            color: #FFFFFF !important;
-            border: none !important;
-            font-weight: bold !important;
-        }}
-        div[data-testid="stDownloadButton"] button:hover {{
-            background-color: #689E00 !important;
-            color: #FFFFFF !important;
-        }}
-
-        .small-note {{
-            background-color: {COLOR_VERDE_CLARO};
-            border-left: 4px solid {COLOR_VERDE_INSTITUCIONAL};
-            padding: 8px 14px;
-            border-radius: 4px;
-            font-size: 0.82rem;
-            color: #2D4000;
-            margin-bottom: 12px;
-        }}
-        .total-acciones-box {{
-            background-color: #F0F4F8;
-            border: 1px solid {COLOR_AZUL_PRINCIPAL};
-            padding: 6px 14px;
+        }
+        .card-box {
             border-radius: 6px;
+            padding: 4px 8px;
+            text-align: center;
             font-weight: bold;
-            color: {COLOR_AZUL_PRINCIPAL};
-            display: inline-block;
-            margin-bottom: 12px;
-        }}
-        .month-box {{
-            background-color: {COLOR_VERDE_CLARO};
+            color: #000;
+            box-shadow: 0px 2px 4px rgba(0,0,0,0.08);
+            margin-bottom: 4px;
+        }
+
+        [data-testid="stHorizontalBlock"] {
+            align-items: flex-start !important;
+        }
+
+        div[data-testid="stDataFrame"] {
+            margin-top: 12px !important;
+            padding-top: 0px !important;
+        }
+
+        .titulo-seccion-finaliz {
+            font-size: 1.15rem !important;
+            font-weight: 700 !important;
+            color: var(--text-color);
+            margin: 0 0 10px 0 !important;
+            padding: 0 !important;
+            line-height: 1.2 !important;
+            white-space: nowrap !important;
+        }
+
+        .month-container {
+            margin-left: 0 !important;
+            margin-top: 8px !important;
+        }
+        .month-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px 0;
+            font-weight: bold;
+            font-size: 0.82rem;
+            color: var(--text-color);
+            width: 120px !important;
+        }
+        .month-box {
+            background-color: #D9EAD3;
             width: 44px;
             text-align: center;
             padding: 2px 0;
             border-radius: 4px;
             color: #000;
+        }
+        .alert-row-compact {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 4px;
             font-weight: bold;
-        }}
+            font-size: 0.85rem;
+            color: var(--text-color);
+        }
+        .alert-item-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 85px;
+        }
+        .alert-val-box {
+            background-color: #EFEFEF;
+            width: 44px;
+            text-align: center;
+            padding: 3px 0;
+            border-radius: 4px;
+            color: #000;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+        .small-note {
+            background-color: rgba(75, 146, 219, 0.15);
+            border-left: 4px solid #2B6CB0;
+            padding: 8px 14px;
+            border-radius: 4px;
+            font-size: 0.82rem;
+            color: var(--text-color);
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+        .total-acciones-box {
+            background-color: rgba(241, 245, 249, 0.15);
+            border: 1px solid #CBD5E1;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--text-color);
+            display: inline-block;
+            margin-bottom: 12px;
+        }
+        div[data-testid="stDownloadButton"] button {
+            background-color: #28A745 !important;
+            color: #FFFFFF !important;
+            border: 1px solid #218838 !important;
+            font-weight: bold !important;
+        }
+        div[data-testid="stDownloadButton"] button:hover {
+            background-color: #218838 !important;
+            color: #FFFFFF !important;
+        }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# LOGO Y ENCABEZADO INSTITUCIONAL
-st.markdown(f'''
+# ENCABEZADO CON LOGO OFICIAL
+st.markdown(
+    """
     <div class="titulo-tablero">
-        <span>🚌 LA TERMINAL - Tablero de Control y Gestión Auditoría Interna</span>
+        <img src="https://www.terminaldetransporte.gov.co/sites/default/files/logo_0.png" height="42" alt="La Terminal">
+        <span>Tablero de Control y Gestión - Auditoría Interna</span>
     </div>
-''', unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # ---------------------------------------------------------
-# CARGA DE DATOS EXCEL
+# BÚSQUEDA DEL EXCEL
 # ---------------------------------------------------------
 def buscar_excel_inteligente():
     dir_script = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
@@ -461,7 +537,7 @@ def generar_excel_formateado(df):
         df_export.to_excel(writer, index=False, sheet_name="Detalle_Compromisos")
         workbook = writer.book
         worksheet = writer.sheets["Detalle_Compromisos"]
-        header_format = workbook.add_format({"bold": True, "text_wrap": True, "valign": "vcenter", "align": "center", "fg_color": "#0077C8", "font_color": "#FFFFFF", "border": 1})
+        header_format = workbook.add_format({"bold": True, "text_wrap": True, "valign": "vcenter", "align": "center", "fg_color": "#1F4E78", "font_color": "#FFFFFF", "border": 1})
         cell_format = workbook.add_format({"valign": "vcenter", "border": 1})
         date_cell_format = workbook.add_format({"valign": "vcenter", "align": "center", "border": 1})
 
@@ -551,14 +627,9 @@ if not df_calc.empty:
                 conteo_meses[meses_es[idx_m]] = int(row[1]) if pd.notnull(row[1]) and str(row[1]).isdigit() else 0
 
 # ---------------------------------------------------------
-# BARRA LATERAL (LOGO INSTITUCIONAL Y FILTROS)
+# BARRA LATERAL (LOGO EN SIDEBAR Y FILTROS)
 # ---------------------------------------------------------
-st.sidebar.markdown(f"""
-    <div style='text-align: center; padding: 10px 0;'>
-        <h3 style='color: {COLOR_AZUL_PRINCIPAL}; font-weight: bold; margin:0;'>LA TERMINAL</h3>
-        <p style='color: {COLOR_VERDE_INSTITUCIONAL}; font-size: 0.85rem; font-weight: bold;'>BOGOTÁ</p>
-    </div>
-""", unsafe_allow_html=True)
+st.sidebar.image("https://www.terminaldetransporte.gov.co/sites/default/files/logo_0.png", use_container_width=True)
 
 st.sidebar.title("🔍 Filtros del Tablero")
 
@@ -677,7 +748,7 @@ if col_auditoria:
         df_filtrado = df_filtrado[df_filtrado[col_auditoria].isin(auditoria_sel)]
 
 # ---------------------------------------------------------
-# MÉTRICAS Y FIGURAS CON COLORES LA TERMINAL
+# MÉTRICAS Y FIGURAS CON COLORES ORIGINALES
 # ---------------------------------------------------------
 abiertos = df_filtrado[col_estado].astype(str).str.contains("Abiert", case=False, na=False).sum() if col_estado else 0
 vencidos = df_filtrado[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
@@ -695,18 +766,18 @@ r_bajo = df_activos[col_riesgo].astype(str).str.contains("Bajo", case=False, na=
 # Barras
 max_val_pend = max([abiertos, vencidos, sin_plan])
 df_bar = pd.DataFrame({"Estado": ["Abiertos", "Vencidos", "Sin definir"], "Cantidad": [abiertos, vencidos, sin_plan]})
-fig_bar = px.bar(df_bar, x="Estado", y="Cantidad", text="Cantidad", color="Estado", color_discrete_map={"Abiertos": COLOR_VERDE_INSTITUCIONAL, "Vencidos": COLOR_ROJO_ALERTAS, "Sin definir": "#F8A583"})
+fig_bar = px.bar(df_bar, x="Estado", y="Cantidad", text="Cantidad", color="Estado", color_discrete_map={"Abiertos": "#58C57A", "Vencidos": "#FF5252", "Sin definir": "#F8A583"})
 fig_bar.update_traces(textposition="outside", textfont=dict(size=12, color="var(--text-color)", family="Arial"), cliponaxis=False)
 fig_bar.update_layout(showlegend=False, height=180, margin=dict(t=25, b=5, l=5, r=5), xaxis_title=None, yaxis_title=None, yaxis=dict(showticklabels=False, range=[0, max_val_pend * 1.25 if max_val_pend > 0 else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
 # Donas
 pct_abiertos = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
-fig_dona_abiertos = go.Figure(data=[go.Pie(values=[1]*20, hole=0.68, marker_colors=[COLOR_VERDE_INSTITUCIONAL if i < (pct_abiertos / 5) else "#E0E0E0" for i in range(20)], marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none", domain=dict(x=[0.05, 0.95], y=[0.05, 0.95]))])
+fig_dona_abiertos = go.Figure(data=[go.Pie(values=[1]*20, hole=0.68, marker_colors=["#00B050" if i < (pct_abiertos / 5) else "#E0E0E0" for i in range(20)], marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none", domain=dict(x=[0.05, 0.95], y=[0.05, 0.95]))])
 fig_dona_abiertos.add_annotation(text=f"<b>{pct_abiertos}%</b>", x=0.5, y=0.5, font=dict(size=18, color="var(--text-color)"), showarrow=False)
 fig_dona_abiertos.update_layout(showlegend=False, height=170, autosize=True, margin=dict(t=15, b=15, l=15, r=15), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
 pct_vencidos = round((vencidos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
-fig_dona_vencidos = go.Figure(data=[go.Pie(values=[1]*20, hole=0.68, marker_colors=[COLOR_ROJO_ALERTAS if i < (pct_vencidos / 5) else "#E0E0E0" for i in range(20)], marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none", domain=dict(x=[0.05, 0.95], y=[0.05, 0.95]))])
+fig_dona_vencidos = go.Figure(data=[go.Pie(values=[1]*20, hole=0.68, marker_colors=["#FF5252" if i < (pct_vencidos / 5) else "#E0E0E0" for i in range(20)], marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none", domain=dict(x=[0.05, 0.95], y=[0.05, 0.95]))])
 fig_dona_vencidos.add_annotation(text=f"<b>{pct_vencidos}%</b>", x=0.5, y=0.5, font=dict(size=18, color="var(--text-color)"), showarrow=False)
 fig_dona_vencidos.update_layout(showlegend=False, height=170, autosize=True, margin=dict(t=15, b=15, l=15, r=15), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
@@ -729,7 +800,7 @@ if col_responsable in df_perf.columns:
         df_area_grouped[col_responsable] = pd.Categorical(df_area_grouped[col_responsable], categories=df_totales_area[col_responsable], ordered=True)
         df_area_grouped["Texto_Etiqueta"] = df_area_grouped["Cantidad"].apply(lambda x: f"<b>{x}</b>" if x > 1 else "")
 
-        fig_area_horiz = px.bar(df_area_grouped, y=col_responsable, x="Cantidad", color="Estado_Normalizado", text="Texto_Etiqueta", orientation="h", barmode="stack", color_discrete_map={"Abierta": COLOR_VERDE_INSTITUCIONAL, "Vencida": COLOR_ROJO_ALERTAS, "Sin plan de acción": "#F8A583"})
+        fig_area_horiz = px.bar(df_area_grouped, y=col_responsable, x="Cantidad", color="Estado_Normalizado", text="Texto_Etiqueta", orientation="h", barmode="stack", color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Sin plan de acción": "#F8A583"})
         fig_area_horiz.update_traces(textposition="inside", insidetextanchor="middle", textfont=dict(size=12, color="white", family="Arial Black"), cliponaxis=False)
 
         for _, row in df_totales_area.iterrows():
@@ -746,7 +817,7 @@ if col_auditoria in df_perf.columns:
         df_aud_grouped[col_auditoria] = pd.Categorical(df_aud_grouped[col_auditoria], categories=df_totales_aud[col_auditoria], ordered=True)
         df_aud_grouped["Texto_Etiqueta"] = df_aud_grouped["Cantidad"].apply(lambda x: f"<b>{x}</b>" if x > 1 else "")
 
-        fig_aud_horiz = px.bar(df_aud_grouped, y=col_auditoria, x="Cantidad", color="Estado_Normalizado", text="Texto_Etiqueta", orientation="h", barmode="stack", color_discrete_map={"Abierta": COLOR_VERDE_INSTITUCIONAL, "Vencida": COLOR_ROJO_ALERTAS, "Sin plan de acción": "#F8A583"})
+        fig_aud_horiz = px.bar(df_aud_grouped, y=col_auditoria, x="Cantidad", color="Estado_Normalizado", text="Texto_Etiqueta", orientation="h", barmode="stack", color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Sin plan de acción": "#F8A583"})
         fig_aud_horiz.update_traces(textposition="inside", insidetextanchor="middle", textfont=dict(size=12, color="white", family="Arial Black"), cliponaxis=False)
 
         for _, row in df_totales_aud.iterrows():
@@ -754,7 +825,7 @@ if col_auditoria in df_perf.columns:
         fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, (df_totales_aud["Total_Pendientes"].max() if not df_totales_aud.empty else 10) * 1.25]), legend_title_text="Estado", margin=dict(l=280, r=60, t=60, b=40), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
 # ---------------------------------------------------------
-# RENDERIZADO DINÁMICO DE PESTAÑAS
+# RENDERIZADO DINÁMICO DE PESTAÑAS SEGÚN PERMISOS
 # ---------------------------------------------------------
 dict_pestanias = {
     "Tablero": "📊 Tablero",
@@ -783,7 +854,7 @@ for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
 
             with c2:
                 st.markdown('<div class="block-header">Total Hallazgos Pendientes</div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="card-box" style="background-color:{COLOR_AZUL_PRINCIPAL}; font-size:1.3rem; height:34px; line-height:26px;">{total_hallazgos_unicos_pendientes}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="card-box" style="background-color:#4B92DB; font-size:1.3rem; height:34px; line-height:26px;">{total_hallazgos_unicos_pendientes}</div>', unsafe_allow_html=True)
 
                 st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
                 r1, r2, r3 = st.columns(3)
@@ -792,23 +863,23 @@ for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
                     st.markdown(f'<div class="card-box" style="background-color:#FFB000; font-size:1rem;">{r_alto}</div>', unsafe_allow_html=True)
                 with r2:
                     st.markdown('<div class="block-header" style="font-size:0.72rem;">Riesgo Medio</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="card-box" style="background-color:#FFFF00; color:#000; font-size:1rem;">{r_medio}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="card-box" style="background-color:#FFFF00; font-size:1rem;">{r_medio}</div>', unsafe_allow_html=True)
                 with r3:
                     st.markdown('<div class="block-header" style="font-size:0.72rem;">Riesgo Bajo</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="card-box" style="background-color:{COLOR_VERDE_INSTITUCIONAL}; font-size:1rem;">{r_bajo}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="card-box" style="background-color:#00B050; font-size:1rem;">{r_bajo}</div>', unsafe_allow_html=True)
 
                 st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
                 st.markdown('<div class="block-header" style="font-size:0.78rem;">Planes de Acción Pendientes</div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="card-box" style="background-color:{COLOR_VERDE_INSTITUCIONAL}; height:36px; line-height:26px; font-size:1.4rem; margin-bottom:8px;">{total_planes_pendientes}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="card-box" style="background-color:#00B050; height:36px; line-height:26px; font-size:1.4rem; margin-bottom:8px;">{total_planes_pendientes}</div>', unsafe_allow_html=True)
 
                 st.markdown('<div class="block-header" style="font-size:0.78rem;">Detalle de Estados Pendientes</div>', unsafe_allow_html=True)
                 e1, e2, e3 = st.columns(3)
                 with e1:
                     st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Abiertos</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="card-box" style="background-color:{COLOR_VERDE_INSTITUCIONAL}; font-size:1.05rem; padding:4px;">{abiertos}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="card-box" style="background-color:#58C57A; font-size:1.05rem; padding:4px;">{abiertos}</div>', unsafe_allow_html=True)
                 with e2:
                     st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Vencidos</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="card-box" style="background-color:{COLOR_ROJO_ALERTAS}; color:#FFFFFF; font-size:1.05rem; padding:4px;">{vencidos}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="card-box" style="background-color:#FF5252; color:#FFFFFF; font-size:1.05rem; padding:4px;">{vencidos}</div>', unsafe_allow_html=True)
                 with e3:
                     st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Sin definir</div>', unsafe_allow_html=True)
                     st.markdown(f'<div class="card-box" style="background-color:#F8A583; font-size:1.05rem; padding:4px;">{sin_plan}</div>', unsafe_allow_html=True)
@@ -846,9 +917,9 @@ for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
 
             with c4:
                 st.markdown('<div class="block-header">Porcentaje de Acciones Pendientes</div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:{COLOR_VERDE_INSTITUCIONAL};">🟢 En tiempo (Abiertos)</div>', unsafe_allow_html=True)
+                st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#00B050;">🟢 En tiempo (Abiertos)</div>', unsafe_allow_html=True)
                 st.plotly_chart(fig_dona_abiertos, use_container_width=True, key="fig_dona_abiertos_key", config={'displayModeBar': False})
-                st.markdown(f'<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:{COLOR_ROJO_ALERTAS};">🔴 Vencidos</div>', unsafe_allow_html=True)
+                st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#FF5252;">🔴 Vencidos</div>', unsafe_allow_html=True)
                 st.plotly_chart(fig_dona_vencidos, use_container_width=True, key="fig_dona_vencidos_key", config={'displayModeBar': False})
 
             st.markdown("---")
@@ -932,7 +1003,7 @@ for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
                             def resaltar_finalizadas(row):
                                 val_est = str(row[col_est_paa]).lower() if col_est_paa and pd.notnull(row[col_est_paa]) else ""
                                 if "finaliz" in val_est:
-                                    return [f"background-color: {COLOR_VERDE_CLARO}; color: #000000; font-weight: normal;"] * len(row)
+                                    return ["background-color: #D9EAD3; color: #000000; font-weight: normal;"] * len(row)
                                 return [""] * len(row)
 
                             st.dataframe(df_sub_paa.style.apply(resaltar_finalizadas, axis=1), use_container_width=True)
@@ -993,12 +1064,8 @@ for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
                     sum_tot_g1 = df_vigencia_totales["Total_Planes"].sum() if not df_vigencia_totales.empty else 0
                     
                     fig_hist_line = px.bar(
-                        df_vigencia_totales,
-                        x="Vigencia_Limpia",
-                        y="Total_Planes",
-                        text="Total_Planes",
-                        title="Evolución Total de Planes de Mejoramiento por Vigencia",
-                        color_discrete_sequence=[COLOR_AZUL_PRINCIPAL]
+                        df_vigencia_totales, x="Vigencia_Limpia", y="Total_Planes", text="Total_Planes",
+                        title="Evolución Total de Planes de Mejoramiento por Vigencia", color_discrete_sequence=["#1F4E78"]
                     )
                     fig_hist_line.update_traces(textposition="outside", textfont=dict(size=13, color="var(--text-color)"))
                     fig_hist_line.update_layout(
@@ -1019,7 +1086,7 @@ for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
                     fig_hist_stack = px.bar(
                         df_hist_grouped, x="Vigencia_Limpia", y="Cantidad", color=col_estado, text="Texto_Etiqueta",
                         title="Distribución de Estados por Vigencia", barmode="stack",
-                        color_discrete_map={"Abierta": COLOR_VERDE_INSTITUCIONAL, "Vencida": COLOR_ROJO_ALERTAS, "Finalizada": COLOR_AZUL_PRINCIPAL, "Sin plan de acción": "#F8A583"}
+                        color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Sin plan de acción": "#F8A583"}
                     )
                     fig_hist_stack.update_traces(textposition="inside", insidetextanchor="middle", textfont=dict(size=11, color="white", family="Arial Black"))
                     

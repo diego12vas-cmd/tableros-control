@@ -274,7 +274,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS PARALELOS Y ALINEADOS
+# ESTILOS CSS
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -330,7 +330,7 @@ st.markdown(
         }
 
         .block-container {
-            padding-top: 1.5rem !important;
+            padding-top: 1.2rem !important;
             padding-bottom: 2rem !important;
         }
 
@@ -352,7 +352,7 @@ st.markdown(
             font-weight: bold;
             font-size: 0.85rem;
             color: var(--text-color);
-            margin-bottom: 4px;
+            margin-bottom: 2px;
             margin-top: 2px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -761,7 +761,7 @@ if col_auditoria:
         df_filtrado = df_filtrado[df_filtrado[col_auditoria].isin(auditoria_sel)]
 
 # ---------------------------------------------------------
-# MÉTRICAS Y FIGURAS EXACTAMENTE ALINEADAS
+# MÉTRICAS Y FIGURAS COMPACTAS (DONAS AGRUPADAS)
 # ---------------------------------------------------------
 abiertos = df_filtrado[col_estado].astype(str).str.contains("Abiert", case=False, na=False).sum() if col_estado else 0
 vencidos = df_filtrado[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
@@ -776,32 +776,23 @@ r_alto = df_activos[col_riesgo].astype(str).str.contains("Alto", case=False, na=
 r_medio = df_activos[col_riesgo].astype(str).str.contains("Medio", case=False, na=False).sum() if col_riesgo else 0
 r_bajo = df_activos[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False).sum() if col_riesgo else 0
 
-# Barras (Ajustadas a 180px de alto exactos para calzar paralelo)
+# Barras
 max_val_pend = max([abiertos, vencidos, sin_plan])
 df_bar = pd.DataFrame({"Estado": ["Abiertos", "Vencidos", "Sin definir"], "Cantidad": [abiertos, vencidos, sin_plan]})
 fig_bar = px.bar(df_bar, x="Estado", y="Cantidad", text="Cantidad", color="Estado", color_discrete_map={"Abiertos": "#58C57A", "Vencidos": "#FF5252", "Sin definir": "#F8A583"})
 fig_bar.update_traces(textposition="outside", textfont=dict(size=12, color="var(--text-color)", family="Arial"), cliponaxis=False)
-fig_bar.update_layout(
-    showlegend=False,
-    height=180,
-    margin=dict(t=20, b=0, l=5, r=5),
-    xaxis_title=None,
-    yaxis_title=None,
-    yaxis=dict(showticklabels=False, range=[0, max_val_pend * 1.25 if max_val_pend > 0 else 10]),
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(0,0,0,0)"
-)
+fig_bar.update_layout(showlegend=False, height=180, margin=dict(t=25, b=5, l=5, r=5), xaxis_title=None, yaxis_title=None, yaxis=dict(showticklabels=False, range=[0, max_val_pend * 1.25 if max_val_pend > 0 else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
-# Donas (Ajustadas a 170px de alto para encajar simétricamente con la columna 1)
+# Donas Agrupadas y Ajustadas (height=135px)
 pct_abiertos = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
 fig_dona_abiertos = go.Figure(data=[go.Pie(values=[1]*20, hole=0.68, marker_colors=["#00B050" if i < (pct_abiertos / 5) else "#E0E0E0" for i in range(20)], marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none", domain=dict(x=[0.05, 0.95], y=[0.05, 0.95]))])
-fig_dona_abiertos.add_annotation(text=f"<b>{pct_abiertos}%</b>", x=0.5, y=0.5, font=dict(size=18, color="var(--text-color)"), showarrow=False)
-fig_dona_abiertos.update_layout(showlegend=False, height=170, autosize=True, margin=dict(t=10, b=10, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+fig_dona_abiertos.add_annotation(text=f"<b>{pct_abiertos}%</b>", x=0.5, y=0.5, font=dict(size=16, color="var(--text-color)"), showarrow=False)
+fig_dona_abiertos.update_layout(showlegend=False, height=135, autosize=True, margin=dict(t=0, b=0, l=0, r=0), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
 pct_vencidos = round((vencidos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
 fig_dona_vencidos = go.Figure(data=[go.Pie(values=[1]*20, hole=0.68, marker_colors=["#FF5252" if i < (pct_vencidos / 5) else "#E0E0E0" for i in range(20)], marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none", domain=dict(x=[0.05, 0.95], y=[0.05, 0.95]))])
-fig_dona_vencidos.add_annotation(text=f"<b>{pct_vencidos}%</b>", x=0.5, y=0.5, font=dict(size=18, color="var(--text-color)"), showarrow=False)
-fig_dona_vencidos.update_layout(showlegend=False, height=170, autosize=True, margin=dict(t=10, b=10, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+fig_dona_vencidos.add_annotation(text=f"<b>{pct_vencidos}%</b>", x=0.5, y=0.5, font=dict(size=16, color="var(--text-color)"), showarrow=False)
+fig_dona_vencidos.update_layout(showlegend=False, height=135, autosize=True, margin=dict(t=0, b=0, l=0, r=0), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
 # Áreas y Auditorías
 df_perf = df_filtrado.copy()
@@ -939,9 +930,9 @@ for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
 
             with c4:
                 st.markdown('<div class="block-header">Porcentaje de Acciones Pendientes</div>', unsafe_allow_html=True)
-                st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#00B050;">🟢 En tiempo (Abiertos)</div>', unsafe_allow_html=True)
+                st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:-4px; margin-top:0px; color:#00B050;">🟢 En tiempo (Abiertos)</div>', unsafe_allow_html=True)
                 st.plotly_chart(fig_dona_abiertos, use_container_width=True, key="fig_dona_abiertos_key", config={'displayModeBar': False})
-                st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#FF5252;">🔴 Vencidos</div>', unsafe_allow_html=True)
+                st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:-4px; margin-top:2px; color:#FF5252;">🔴 Vencidos</div>', unsafe_allow_html=True)
                 st.plotly_chart(fig_dona_vencidos, use_container_width=True, key="fig_dona_vencidos_key", config={'displayModeBar': False})
 
             st.markdown("---")

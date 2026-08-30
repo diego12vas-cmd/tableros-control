@@ -426,7 +426,7 @@ def generar_excel_formateado(df):
 
 
 # ---------------------------------------------------------
-# CARGA DE DATOS (BASE DE DATOS, INFORMES PDF Y PROGRAMA ANUAL)
+# CARGA DE DATOS
 # ---------------------------------------------------------
 def cargar_datos():
     if not os.path.exists(EXCEL_PATH):
@@ -1039,7 +1039,7 @@ with tab_historico:
 # =========================================================
 with tab_paa:
     st.header("🗓️ Programa Anual de Auditoría (PAA)")
-    st.markdown("Relación de actividades, auditorías específicas y su estado de ejecución agrupadas por vigencia.")
+    st.markdown("Relación de auditorías específicas y su estado de ejecución agrupadas por vigencia.")
 
     if not df_paa_raw.empty:
         df_paa_vista = df_paa_raw.copy()
@@ -1087,7 +1087,6 @@ with tab_paa:
 
                     df_sub_paa.index = range(1, len(df_sub_paa) + 1)
 
-                    # Formato sin negrita en las filas finalizadas (solo fondo verde suave)
                     def resaltar_finalizadas(row):
                         val_est = str(row[col_est_paa]).lower() if col_est_paa and pd.notnull(row[col_est_paa]) else ""
                         if "finaliz" in val_est:

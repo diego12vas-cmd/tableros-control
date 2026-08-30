@@ -274,7 +274,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS ALINEACIÓN EXACTA DE LOGOS
+# ESTILOS CSS CON LOGO SUBIDO EN LA BARRA LATERAL
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -315,7 +315,7 @@ st.markdown(
             pointer-events: none !important;
         }
 
-        /* Alineación vertical del contenedor lateral */
+        /* Barra Lateral alineada completamente arriba */
         [data-testid="stSidebar"] {
             min-width: 320px !important;
             max-width: 320px !important;
@@ -326,8 +326,13 @@ st.markdown(
             padding-top: 0px !important;
         }
 
-        [data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
-            padding-top: 0.8rem !important;
+        [data-testid="stSidebarContent"] {
+            padding-top: 0px !important;
+        }
+
+        [data-testid="stSidebar"] [data-testid="stImage"] {
+            margin-top: -30px !important;
+            padding-top: 0px !important;
         }
 
         header[data-testid="stHeader"] {
@@ -335,7 +340,6 @@ st.markdown(
             background: transparent !important;
         }
 
-        /* Alineación vertical del contenedor principal para igualar al sidebar */
         .block-container {
             padding-top: 0.8rem !important;
             padding-bottom: 2rem !important;
@@ -768,7 +772,7 @@ if col_auditoria:
         df_filtrado = df_filtrado[df_filtrado[col_auditoria].isin(auditoria_sel)]
 
 # ---------------------------------------------------------
-# MÉTRICAS Y FIGURAS COMPACTAS
+# MÉTRICAS Y FIGURAS CON COLORES ORIGINALES
 # ---------------------------------------------------------
 abiertos = df_filtrado[col_estado].astype(str).str.contains("Abiert", case=False, na=False).sum() if col_estado else 0
 vencidos = df_filtrado[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
@@ -794,12 +798,12 @@ fig_bar.update_layout(showlegend=False, height=180, margin=dict(t=25, b=5, l=5, 
 pct_abiertos = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
 fig_dona_abiertos = go.Figure(data=[go.Pie(values=[1]*20, hole=0.68, marker_colors=["#00B050" if i < (pct_abiertos / 5) else "#E0E0E0" for i in range(20)], marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none", domain=dict(x=[0.05, 0.95], y=[0.05, 0.95]))])
 fig_dona_abiertos.add_annotation(text=f"<b>{pct_abiertos}%</b>", x=0.5, y=0.5, font=dict(size=18, color="var(--text-color)"), showarrow=False)
-fig_dona_abiertos.update_layout(showlegend=False, height=170, autosize=True, margin=dict(t=10, b=10, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+fig_dona_abiertos.update_layout(showlegend=False, height=170, autosize=True, margin=dict(t=15, b=15, l=15, r=15), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
 pct_vencidos = round((vencidos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
 fig_dona_vencidos = go.Figure(data=[go.Pie(values=[1]*20, hole=0.68, marker_colors=["#FF5252" if i < (pct_vencidos / 5) else "#E0E0E0" for i in range(20)], marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none", domain=dict(x=[0.05, 0.95], y=[0.05, 0.95]))])
 fig_dona_vencidos.add_annotation(text=f"<b>{pct_vencidos}%</b>", x=0.5, y=0.5, font=dict(size=18, color="var(--text-color)"), showarrow=False)
-fig_dona_vencidos.update_layout(showlegend=False, height=170, autosize=True, margin=dict(t=10, b=10, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+fig_dona_vencidos.update_layout(showlegend=False, height=170, autosize=True, margin=dict(t=15, b=15, l=15, r=15), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
 # Áreas y Auditorías
 df_perf = df_filtrado.copy()

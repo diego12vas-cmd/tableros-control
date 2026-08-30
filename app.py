@@ -49,9 +49,9 @@ def init_db():
     ''')
     conn.commit()
     
-    # INSERT OR REPLACE asegura actualizar el hash al formato SHA256 actual
+    # INSERT OR IGNORE solo crea a admin si no existe previamente
     pw_hash = hash_password("admin123")
-    c.execute("INSERT OR REPLACE INTO usuarios (usuario, email, password_hash, autorizado) VALUES (?, ?, ?, 1)",
+    c.execute("INSERT OR IGNORE INTO usuarios (usuario, email, password_hash, autorizado) VALUES (?, ?, ?, 1)",
               ("admin", "admin@empresa.com", pw_hash))
     conn.commit()
     conn.close()
@@ -723,14 +723,12 @@ if st.session_state.get("usuario_actual") == "admin":
         if st.button("Guardar / Autorizar Usuario"):
             if new_u and new_e and new_p:
                 try:
-                    c.execute("INSERT INTO usuarios (usuario, email, password_hash, autorizado) VALUES (?, ?, ?, 1)",
+                    c.execute("INSERT OR REPLACE INTO usuarios (usuario, email, password_hash, autorizado) VALUES (?, ?, ?, 1)",
                               (new_u.strip(), new_e.strip().lower(), hash_password(new_p)))
                     conn.commit()
-                    st.success(f"Usuario {new_u} creado y autorizado.")
-                except sqlite3.IntegrityError:
-                    c.execute("UPDATE usuarios SET autorizado = 1 WHERE usuario = ? OR email = ?", (new_u.strip(), new_e.strip().lower()))
-                    conn.commit()
-                    st.info(f"Usuario {new_u} actualizado / autorizado.")
+                    st.success(f"Usuario {new_u} actualizado / autorizado exitosamente.")
+                except Exception as ex:
+                    st.error(f"Error al guardar usuario: {ex}")
             else:
                 st.warning("Completa todos los campos.")
                 

@@ -163,6 +163,31 @@ def validar_login():
         st.session_state["permisos_usuario"] = []
 
     if not st.session_state["autenticado"]:
+        # Inyección forzada de CSS verde institucional para el botón
+        st.markdown(
+            """
+            <style>
+                button[data-testid="baseButton-primary"],
+                .stButton > button[kind="primary"],
+                .stButton > button {
+                    background-color: #7AB800 !important;
+                    background-image: none !important;
+                    color: #FFFFFF !important;
+                    border: none !important;
+                    font-weight: bold !important;
+                    border-radius: 6px !important;
+                }
+                button[data-testid="baseButton-primary"]:hover,
+                .stButton > button[kind="primary"]:hover,
+                .stButton > button:hover {
+                    background-color: #689E00 !important;
+                    color: #FFFFFF !important;
+                }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
         _, col_main, _ = st.columns([1, 1.8, 1])
         
         with col_main:
@@ -280,7 +305,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS CON BOTÓN VERDE Y MENOS ESPACIO VERTICAL
+# ESTILOS CSS PRINCIPALES DEL TABLERO
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -350,7 +375,6 @@ st.markdown(
             padding-bottom: 1rem !important;
         }
 
-        /* Reducción de espacio en la línea divisoria */
         hr {
             margin-top: 0.2rem !important;
             margin-bottom: 0.4rem !important;
@@ -360,14 +384,16 @@ st.markdown(
             margin-bottom: -20px !important;
         }
 
-        /* Botones Primarios en Verde Institucional */
-        button[kind="primary"] {
+        button[kind="primary"],
+        button[data-testid="baseButton-primary"] {
             background-color: #7AB800 !important;
+            background-image: none !important;
             color: #FFFFFF !important;
             border: none !important;
             font-weight: bold !important;
         }
-        button[kind="primary"]:hover {
+        button[kind="primary"]:hover,
+        button[data-testid="baseButton-primary"]:hover {
             background-color: #689E00 !important;
             color: #FFFFFF !important;
         }
@@ -973,7 +999,7 @@ for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
                 st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#FF5252;">🔴 Vencidos</div>', unsafe_allow_html=True)
                 st.plotly_chart(fig_dona_vencidos, use_container_width=True, key="fig_dona_vencidos_key", config={'displayModeBar': False})
 
-            st.markdown("<div style='margin-top: -15px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='margin-top: -20px;'></div>", unsafe_allow_html=True)
             st.markdown("---")
 
             col_sub, col_filtro_rapido = st.columns([2, 1])

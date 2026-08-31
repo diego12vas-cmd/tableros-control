@@ -13,7 +13,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-import streamlit.components.v1 as components
 
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA
@@ -331,7 +330,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS PRINCIPALES Y CAJA FLOTANTE SOBRE LISTAS
+# ESTILOS CSS PRINCIPALES DEL TABLERO
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -373,8 +372,8 @@ st.markdown(
         }
 
         [data-testid="stSidebar"] {
-            min-width: 320px !important;
-            max-width: 320px !important;
+            min-width: 350px !important;
+            max-width: 350px !important;
             display: block !important;
             visibility: visible !important;
             transform: none !important;
@@ -422,6 +421,16 @@ st.markdown(
         button[data-testid="baseButton-primary"]:hover {
             background-color: #689E00 !important;
             color: #FFFFFF !important;
+        }
+
+        /* AJUSTE PARA MOSTRAR TODO EL TEXTO EN LOS DESPLEGABLES */
+        ul[role="listbox"] li,
+        ul[role="listbox"] li div,
+        div[data-baseweb="popover"] li {
+            white-space: normal !important;
+            word-break: break-word !important;
+            line-height: 1.3 !important;
+            height: auto !important;
         }
 
         .titulo-tablero {
@@ -558,72 +567,6 @@ st.markdown(
     </style>
 """,
     unsafe_allow_html=True,
-)
-
-# INYECCIÓN DEL SCRIPT QUE ASIGNA Y RECEPTA CAJAS FLOTANTES (TOOLTIPS)
-components.html(
-    """
-    <script>
-    const parentDoc = window.parent.document;
-    
-    // Crear elemento del tooltip global en la ventana principal
-    let tooltipBox = parentDoc.getElementById('custom-floating-tooltip');
-    if (!tooltipBox) {
-        tooltipBox = parentDoc.createElement('div');
-        tooltipBox.id = 'custom-floating-tooltip';
-        tooltipBox.style.position = 'fixed';
-        tooltipBox.style.display = 'none';
-        tooltipBox.style.backgroundColor = '#000000';
-        tooltipBox.style.color = '#FFFFFF';
-        tooltipBox.style.padding = '8px 12px';
-        tooltipBox.style.borderRadius = '8px';
-        tooltipBox.style.fontSize = '12px';
-        tooltipBox.style.fontWeight = 'bold';
-        tooltipBox.style.zIndex = '99999999';
-        tooltipBox.style.boxShadow = '0px 4px 12px rgba(0,0,0,0.4)';
-        tooltipBox.style.pointerEvents = 'none';
-        tooltipBox.style.maxWidth = '360px';
-        tooltipBox.style.wordWrap = 'break-word';
-        parentDoc.body.appendChild(tooltipBox);
-    }
-
-    function handleMouseOver(e) {
-        const item = e.currentTarget;
-        const fullText = item.innerText || item.textContent;
-        if (fullText) {
-            tooltipBox.innerText = fullText.trim();
-            tooltipBox.style.display = 'block';
-        }
-    }
-
-    function handleMouseMove(e) {
-        tooltipBox.style.left = (e.clientX + 15) + 'px';
-        tooltipBox.style.top = (e.clientY + 10) + 'px';
-    }
-
-    function handleMouseOut() {
-        tooltipBox.style.display = 'none';
-    }
-
-    function bindTooltips() {
-        const items = parentDoc.querySelectorAll('ul[role="listbox"] li, div[data-baseweb="select"] ul li');
-        items.forEach(item => {
-            if (!item.dataset.hasTooltip) {
-                item.dataset.hasTooltip = 'true';
-                item.addEventListener('mouseover', handleMouseOver);
-                item.addEventListener('mousemove', handleMouseMove);
-                item.addEventListener('mouseout', handleMouseOut);
-            }
-        });
-    }
-
-    const observer = new MutationObserver(bindTooltips);
-    observer.observe(parentDoc.body, { childList: true, subtree: true });
-    bindTooltips();
-    </script>
-    """,
-    height=0,
-    width=0
 )
 
 # ---------------------------------------------------------

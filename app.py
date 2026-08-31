@@ -166,7 +166,7 @@ def enviar_correo_token(email_destino, token):
         return False
 
 # ---------------------------------------------------------
-# SISTEMA DE LOGIN Y RECUPERACIÓN DE CONTRASEÑA (AJUSTADO)
+# SISTEMA DE LOGIN Y RECUPERACIÓN DE CONTRASEÑA
 # ---------------------------------------------------------
 def validar_login():
     if "autenticado" not in st.session_state:
@@ -330,7 +330,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS PRINCIPALES DEL TABLERO
+# ESTILOS CSS PRINCIPALES DEL TABLERO Y SCROLL HORIZONTAL
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -421,6 +421,20 @@ st.markdown(
         button[data-testid="baseButton-primary"]:hover {
             background-color: #689E00 !important;
             color: #FFFFFF !important;
+        }
+
+        /* HABILITAR BARRA DE DESPLAZAMIENTO HORIZONTAL EN EL DESPLEGABLE */
+        div[role="listbox"],
+        div[data-baseweb="popover"] ul {
+            overflow-x: auto !important;
+            max-width: 320px !important;
+        }
+
+        div[role="listbox"] li span,
+        div[data-baseweb="popover"] li span {
+            white-space: nowrap !important;
+            overflow: visible !important;
+            text-overflow: unset !important;
         }
 
         .titulo-tablero {

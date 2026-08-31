@@ -423,30 +423,25 @@ st.markdown(
             color: #FFFFFF !important;
         }
 
-        /* REGLAS PARA HABILITAR EL SCROLL HORIZONTAL FUNCIONAL EN EL DESPLEGABLE */
-        div[role="listbox"],
-        div[data-baseweb="popover"],
-        div[data-baseweb="popover"] > div {
-            overflow-x: auto !important;
-            max-width: 290px !important;
+        /* EXTENDER EL DESPLEGABLE FLOTANTE HACIA LA DERECHA SIN DEFORMAR EL SIDEBAR */
+        div[data-baseweb="popover"] {
+            min-width: 480px !important;
+            width: auto !important;
+            z-index: 999999999 !important;
         }
 
-        div[role="listbox"] ul,
-        div[data-baseweb="popover"] ul {
-            width: max-content !important;
-            min-width: 520px !important;
+        div[role="listbox"] {
+            min-width: 480px !important;
+            max-width: 600px !important;
+            overflow-x: hidden !important;
         }
 
         div[role="listbox"] li,
-        div[data-baseweb="popover"] li {
-            white-space: nowrap !important;
-            width: 100% !important;
-        }
-
-        div[role="listbox"] li *,
+        div[role="listbox"] li span,
         div[data-baseweb="popover"] li * {
-            white-space: nowrap !important;
-            overflow: visible !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            line-height: 1.3 !important;
             text-overflow: unset !important;
         }
 
@@ -667,6 +662,7 @@ def buscar_excel_contraloria():
 
 EXCEL_PATH_C = buscar_excel_contraloria()
 
+# EXTRAE EXCLUSIVAMENTE LA FECHA DE LA CELDA (SIN HORA NI TEXTOS EXTRA)
 def obtener_fecha_excel(ruta_target):
     if not ruta_target or not os.path.exists(ruta_target):
         return None
@@ -1382,7 +1378,7 @@ if entorno_activo == "Auditoría Interna":
                 if col_plan_filtro and col_plan_filtro in df_edicion_temp.columns:
                     opciones_plan_v += sorted([str(x) for x in df_edicion_temp[col_plan_filtro].dropna().unique() if str(x).strip()])
                 with col_f_plan:
-                    plan_v_seleccionado = st.selectbox("3. Filtrar por Plan / Vigencia:", options=plan_v_seleccionado, key="f_plan_edit")
+                    plan_v_seleccionado = st.selectbox("3. Filtrar por Plan / Vigencia:", options=opciones_plan_v, key="f_plan_edit")
 
                 if plan_v_seleccionado != "(Todos)":
                     df_edicion_temp = df_edicion_temp[df_edicion_temp[col_plan_filtro].astype(str).str.strip().str.lower() == plan_v_seleccionado.strip().lower()]

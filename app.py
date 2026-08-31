@@ -330,7 +330,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS PRINCIPALES DEL TABLERO
+# ESTILOS CSS PRINCIPALES Y CAJA FLOTANTE PARA OPCIONES LARGAS
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -371,6 +371,13 @@ st.markdown(
             pointer-events: none !important;
         }
 
+        /* PERMITIR QUE EL CONTENEDOR DE LA BARRA LATERAL NO RECORTE AVISOS FLOTANTES */
+        [data-testid="stSidebar"],
+        [data-testid="stSidebarContent"],
+        [data-testid="stSidebarNav"] {
+            overflow: visible !important;
+        }
+
         [data-testid="stSidebar"] {
             min-width: 320px !important;
             max-width: 320px !important;
@@ -379,6 +386,7 @@ st.markdown(
             transform: none !important;
             border-top: 5px solid #7AB800 !important;
             padding-top: 0px !important;
+            z-index: 100 !important;
         }
 
         [data-testid="stSidebarContent"] {
@@ -423,44 +431,58 @@ st.markdown(
             color: #FFFFFF !important;
         }
 
-        /* CONFIGURACIÓN DE TOOLTIPS NATIVOS FLOTANTES NEGROS CON TEXTO BLANCO SOBRE OPCIONES */
+        /* REGLA DEFINITIVA: CREACIÓN DE LA CAJA FLOTANTE NEGRA CON TEXTO COMPLETO */
+        div[data-baseweb="popover"] {
+            z-index: 999999999 !important;
+            overflow: visible !important;
+        }
+
+        div[role="listbox"] {
+            z-index: 999999999 !important;
+            overflow: visible !important;
+        }
+
         div[role="listbox"] li {
             position: relative !important;
             overflow: visible !important;
         }
-        
+
+        /* MOSTRAR EL CAJÓN NEGRO AL PASAR EL CURSOR SOBRE CUALQUIER OPCIÓN */
         div[role="listbox"] li:hover::after {
             content: attr(aria-label);
             position: absolute;
-            left: 102%;
+            left: 100%;
             top: 50%;
             transform: translateY(-50%);
-            background-color: #000000;
-            color: #FFFFFF;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            white-space: normal;
-            word-break: break-word;
-            width: max-content;
-            max-width: 320px;
+            background-color: #000000 !important;
+            color: #FFFFFF !important;
+            padding: 8px 14px !important;
+            border-radius: 8px !important;
+            font-size: 0.85rem !important;
+            font-weight: bold !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            width: max-content !important;
+            max-width: 350px !important;
             z-index: 999999999 !important;
-            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.4);
-            pointer-events: none;
+            box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.5) !important;
+            pointer-events: none !important;
+            margin-left: 10px !important;
         }
 
+        /* FLECHA INDICADORA HACIA LA OPCIÓN */
         div[role="listbox"] li:hover::before {
             content: '';
             position: absolute;
-            left: 96%;
+            left: 100%;
             top: 50%;
             transform: translateY(-50%);
             border-width: 6px;
             border-style: solid;
             border-color: transparent #000000 transparent transparent;
             z-index: 999999999 !important;
-            pointer-events: none;
+            pointer-events: none !important;
+            margin-left: -2px !important;
         }
 
         .titulo-tablero {

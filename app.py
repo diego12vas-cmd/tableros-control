@@ -13,7 +13,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-import streamlit.components.v1 as components
 
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA
@@ -331,7 +330,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS PRINCIPALES DEL TABLERO Y TOOLTIPS RESTAURADOS
+# ESTILOS CSS PRINCIPALES DEL TABLERO
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -424,9 +423,29 @@ st.markdown(
             color: #FFFFFF !important;
         }
 
-        /* TOOLTIPS / AVISOS FLOTANTES NEGROS SOBRE OPCIONES DESPLEGABLES */
+        /* AJUSTE PARA DESPLEGABLES LARGOS EN LA BARRA LATERAL */
+        div[role="listbox"] {
+            min-width: 420px !important;
+            max-width: 550px !important;
+            z-index: 99999999 !important;
+        }
         div[role="listbox"] li {
-            position: relative;
+            white-space: normal !important;
+            word-break: break-word !important;
+            line-height: 1.3 !important;
+        }
+        div[role="listbox"] li span {
+            white-space: normal !important;
+            word-break: break-word !important;
+        }
+        div[data-baseweb="popover"] {
+            min-width: 420px !important;
+            z-index: 99999999 !important;
+        }
+        div[data-baseweb="tag"] {
+            max-width: 100% !important;
+            height: auto !important;
+            white-space: normal !important;
         }
 
         .titulo-tablero {
@@ -563,29 +582,6 @@ st.markdown(
     </style>
 """,
     unsafe_allow_html=True,
-)
-
-# INYECCIÓN JAVASCRIPT PARA GENERAR AUTOMÁTICAMENTE EL ATRIBUTO TITLE (TOOLTIP FLOTANTE NATIVO)
-components.html(
-    """
-    <script>
-    const parentDoc = window.parent.document;
-    function addTooltips() {
-        const items = parentDoc.querySelectorAll('div[role="listbox"] li, div[data-baseweb="select"] li');
-        items.forEach(item => {
-            const text = item.innerText || item.textContent;
-            if (text && !item.hasAttribute('title')) {
-                item.setAttribute('title', text.trim());
-            }
-        });
-    }
-    const observer = new MutationObserver(addTooltips);
-    observer.observe(parentDoc.body, { childList: true, subtree: true });
-    addTooltips();
-    </script>
-    """,
-    height=0,
-    width=0
 )
 
 # ---------------------------------------------------------

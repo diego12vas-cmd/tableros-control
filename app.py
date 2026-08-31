@@ -423,29 +423,44 @@ st.markdown(
             color: #FFFFFF !important;
         }
 
-        /* AJUSTE PARA DESPLEGABLES LARGOS EN LA BARRA LATERAL */
-        div[role="listbox"] {
-            min-width: 420px !important;
-            max-width: 550px !important;
-            z-index: 99999999 !important;
-        }
+        /* CONFIGURACIÓN DE TOOLTIPS NATIVOS FLOTANTES NEGROS CON TEXTO BLANCO SOBRE OPCIONES */
         div[role="listbox"] li {
-            white-space: normal !important;
-            word-break: break-word !important;
-            line-height: 1.3 !important;
+            position: relative !important;
+            overflow: visible !important;
         }
-        div[role="listbox"] li span {
-            white-space: normal !important;
-            word-break: break-word !important;
+        
+        div[role="listbox"] li:hover::after {
+            content: attr(aria-label);
+            position: absolute;
+            left: 102%;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #000000;
+            color: #FFFFFF;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            white-space: normal;
+            word-break: break-word;
+            width: max-content;
+            max-width: 320px;
+            z-index: 999999999 !important;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.4);
+            pointer-events: none;
         }
-        div[data-baseweb="popover"] {
-            min-width: 420px !important;
-            z-index: 99999999 !important;
-        }
-        div[data-baseweb="tag"] {
-            max-width: 100% !important;
-            height: auto !important;
-            white-space: normal !important;
+
+        div[role="listbox"] li:hover::before {
+            content: '';
+            position: absolute;
+            left: 96%;
+            top: 50%;
+            transform: translateY(-50%);
+            border-width: 6px;
+            border-style: solid;
+            border-color: transparent #000000 transparent transparent;
+            z-index: 999999999 !important;
+            pointer-events: none;
         }
 
         .titulo-tablero {

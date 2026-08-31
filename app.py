@@ -330,7 +330,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS PRINCIPALES DEL TABLERO
+# ESTILOS CSS PRINCIPALES DEL TABLERO Y TOOLTIPS RESTAURADOS
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -421,6 +421,46 @@ st.markdown(
         button[data-testid="baseButton-primary"]:hover {
             background-color: #689E00 !important;
             color: #FFFFFF !important;
+        }
+
+        /* POPOVERS, TOOLTIPS Y MENÚS DESPLEGABLES LARGOS */
+        div[data-baseweb="popover"] {
+            z-index: 99999999 !important;
+        }
+        div[role="listbox"] {
+            z-index: 99999999 !important;
+        }
+        div[role="listbox"] li {
+            white-space: normal !important;
+            word-break: break-word !important;
+        }
+        div[role="tooltip"],
+        [data-baseweb="tooltip"],
+        .stTooltipIcon span {
+            display: block !important;
+            z-index: 99999999 !important;
+            max-width: 450px !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+        }
+        div[role="tooltip"] div,
+        [data-baseweb="tooltip"] div {
+            z-index: 99999999 !important;
+            background-color: #000000 !important;
+            color: #ffffff !important;
+            border-radius: 8px !important;
+            padding: 8px 12px !important;
+            font-size: 0.85rem !important;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.3) !important;
+        }
+        div[data-baseweb="select"] ul li {
+            white-space: normal !important;
+            word-wrap: break-word !important;
+        }
+        div[data-baseweb="tag"] {
+            max-width: 100% !important;
+            height: auto !important;
+            white-space: normal !important;
         }
 
         .titulo-tablero {

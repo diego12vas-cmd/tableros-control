@@ -166,7 +166,7 @@ def enviar_correo_token(email_destino, token):
         return False
 
 # ---------------------------------------------------------
-# SISTEMA DE LOGIN Y RECUPERACIÓN DE CONTRASEÑA
+# SISTEMA DE LOGIN Y RECUPERACIÓN DE CONTRASEÑA (AJUSTADO)
 # ---------------------------------------------------------
 def validar_login():
     if "autenticado" not in st.session_state:
@@ -179,146 +179,150 @@ def validar_login():
         st.session_state["permisos_entornos"] = []
 
     if not st.session_state["autenticado"]:
-        st.markdown(
-            """
-            <style>
-                button[data-testid="baseButton-primary"],
-                .stButton > button[kind="primary"],
-                .stButton > button {
-                    background-color: #7AB800 !important;
-                    background-image: none !important;
-                    color: #FFFFFF !important;
-                    border: none !important;
-                    font-weight: bold !important;
-                    border-radius: 6px !important;
-                }
-                button[data-testid="baseButton-primary"]:hover,
-                .stButton > button[kind="primary"]:hover,
-                .stButton > button:hover {
-                    background-color: #689E00 !important;
-                    color: #FFFFFF !important;
-                }
-            </style>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        _, col_main, _ = st.columns([1, 1.8, 1])
+        login_container = st.empty()
         
-        with col_main:
-            st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
-            
-            if LOGO_PATH:
-                st.image(LOGO_PATH, use_container_width=True)
-            else:
-                st.markdown("<h1 style='text-align: center; color: #0077C8;'>🚌 LA TERMINAL</h1>", unsafe_allow_html=True)
-            
-            st.markdown("<h4 style='text-align: center; color: #0077C8; font-weight: bold; margin-top: 5px; margin-bottom: 20px;'>Tablero de Control y Gestión</h4>", unsafe_allow_html=True)
-            
-            st.markdown("### 🔒 Acceso Restringido")
-            st.caption("Ingresa tus credenciales para acceder al sistema.")
-            
-            usuario = st.text_input("Usuario", key="user_input_ai")
-            password = st.text_input("Contraseña", type="password", key="pass_input_ai")
-            
-            if st.button("Iniciar Sesión", type="primary", use_container_width=True):
-                conn = sqlite3.connect(DB_PATH)
-                c = conn.cursor()
-                c.execute("SELECT password_hash, autorizado, perm_pestañas, perm_entornos FROM usuarios WHERE usuario = ?", (usuario.strip(),))
-                row = c.fetchone()
-                conn.close()
+        with login_container.container():
+            st.markdown(
+                """
+                <style>
+                    button[data-testid="baseButton-primary"],
+                    .stButton > button[kind="primary"],
+                    .stButton > button {
+                        background-color: #7AB800 !important;
+                        background-image: none !important;
+                        color: #FFFFFF !important;
+                        border: none !important;
+                        font-weight: bold !important;
+                        border-radius: 6px !important;
+                    }
+                    button[data-testid="baseButton-primary"]:hover,
+                    .stButton > button[kind="primary"]:hover,
+                    .stButton > button:hover {
+                        background-color: #689E00 !important;
+                        color: #FFFFFF !important;
+                    }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
 
-                if row:
-                    pw_hash, autorizado, perm_str, ent_str = row
-                    if autorizado == 0:
-                        st.error("🚫 Tu usuario no está autorizado para acceder. Contacta al administrador.")
-                    elif verificar_password(password, pw_hash):
-                        st.session_state["autenticado"] = True
-                        st.session_state["usuario_actual"] = usuario.strip()
-                        
-                        perm_val = perm_str if perm_str else "TODOS"
-                        if perm_val == "TODOS" or usuario.strip() == "admin":
-                            st.session_state["permisos_usuario"] = TODAS_LAS_PESTANIAS
-                        else:
-                            st.session_state["permisos_usuario"] = [p.strip() for p in perm_val.split(",") if p.strip()]
+            _, col_main, _ = st.columns([1, 1.8, 1])
+            
+            with col_main:
+                st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+                
+                if LOGO_PATH:
+                    st.image(LOGO_PATH, use_container_width=True)
+                else:
+                    st.markdown("<h1 style='text-align: center; color: #0077C8;'>🚌 LA TERMINAL</h1>", unsafe_allow_html=True)
+                
+                st.markdown("<h4 style='text-align: center; color: #0077C8; font-weight: bold; margin-top: 5px; margin-bottom: 20px;'>Tablero de Control y Gestión</h4>", unsafe_allow_html=True)
+                
+                st.markdown("### 🔒 Acceso Restringido")
+                st.caption("Ingresa tus credenciales para acceder al sistema.")
+                
+                usuario = st.text_input("Usuario", key="user_input_ai")
+                password = st.text_input("Contraseña", type="password", key="pass_input_ai")
+                
+                if st.button("Iniciar Sesión", type="primary", use_container_width=True):
+                    conn = sqlite3.connect(DB_PATH)
+                    c = conn.cursor()
+                    c.execute("SELECT password_hash, autorizado, perm_pestañas, perm_entornos FROM usuarios WHERE usuario = ?", (usuario.strip(),))
+                    row = c.fetchone()
+                    conn.close()
+
+                    if row:
+                        pw_hash, autorizado, perm_str, ent_str = row
+                        if autorizado == 0:
+                            st.error("🚫 Tu usuario no está autorizado para acceder. Contacta al administrador.")
+                        elif verificar_password(password, pw_hash):
+                            st.session_state["autenticado"] = True
+                            st.session_state["usuario_actual"] = usuario.strip()
                             
-                        ent_val = ent_str if ent_str else "TODOS"
-                        if ent_val == "TODOS" or usuario.strip() == "admin":
-                            st.session_state["permisos_entornos"] = TODOS_LOS_ENTORNOS
+                            perm_val = perm_str if perm_str else "TODOS"
+                            if perm_val == "TODOS" or usuario.strip() == "admin":
+                                st.session_state["permisos_usuario"] = TODAS_LAS_PESTANIAS
+                            else:
+                                st.session_state["permisos_usuario"] = [p.strip() for p in perm_val.split(",") if p.strip()]
+                                
+                            ent_val = ent_str if ent_str else "TODOS"
+                            if ent_val == "TODOS" or usuario.strip() == "admin":
+                                st.session_state["permisos_entornos"] = TODOS_LOS_ENTORNOS
+                            else:
+                                st.session_state["permisos_entornos"] = [e.strip() for e in ent_val.split(",") if e.strip()]
+                                
+                            login_container.empty()
+                            st.rerun()
                         else:
-                            st.session_state["permisos_entornos"] = [e.strip() for e in ent_val.split(",") if e.strip()]
-                            
-                        st.rerun()
+                            st.error("❌ Usuario o contraseña incorrectos.")
                     else:
                         st.error("❌ Usuario o contraseña incorrectos.")
-                else:
-                    st.error("❌ Usuario o contraseña incorrectos.")
 
-            st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+                st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-            with st.expander("❓ Olvidé mi Contraseña"):
-                paso = st.session_state.get("paso_recuperacion", 1)
+                with st.expander("❓ Olvidé mi Contraseña"):
+                    paso = st.session_state.get("paso_recuperacion", 1)
 
-                if paso == 1:
-                    email_req = st.text_input("Ingresa tu correo electrónico registrado:")
-                    if st.button("Enviar Código de Verificación", use_container_width=True):
-                        conn = sqlite3.connect(DB_PATH)
-                        c = conn.cursor()
-                        c.execute("SELECT usuario, autorizado FROM usuarios WHERE email = ?", (email_req.strip().lower(),))
-                        row = c.fetchone()
-
-                        if row:
-                            user_found, aut = row
-                            if aut == 0:
-                                st.error("🚫 Este usuario no está autorizado.")
-                            else:
-                                token = "".join(random.choices(string.digits, k=6))
-                                c.execute("UPDATE usuarios SET token_recuperacion = ? WHERE email = ?", (token, email_req.strip().lower()))
-                                conn.commit()
-                                
-                                if enviar_correo_token(email_req.strip().lower(), token):
-                                    st.session_state["email_recuperacion"] = email_req.strip().lower()
-                                    st.session_state["paso_recuperacion"] = 2
-                                    st.success("✅ Código generado. Revisa el mensaje arriba o tu correo.")
-                                    st.rerun()
-                        else:
-                            st.error("❌ El correo no se encuentra registrado en el sistema.")
-                        conn.close()
-
-                elif paso == 2:
-                    st.info(f"Código enviado a: **{st.session_state.get('email_recuperacion')}**")
-                    token_ingresado = st.text_input("Ingresa el código de 6 dígitos recibido:")
-                    nueva_pw = st.text_input("Nueva Contraseña:", type="password")
-                    nueva_pw_conf = st.text_input("Confirmar Nueva Contraseña:", type="password")
-
-                    if st.button("Restablecer Contraseña", type="primary", use_container_width=True):
-                        if nueva_pw != nueva_pw_conf:
-                            st.error("⚠️ Las contraseñas no coinciden.")
-                        elif len(nueva_pw) < 6:
-                            st.error("⚠️ La contraseña debe tener al menos 6 caracteres.")
-                        else:
+                    if paso == 1:
+                        email_req = st.text_input("Ingresa tu correo electrónico registrado:")
+                        if st.button("Enviar Código de Verificación", use_container_width=True):
                             conn = sqlite3.connect(DB_PATH)
                             c = conn.cursor()
-                            c.execute("SELECT token_recuperacion FROM usuarios WHERE email = ?", (st.session_state.get("email_recuperacion"),))
+                            c.execute("SELECT usuario, autorizado FROM usuarios WHERE email = ?", (email_req.strip().lower(),))
                             row = c.fetchone()
 
-                            if row and row[0] == token_ingresado.strip():
-                                new_hash = hash_password(nueva_pw)
-                                c.execute("UPDATE usuarios SET password_hash = ?, token_recuperacion = NULL WHERE email = ?", 
-                                          (new_hash, st.session_state.get("email_recuperacion")))
-                                conn.commit()
-                                conn.close()
-
-                                st.success("🎉 ¡Contraseña actualizada con éxito! Ya puedes iniciar sesión.")
-                                st.session_state["paso_recuperacion"] = 1
-                                st.session_state["email_recuperacion"] = None
+                            if row:
+                                user_found, aut = row
+                                if aut == 0:
+                                    st.error("🚫 Este usuario no está autorizado.")
+                                else:
+                                    token = "".join(random.choices(string.digits, k=6))
+                                    c.execute("UPDATE usuarios SET token_recuperacion = ? WHERE email = ?", (token, email_req.strip().lower()))
+                                    conn.commit()
+                                    
+                                    if enviar_correo_token(email_req.strip().lower(), token):
+                                        st.session_state["email_recuperacion"] = email_req.strip().lower()
+                                        st.session_state["paso_recuperacion"] = 2
+                                        st.success("✅ Código generado. Revisa el mensaje arriba o tu correo.")
+                                        st.rerun()
                             else:
-                                st.error("❌ El código de verificación es incorrecto.")
-                                conn.close()
+                                st.error("❌ El correo no se encuentra registrado en el sistema.")
+                            conn.close()
 
-                    if st.button("Volver a empezar"):
-                        st.session_state["paso_recuperacion"] = 1
-                        st.rerun()
+                    elif paso == 2:
+                        st.info(f"Código enviado a: **{st.session_state.get('email_recuperacion')}**")
+                        token_ingresado = st.text_input("Ingresa el código de 6 dígitos recibido:")
+                        nueva_pw = st.text_input("Nueva Contraseña:", type="password")
+                        nueva_pw_conf = st.text_input("Confirmar Nueva Contraseña:", type="password")
+
+                        if st.button("Restablecer Contraseña", type="primary", use_container_width=True):
+                            if nueva_pw != nueva_pw_conf:
+                                st.error("⚠️ Las contraseñas no coinciden.")
+                            elif len(nueva_pw) < 6:
+                                st.error("⚠️ La contraseña debe tener al menos 6 caracteres.")
+                            else:
+                                conn = sqlite3.connect(DB_PATH)
+                                c = conn.cursor()
+                                c.execute("SELECT token_recuperacion FROM usuarios WHERE email = ?", (st.session_state.get("email_recuperacion"),))
+                                row = c.fetchone()
+
+                                if row and row[0] == token_ingresado.strip():
+                                    new_hash = hash_password(nueva_pw)
+                                    c.execute("UPDATE usuarios SET password_hash = ?, token_recuperacion = NULL WHERE email = ?", 
+                                              (new_hash, st.session_state.get("email_recuperacion")))
+                                    conn.commit()
+                                    conn.close()
+
+                                    st.success("🎉 ¡Contraseña actualizada con éxito! Ya puedes iniciar sesión.")
+                                    st.session_state["paso_recuperacion"] = 1
+                                    st.session_state["email_recuperacion"] = None
+                                else:
+                                    st.error("❌ El código de verificación es incorrecto.")
+                                    conn.close()
+
+                        if st.button("Volver a empezar"):
+                            st.session_state["paso_recuperacion"] = 1
+                            st.rerun()
         return False
     return True
 

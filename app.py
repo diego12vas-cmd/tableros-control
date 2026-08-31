@@ -25,6 +25,39 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
+# FUNCIÓN DE ABREVIACIÓN DE RESPONSABLES/DEPENDENCIAS (OPCIÓN 1)
+# ---------------------------------------------------------
+def abreviar_responsable(nombre):
+    if not nombre or pd.isna(nombre):
+        return ""
+    txt = str(nombre).strip()
+    
+    # DICCIONARIO DE ABREVIATURAS DIRECTAS PARA EVITAR DESBORDAMIENTO
+    reemplazos = {
+        "DIRECCIÓN DE RECURSOS FÍSICOS Y NEGOCIOS": "DIR. RECURSOS FÍSICOS Y NEG.",
+        "DIRECCIÓN DE RECURSOS FÍSICOS Y NEGOCIOS TECNOLÓGICOS": "DIR. REC. FÍSICOS Y TECNOLÓGICOS",
+        "DIRECCIÓN DE EVALUACIÓN AL AMBIENTE DE TRABAJO": "DIR. EVALUACIÓN AMBIENTAL",
+        "DIRECCIÓN DE GESTIÓN FINANCIERA": "DIR. GESTIÓN FINANCIERA",
+        "DIRECCIÓN DE GESTIÓN HUMANA": "DIR. GESTIÓN HUMANA",
+        "DIRECCIÓN DE INFRAESTRUCTURA": "DIR. INFRAESTRUCTURA",
+        "DIRECCIÓN DE RECURSOS TECNOLÓGICOS": "DIR. RECURSOS TECNOLÓGICOS",
+        "SUBGERENCIA DE SERVICIOS OPERACIONALES E INFRAESTRUCTURA": "SUBG. SERV. OPERACIONALES",
+        "SUBGERENCIA CORPORATIVA": "SUBG. CORPORATIVA",
+        "SUBGERENCIA JURÍDICA": "SUBG. JURÍDICA",
+    }
+    
+    txt_upper = txt.upper()
+    for origen, destino in reemplazos.items():
+        if origen in txt_upper:
+            return destino
+
+    # Si no está en el mapa pero empieza por DIRECCIÓN DE o SUBGERENCIA DE
+    txt = re.sub(r"^DIRECCIÓN DE\s+", "DIR. ", txt, flags=re.IGNORECASE)
+    txt = re.sub(r"^SUBGERENCIA DE\s+", "SUBG. ", txt, flags=re.IGNORECASE)
+    
+    return txt
+
+# ---------------------------------------------------------
 # BÚSQUEDA DEL LOGO LOCAL
 # ---------------------------------------------------------
 def buscar_logo_local():
@@ -330,7 +363,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS PRINCIPALES Y CAJA FLOTANTE PARA OPCIONES LARGAS
+# ESTILOS CSS PRINCIPALES DEL TABLERO
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -371,13 +404,6 @@ st.markdown(
             pointer-events: none !important;
         }
 
-        /* PERMITIR QUE EL CONTENEDOR DE LA BARRA LATERAL NO RECORTE AVISOS FLOTANTES */
-        [data-testid="stSidebar"],
-        [data-testid="stSidebarContent"],
-        [data-testid="stSidebarNav"] {
-            overflow: visible !important;
-        }
-
         [data-testid="stSidebar"] {
             min-width: 320px !important;
             max-width: 320px !important;
@@ -386,7 +412,6 @@ st.markdown(
             transform: none !important;
             border-top: 5px solid #7AB800 !important;
             padding-top: 0px !important;
-            z-index: 100 !important;
         }
 
         [data-testid="stSidebarContent"] {
@@ -429,60 +454,6 @@ st.markdown(
         button[data-testid="baseButton-primary"]:hover {
             background-color: #689E00 !important;
             color: #FFFFFF !important;
-        }
-
-        /* REGLA DEFINITIVA: CREACIÓN DE LA CAJA FLOTANTE NEGRA CON TEXTO COMPLETO */
-        div[data-baseweb="popover"] {
-            z-index: 999999999 !important;
-            overflow: visible !important;
-        }
-
-        div[role="listbox"] {
-            z-index: 999999999 !important;
-            overflow: visible !important;
-        }
-
-        div[role="listbox"] li {
-            position: relative !important;
-            overflow: visible !important;
-        }
-
-        /* MOSTRAR EL CAJÓN NEGRO AL PASAR EL CURSOR SOBRE CUALQUIER OPCIÓN */
-        div[role="listbox"] li:hover::after {
-            content: attr(aria-label);
-            position: absolute;
-            left: 100%;
-            top: 50%;
-            transform: translateY(-50%);
-            background-color: #000000 !important;
-            color: #FFFFFF !important;
-            padding: 8px 14px !important;
-            border-radius: 8px !important;
-            font-size: 0.85rem !important;
-            font-weight: bold !important;
-            white-space: normal !important;
-            word-break: break-word !important;
-            width: max-content !important;
-            max-width: 350px !important;
-            z-index: 999999999 !important;
-            box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.5) !important;
-            pointer-events: none !important;
-            margin-left: 10px !important;
-        }
-
-        /* FLECHA INDICADORA HACIA LA OPCIÓN */
-        div[role="listbox"] li:hover::before {
-            content: '';
-            position: absolute;
-            left: 100%;
-            top: 50%;
-            transform: translateY(-50%);
-            border-width: 6px;
-            border-style: solid;
-            border-color: transparent #000000 transparent transparent;
-            z-index: 999999999 !important;
-            pointer-events: none !important;
-            margin-left: -2px !important;
         }
 
         .titulo-tablero {
@@ -951,11 +922,21 @@ if entorno_activo == "Auditoría Interna":
             df_filtrado = df_filtrado[df_filtrado[col_estado].isin(estado_sel)]
 
     if col_responsable:
-        resp_vals = sorted(list(set([r for r in df_raw[col_responsable].dropna().unique() if str(r).lower() not in ["nan", "none", ""]])))
+        resp_vals_raw = sorted(list(set([r for r in df_raw[col_responsable].dropna().unique() if str(r).lower() not in ["nan", "none", ""]])))
+        
+        # APLICACIÓN DE LA OPCIÓN 1: DICCIONARIO DE ABREVIATURA PARA OPCIONES DE RESPONSABLE
+        map_resp = {r: abreviar_responsable(r) for r in resp_vals_raw}
+        # Invertido para filtrar el dataframe con la cadena original exacta
+        map_resp_inv = {v: k for k, v in map_resp.items()}
+        
+        opts_resp = list(map_resp.values())
+        
         with st.sidebar.expander("👤 Responsables", expanded=False):
-            resp_sel = st.multiselect("Seleccione Responsables:", options=resp_vals, default=[], key="multi_resp")
-        if resp_sel:
-            df_filtrado = df_filtrado[df_filtrado[col_responsable].isin(resp_sel)]
+            resp_sel_abrev = st.multiselect("Seleccione Responsables:", options=opts_resp, default=[], key="multi_resp")
+        
+        if resp_sel_abrev:
+            resp_sel_originales = [map_resp_inv[a] for a in resp_sel_abrev if a in map_resp_inv]
+            df_filtrado = df_filtrado[df_filtrado[col_responsable].isin(resp_sel_originales)]
 
     if col_auditor_resp:
         aud_resp_vals = sorted(list(set([ar for ar in df_raw[col_auditor_resp].dropna().unique() if str(ar).lower() not in ["nan", "none", ""]])))
@@ -1885,11 +1866,18 @@ else:
             df_filtrado_c = df_filtrado_c[df_filtrado_c[col_estado_c].isin(estado_sel_c)]
 
     if col_responsable_c:
-        resp_vals_c = sorted(list(set([r for r in df_raw_c[col_responsable_c].dropna().unique() if str(r).lower() not in ["nan", "none", ""]])))
+        resp_vals_c_raw = sorted(list(set([r for r in df_raw_c[col_responsable_c].dropna().unique() if str(r).lower() not in ["nan", "none", ""]])))
+        
+        map_resp_c = {r: abreviar_responsable(r) for r in resp_vals_c_raw}
+        map_resp_c_inv = {v: k for k, v in map_resp_c.items()}
+        opts_resp_c = list(map_resp_c.values())
+
         with st.sidebar.expander("👤 Responsables / Dependencias", expanded=False):
-            resp_sel_c = st.multiselect("Seleccione uno o varios Responsables:", options=resp_vals_c, default=[], key="multi_resp_c")
-        if resp_sel_c:
-            df_filtrado_c = df_filtrado_c[df_filtrado_c[col_responsable_c].isin(resp_sel_c)]
+            resp_sel_c_abrev = st.multiselect("Seleccione uno o varios Responsables:", options=opts_resp_c, default=[], key="multi_resp_c")
+        
+        if resp_sel_c_abrev:
+            resp_sel_c_orig = [map_resp_c_inv[a] for a in resp_sel_c_abrev if a in map_resp_c_inv]
+            df_filtrado_c = df_filtrado_c[df_filtrado_c[col_responsable_c].isin(resp_sel_c_orig)]
 
     if col_entidad_c:
         ent_vals_c = sorted(list(set([e for e in df_raw_c[col_entidad_c].dropna().unique() if str(e).lower() not in ["nan", "none", ""]])))

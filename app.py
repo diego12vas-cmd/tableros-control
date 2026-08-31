@@ -13,6 +13,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA
@@ -166,7 +167,7 @@ def enviar_correo_token(email_destino, token):
         return False
 
 # ---------------------------------------------------------
-# SISTEMA DE LOGIN Y RECUPERACIÓN DE CONTRASEÑA (LIMPIEZA DE CONTENEDOR)
+# SISTEMA DE LOGIN Y RECUPERACIÓN DE CONTRASEÑA
 # ---------------------------------------------------------
 def validar_login():
     if "autenticado" not in st.session_state:
@@ -423,44 +424,9 @@ st.markdown(
             color: #FFFFFF !important;
         }
 
-        /* POPOVERS, TOOLTIPS Y MENÚS DESPLEGABLES LARGOS */
-        div[data-baseweb="popover"] {
-            z-index: 99999999 !important;
-        }
-        div[role="listbox"] {
-            z-index: 99999999 !important;
-        }
+        /* TOOLTIPS / AVISOS FLOTANTES NEGROS SOBRE OPCIONES DESPLEGABLES */
         div[role="listbox"] li {
-            white-space: normal !important;
-            word-break: break-word !important;
-        }
-        div[role="tooltip"],
-        [data-baseweb="tooltip"],
-        .stTooltipIcon span {
-            display: block !important;
-            z-index: 99999999 !important;
-            max-width: 450px !important;
-            white-space: normal !important;
-            word-break: break-word !important;
-        }
-        div[role="tooltip"] div,
-        [data-baseweb="tooltip"] div {
-            z-index: 99999999 !important;
-            background-color: #000000 !important;
-            color: #ffffff !important;
-            border-radius: 8px !important;
-            padding: 8px 12px !important;
-            font-size: 0.85rem !important;
-            box-shadow: 0px 4px 12px rgba(0,0,0,0.3) !important;
-        }
-        div[data-baseweb="select"] ul li {
-            white-space: normal !important;
-            word-wrap: break-word !important;
-        }
-        div[data-baseweb="tag"] {
-            max-width: 100% !important;
-            height: auto !important;
-            white-space: normal !important;
+            position: relative;
         }
 
         .titulo-tablero {
@@ -597,6 +563,29 @@ st.markdown(
     </style>
 """,
     unsafe_allow_html=True,
+)
+
+# INYECCIÓN JAVASCRIPT PARA GENERAR AUTOMÁTICAMENTE EL ATRIBUTO TITLE (TOOLTIP FLOTANTE NATIVO)
+components.html(
+    """
+    <script>
+    const parentDoc = window.parent.document;
+    function addTooltips() {
+        const items = parentDoc.querySelectorAll('div[role="listbox"] li, div[data-baseweb="select"] li');
+        items.forEach(item => {
+            const text = item.innerText || item.textContent;
+            if (text && !item.hasAttribute('title')) {
+                item.setAttribute('title', text.trim());
+            }
+        });
+    }
+    const observer = new MutationObserver(addTooltips);
+    observer.observe(parentDoc.body, { childList: true, subtree: true });
+    addTooltips();
+    </script>
+    """,
+    height=0,
+    width=0
 )
 
 # ---------------------------------------------------------

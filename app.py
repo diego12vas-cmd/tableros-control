@@ -25,39 +25,6 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
-# FUNCIÓN DE ABREVIACIÓN DE RESPONSABLES/DEPENDENCIAS (OPCIÓN 1)
-# ---------------------------------------------------------
-def abreviar_responsable(nombre):
-    if not nombre or pd.isna(nombre):
-        return ""
-    txt = str(nombre).strip()
-    
-    # DICCIONARIO DE ABREVIATURAS DIRECTAS PARA EVITAR DESBORDAMIENTO
-    reemplazos = {
-        "DIRECCIÓN DE RECURSOS FÍSICOS Y NEGOCIOS": "DIR. RECURSOS FÍSICOS Y NEG.",
-        "DIRECCIÓN DE RECURSOS FÍSICOS Y NEGOCIOS TECNOLÓGICOS": "DIR. REC. FÍSICOS Y TECNOLÓGICOS",
-        "DIRECCIÓN DE EVALUACIÓN AL AMBIENTE DE TRABAJO": "DIR. EVALUACIÓN AMBIENTAL",
-        "DIRECCIÓN DE GESTIÓN FINANCIERA": "DIR. GESTIÓN FINANCIERA",
-        "DIRECCIÓN DE GESTIÓN HUMANA": "DIR. GESTIÓN HUMANA",
-        "DIRECCIÓN DE INFRAESTRUCTURA": "DIR. INFRAESTRUCTURA",
-        "DIRECCIÓN DE RECURSOS TECNOLÓGICOS": "DIR. RECURSOS TECNOLÓGICOS",
-        "SUBGERENCIA DE SERVICIOS OPERACIONALES E INFRAESTRUCTURA": "SUBG. SERV. OPERACIONALES",
-        "SUBGERENCIA CORPORATIVA": "SUBG. CORPORATIVA",
-        "SUBGERENCIA JURÍDICA": "SUBG. JURÍDICA",
-    }
-    
-    txt_upper = txt.upper()
-    for origen, destino in reemplazos.items():
-        if origen in txt_upper:
-            return destino
-
-    # Si no está en el mapa pero empieza por DIRECCIÓN DE o SUBGERENCIA DE
-    txt = re.sub(r"^DIRECCIÓN DE\s+", "DIR. ", txt, flags=re.IGNORECASE)
-    txt = re.sub(r"^SUBGERENCIA DE\s+", "SUBG. ", txt, flags=re.IGNORECASE)
-    
-    return txt
-
-# ---------------------------------------------------------
 # BÚSQUEDA DEL LOGO LOCAL
 # ---------------------------------------------------------
 def buscar_logo_local():
@@ -363,7 +330,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS PRINCIPALES DEL TABLERO
+# ESTILOS CSS PRINCIPALES Y SALTO DE LÍNEA EN OPCIONES DESPLEGABLES
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -454,6 +421,22 @@ st.markdown(
         button[data-testid="baseButton-primary"]:hover {
             background-color: #689E00 !important;
             color: #FFFFFF !important;
+        }
+
+        /* FORZAR SALTO DE LÍNEA AUTOMÁTICO PARA MOSTRAR TODO EL TEXTO */
+        ul[role="listbox"] li,
+        ul[role="listbox"] li div,
+        ul[role="listbox"] li span,
+        div[data-baseweb="popover"] li,
+        div[data-baseweb="popover"] span {
+            white-space: normal !important;
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+            text-overflow: unset !important;
+            line-height: 1.25 !important;
+            height: auto !important;
+            padding-top: 6px !important;
+            padding-bottom: 6px !important;
         }
 
         .titulo-tablero {
@@ -923,20 +906,10 @@ if entorno_activo == "Auditoría Interna":
 
     if col_responsable:
         resp_vals_raw = sorted(list(set([r for r in df_raw[col_responsable].dropna().unique() if str(r).lower() not in ["nan", "none", ""]])))
-        
-        # APLICACIÓN DE LA OPCIÓN 1: DICCIONARIO DE ABREVIATURA PARA OPCIONES DE RESPONSABLE
-        map_resp = {r: abreviar_responsable(r) for r in resp_vals_raw}
-        # Invertido para filtrar el dataframe con la cadena original exacta
-        map_resp_inv = {v: k for k, v in map_resp.items()}
-        
-        opts_resp = list(map_resp.values())
-        
         with st.sidebar.expander("👤 Responsables", expanded=False):
-            resp_sel_abrev = st.multiselect("Seleccione Responsables:", options=opts_resp, default=[], key="multi_resp")
-        
-        if resp_sel_abrev:
-            resp_sel_originales = [map_resp_inv[a] for a in resp_sel_abrev if a in map_resp_inv]
-            df_filtrado = df_filtrado[df_filtrado[col_responsable].isin(resp_sel_originales)]
+            resp_sel = st.multiselect("Seleccione Responsables:", options=resp_vals_raw, default=[], key="multi_resp")
+        if resp_sel:
+            df_filtrado = df_filtrado[df_filtrado[col_responsable].isin(resp_sel)]
 
     if col_auditor_resp:
         aud_resp_vals = sorted(list(set([ar for ar in df_raw[col_auditor_resp].dropna().unique() if str(ar).lower() not in ["nan", "none", ""]])))
@@ -1867,17 +1840,10 @@ else:
 
     if col_responsable_c:
         resp_vals_c_raw = sorted(list(set([r for r in df_raw_c[col_responsable_c].dropna().unique() if str(r).lower() not in ["nan", "none", ""]])))
-        
-        map_resp_c = {r: abreviar_responsable(r) for r in resp_vals_c_raw}
-        map_resp_c_inv = {v: k for k, v in map_resp_c.items()}
-        opts_resp_c = list(map_resp_c.values())
-
         with st.sidebar.expander("👤 Responsables / Dependencias", expanded=False):
-            resp_sel_c_abrev = st.multiselect("Seleccione uno o varios Responsables:", options=opts_resp_c, default=[], key="multi_resp_c")
-        
-        if resp_sel_c_abrev:
-            resp_sel_c_orig = [map_resp_c_inv[a] for a in resp_sel_c_abrev if a in map_resp_c_inv]
-            df_filtrado_c = df_filtrado_c[df_filtrado_c[col_responsable_c].isin(resp_sel_c_orig)]
+            resp_sel_c = st.multiselect("Seleccione uno o varios Responsables:", options=resp_vals_c_raw, default=[], key="multi_resp_c")
+        if resp_sel_c:
+            df_filtrado_c = df_filtrado_c[df_filtrado_c[col_responsable_c].isin(resp_sel_c)]
 
     if col_entidad_c:
         ent_vals_c = sorted(list(set([e for e in df_raw_c[col_entidad_c].dropna().unique() if str(e).lower() not in ["nan", "none", ""]])))

@@ -371,9 +371,10 @@ st.markdown(
             pointer-events: none !important;
         }
 
+        /* ANCHO AMPLIADO DE LA BARRA LATERAL PARA MOSTRAR TEXTOS COMPLETOS EN FILTROS */
         [data-testid="stSidebar"] {
-            min-width: 350px !important;
-            max-width: 350px !important;
+            min-width: 440px !important;
+            max-width: 440px !important;
             display: block !important;
             visibility: visible !important;
             transform: none !important;
@@ -421,16 +422,6 @@ st.markdown(
         button[data-testid="baseButton-primary"]:hover {
             background-color: #689E00 !important;
             color: #FFFFFF !important;
-        }
-
-        /* AJUSTE PARA MOSTRAR TODO EL TEXTO EN LOS DESPLEGABLES */
-        ul[role="listbox"] li,
-        ul[role="listbox"] li div,
-        div[data-baseweb="popover"] li {
-            white-space: normal !important;
-            word-break: break-word !important;
-            line-height: 1.3 !important;
-            height: auto !important;
         }
 
         .titulo-tablero {

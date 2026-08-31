@@ -320,9 +320,9 @@ def validar_login():
                                     st.error("❌ El código de verificación es incorrecto.")
                                     conn.close()
 
-                        if st.button("Volver a empezar"):
-                            st.session_state["paso_recuperacion"] = 1
-                            st.rerun()
+                    if st.button("Volver a empezar"):
+                        st.session_state["paso_recuperacion"] = 1
+                        st.rerun()
         return False
     return True
 
@@ -390,6 +390,15 @@ st.markdown(
             padding-top: 0px !important;
         }
 
+        /* REGLA EXCLUSIVA PARA LOS FILTROS DE LA BARRA LATERAL */
+        [data-testid="stSidebar"] div[role="listbox"] li,
+        [data-testid="stSidebar"] div[role="listbox"] li span {
+            white-space: normal !important;
+            word-break: break-word !important;
+            line-height: 1.25 !important;
+            height: auto !important;
+        }
+
         header[data-testid="stHeader"] {
             height: 0rem !important;
             background: transparent !important;
@@ -421,28 +430,6 @@ st.markdown(
         button[data-testid="baseButton-primary"]:hover {
             background-color: #689E00 !important;
             color: #FFFFFF !important;
-        }
-
-        /* EXTENDER EL DESPLEGABLE FLOTANTE HACIA LA DERECHA SIN DEFORMAR EL SIDEBAR */
-        div[data-baseweb="popover"] {
-            min-width: 480px !important;
-            width: auto !important;
-            z-index: 999999999 !important;
-        }
-
-        div[role="listbox"] {
-            min-width: 480px !important;
-            max-width: 600px !important;
-            overflow-x: hidden !important;
-        }
-
-        div[role="listbox"] li,
-        div[role="listbox"] li span,
-        div[data-baseweb="popover"] li * {
-            white-space: normal !important;
-            word-break: break-word !important;
-            line-height: 1.3 !important;
-            text-overflow: unset !important;
         }
 
         .titulo-tablero {

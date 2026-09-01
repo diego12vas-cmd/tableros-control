@@ -712,33 +712,50 @@ def buscar_columna_por_patron(df, patrones):
 
 def filtrar_solo_columnas_amarillas(df):
     """
-    Filtra strictly solo las 15 columnas amarillas definidas.
+    Filtra estrictamente ÚNICAMENTE las 15 columnas amarillas requeridas mediante coincidencia exacta o directa.
     """
-    patrones_amarillos_exactos = [
-        ["plan auditoria"],
-        ["auditoria"],
-        ["titulo del hallazgo"],
-        ["transcribir", "situacion evidenciada"],
-        ["nivel del riesgo", "riesgo"],
-        ["plan de accion"],
-        ["responsable"],
-        ["inicio"],
-        ["cierre"],
-        ["enlace para cargar evidencias", "evidencias", "cargar evidencia"],
-        ["estado"],
-        ["alerta 10"],
-        ["alerta 20"],
-        ["alerta 30"],
-        ["alerta 5"]
+    columnas_amarillas_estrictas = [
+        "Plan Auditoría",
+        "Auditoría",
+        "Titulo del Hallazgo",
+        "Transcribir el del Hallazgo o Situación Evidenciada",
+        "Nivel del Riesgo",
+        "Plan de Acción",
+        "Responsable",
+        "Inicio",
+        "Cierre",
+        "Enlace para cargar evidencias",
+        "Estado",
+        "Alerta 10 días",
+        "Alerta 20 días",
+        "Alerta 30 días",
+        "Alerta 5 días"
     ]
 
-    cols_a_exportar = []
-    for pats in patrones_amarillos_exactos:
-        col_found = buscar_columna_por_patron(df, pats)
-        if col_found and col_found in df.columns and col_found not in cols_a_exportar:
-            cols_a_exportar.append(col_found)
+    cols_existentes = []
+    # 1. Búsqueda por coincidencia exacta insensible a mayúsculas
+    for col_req in columnas_amarillas_estrictas:
+        col_found = None
+        for col_df in df.columns:
+            if str(col_df).strip().lower() == col_req.lower():
+                col_found = col_df
+                break
+        
+        # 2. Búsqueda por patrones súper específicos si no coincide exacto
+        if not col_found:
+            if col_req == "Transcribir el del Hallazgo o Situación Evidenciada":
+                col_found = buscar_columna_por_patron(df, ["transcribir el del hallazgo", "situacion evidenciada"])
+            elif col_req == "Nivel del Riesgo":
+                col_found = buscar_columna_por_patron(df, ["nivel del riesgo"])
+            elif col_req == "Enlace para cargar evidencias":
+                col_found = buscar_columna_por_patron(df, ["enlace para cargar evidencias", "cargar evidencias"])
+            elif col_req == "Estado":
+                col_found = buscar_columna_por_patron(df, ["estado del compromiso", "estado compromiso"]) if "Estado" not in df.columns else "Estado"
 
-    return df[cols_a_exportar].copy() if cols_a_exportar else df.copy()
+        if col_found and col_found in df.columns and col_found not in cols_existentes:
+            cols_existentes.append(col_found)
+
+    return df[cols_existentes].copy() if cols_existentes else df.copy()
 
 def generar_excel_formateado(df):
     output = io.BytesIO()
@@ -821,19 +838,19 @@ if entorno_activo == "Auditoría Interna":
     if df_raw.empty:
         st.stop()
 
-    col_estado = buscar_columna_por_patron(df_raw, ["estado del compromiso", "estado compromiso", "estado"])
+    col_estado = buscar_columna_por_patron(df_raw, ["estado del compromiso", "estado compromiso"]) or ("Estado" if "Estado" in df_raw.columns else None)
     col_responsable = buscar_columna_por_patron(df_raw, ["responsable", "area responsable"])
     col_auditor_resp = "Auditor Responsable" if "Auditor Responsable" in df_raw.columns else buscar_columna_por_patron(df_raw, ["auditor responsable", "auditor"])
     col_plan_filtro = "Plan Auditoría" if "Plan Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["plan auditoria", "vigencia"])
     col_plan_accion = "Plan de Acción" if "Plan de Acción" in df_raw.columns else buscar_columna_por_patron(df_raw, ["compromiso", "plan de accion", "accion"]) or col_plan_filtro
-    col_auditoria = "Auditoría" if "Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["auditoria especifica", "auditoria"])
+    col_auditoria = "Auditoría" if "Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["auditoria especifica"])
     col_hallazgo = buscar_columna_por_patron(df_raw, ["transcribir", "situacion evidenciada", "del hallazgo", "titulo del hallazgo", "hallazgo"])
     col_nombre = buscar_columna_por_patron(df_raw, ["nombre", "nombre hallazgo", "titulo"])
     col_riesgo = buscar_columna_por_patron(df_raw, ["riesgo", "nivel de riesgo"])
     col_fecha_inicio = buscar_columna_por_patron(df_raw, ["inicio"])
-    col_fecha_cierre = buscar_columna_por_patron(df_raw, ["cierre", "fecha cierre", "fecha compromiso"])
+    col_fecha_cierre = buscar_columna_por_patron(df_raw, ["cierre"])
     col_obs_audit = buscar_columna_por_patron(df_raw, ["observacion auditoria"]) or "Observación Auditoría"
-    col_link_evidencia = buscar_columna_por_patron(df_raw, ["enlace para cargar evidencias", "evidencias", "cargar evidencia", "soporte", "link"])
+    col_link_evidencia = buscar_columna_por_patron(df_raw, ["enlace para cargar evidencias", "evidencias", "cargar evidencia"])
 
     col_a5 = buscar_columna_por_patron(df_raw, ["alerta 5"])
     col_a10 = buscar_columna_por_patron(df_raw, ["alerta 10"])
@@ -1216,7 +1233,11 @@ if entorno_activo == "Auditoría Interna":
                 df_tabla_vista.index = range(1, len(df_tabla_vista) + 1)
 
                 col_config_dict = {}
-                col_ev_vista = buscar_columna_por_patron(df_tabla_vista, ["enlace para cargar evidencias", "evidencias", "cargar evidencia", "soporte", "link"])
+                col_ev_vista = None
+                for c_check in df_tabla_vista.columns:
+                    if "enlace" in str(c_check).lower() or "evidencia" in str(c_check).lower():
+                        col_ev_vista = c_check
+                        break
                 
                 if col_ev_vista and col_ev_vista in df_tabla_vista.columns:
                     def normalizar_url(val):

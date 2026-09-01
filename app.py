@@ -385,31 +385,32 @@ st.markdown(
             visibility: hidden !important;
         }
 
-        /* REHABILITAR FLECHA DE EXPANDIR/COLAPSAR LA BARRA LATERAL */
+        /* FLECHA DE EXPANDIR/COLAPSAR ACTIVADA */
         [data-testid="stSidebarCollapsedControl"] {
             display: block !important;
             visibility: visible !important;
             z-index: 1000000 !important;
         }
 
-        /* ACTIVAR CAJA FLOTANTE (TOOLTIP HOVER) Y AJUSTAR DESPLEGABLE */
+        /* ESTIMULAR LA CAJA FLOTANTE (TOOLTIP) CON TEXT-OVERFLOW */
+        div[role="listbox"] li,
+        div[role="listbox"] li span,
+        [data-testid="stSidebar"] div[role="listbox"] li {
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            line-height: 1.3 !important;
+        }
+
+        /* CONTENEDOR POPUP FLOTANTE AMPLIO EN EL HOVER DE FILTROS */
         div[role="listbox"], 
         ul[role="listbox"],
         div[data-baseweb="popover"],
         div[data-baseweb="menu"] {
-            width: max-content !important;
+            width: auto !important;
             min-width: 320px !important;
-            max-width: 600px !important;
+            max-width: 580px !important;
             z-index: 999999 !important;
-        }
-
-        /* FORMATO TEXTO EN OPCIONES DE FILTROS */
-        div[role="listbox"] li span,
-        [data-testid="stSidebar"] div[role="listbox"] li {
-            white-space: normal !important;
-            word-break: break-word !important;
-            line-height: 1.25 !important;
-            height: auto !important;
         }
 
         [data-testid="stSidebar"] {
@@ -710,6 +711,9 @@ def buscar_columna_por_patron(df, patrones):
     return None
 
 def filtrar_solo_columnas_amarillas_ai(df):
+    """
+    Incluye estrictamente las 15 columnas amarillas (incluyendo Inicio y Cierre)
+    """
     columnas_permitidas_exactas = [
         "Plan Auditoría",
         "Auditoría",
@@ -740,6 +744,10 @@ def filtrar_solo_columnas_amarillas_ai(df):
                 col_m = buscar_columna_por_patron(df, ["transcribir el del hallazgo", "situacion evidenciada"])
             elif "enlace" in col_req.lower():
                 col_m = buscar_columna_por_patron(df, ["enlace para cargar evidencias", "cargar evidencias"])
+            elif "inicio" in col_req.lower():
+                col_m = buscar_columna_por_patron(df, ["inicio"])
+            elif "cierre" in col_req.lower():
+                col_m = buscar_columna_por_patron(df, ["cierre"])
             elif "estado" in col_req.lower():
                 col_m = buscar_columna_por_patron(df, ["estado del compromiso", "estado compromiso"]) or ("Estado" if "Estado" in df.columns else None)
 
@@ -749,6 +757,9 @@ def filtrar_solo_columnas_amarillas_ai(df):
     return df[cols_finales].copy() if cols_finales else df.copy()
 
 def filtrar_solo_columnas_amarillas_c(df):
+    """
+    Incluye las 15 columnas amarillas de Contraloría
+    """
     columnas_c_exactas = [
         "VIGENCIA DE LA AUDITORÍA O VISITA",
         "CODIGO AUDITORÍA SEGÚN PAD DE LA VIGENCIA",

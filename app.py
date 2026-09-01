@@ -713,48 +713,50 @@ def buscar_columna_por_patron(df, patrones):
 def generar_excel_formateado(df):
     output = io.BytesIO()
     
-    # 📌 RESTRICCIÓN SOLICITADA: EXPORTAR ÚNICAMENTE LAS COLUMNAS AMARILLAS (LAS 7 SELECCIONADAS)
-    cols_amarillas_deseadas = [
-        "Plan Auditoría",
-        "Auditoría",
-        "Titulo del Hallazgo",
-        "Transcribir el del Hallazgo o Situación Evidenciada",
-        "Nivel del Riesgo",
-        "Plan de Acción",
-        "Responsable"
+    # 📌 RESTRICCIÓN SOLICITADA: EXPORTAR ÚNICAMENTE LAS 15 COLUMNAS AMARILLAS EXACTAS
+    patrones_amarillos_exactos = [
+        ["plan auditoria"],
+        ["auditoria"],
+        ["titulo del hallazgo"],
+        ["transcribir", "situacion evidenciada"],
+        ["nivel del riesgo", "riesgo"],
+        ["plan de accion"],
+        ["responsable"],
+        ["inicio"],
+        ["cierre"],
+        ["enlace para cargar evidencias", "evidencias", "cargar evidencia"],
+        ["estado"],
+        ["alerta 10"],
+        ["alerta 20"],
+        ["alerta 30"],
+        ["alerta 5"]
     ]
 
-    # Mapeo flexible de columnas para coincidir exactamente con el dataframe actual
     cols_a_exportar = []
-    for col_req in cols_amarillas_deseadas:
-        encontrada = buscar_columna_por_patron(df, [col_req.lower()])
-        if encontrada and encontrada in df.columns:
-            cols_a_exportar.append(encontrada)
+    for pats in patrones_amarillos_exactos:
+        col_found = buscar_columna_por_patron(df, pats)
+        if col_found and col_found in df.columns and col_found not in cols_a_exportar:
+            cols_a_exportar.append(col_found)
 
-    # Si por alguna razón no mapea por patrón, buscamos si existen exactamente
-    if not cols_a_exportar:
-        cols_a_exportar = [c for c in cols_amarillas_deseadas if c in df.columns]
-
-    # Si se encontraron las columnas amarillas, filtramos solo esas. Si no, mantenemos el df
     df_export = df[cols_a_exportar].copy() if cols_a_exportar else df.copy()
 
-    cols_fecha = [col for col in df_export.columns if any(p in str(col).lower() for p in ["fecha", "terminacion", "cierre", "inicio", "vencimiento"])]
-
-    for col in cols_fecha:
-        def formatear_fecha_seguro(val):
-            if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", ""]:
-                return ""
-            if isinstance(val, (datetime, pd.Timestamp, date)):
-                return val.strftime("%d/%m/%Y")
-            val_str = str(val).strip()
-            try:
-                dt = pd.to_datetime(val_str, errors="coerce")
-                if pd.notnull(dt):
-                    return dt.strftime("%d/%m/%Y")
-            except Exception:
-                pass
-            return val_str
-        df_export[col] = df_export[col].apply(formatear_fecha_seguro)
+    # Formateo estricto de fechas (DD/MM/YYYY) sin horas
+    for col in df_export.columns:
+        if any(p in str(col).lower() for p in ["fecha", "terminacion", "cierre", "inicio", "vencimiento"]):
+            def formatear_fecha_limpia(val):
+                if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", ""]:
+                    return ""
+                if isinstance(val, (datetime, pd.Timestamp, date)):
+                    return val.strftime("%d/%m/%Y")
+                val_str = str(val).strip()
+                try:
+                    dt = pd.to_datetime(val_str, errors="coerce")
+                    if pd.notnull(dt):
+                        return dt.strftime("%d/%m/%Y")
+                except Exception:
+                    pass
+                return val_str
+            df_export[col] = df_export[col].apply(formatear_fecha_limpia)
 
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         df_export.to_excel(writer, index=False, sheet_name="Detalle_Compromisos")
@@ -768,7 +770,7 @@ def generar_excel_formateado(df):
             worksheet.write(0, col_num, str(value), header_format)
 
         for i, col in enumerate(df_export.columns):
-            es_col_fecha = col in cols_fecha
+            es_col_fecha = any(p in str(col).lower() for p in ["fecha", "terminacion", "cierre", "inicio", "vencimiento"])
             longitudes = [len(str(val)) for val in df_export[col].dropna().tolist()] if not df_export.empty else []
             max_len = max(longitudes) if longitudes else 0
             adjusted_width = min(max(max_len + 4, len(str(col)) + 4, 14), 65)
@@ -824,9 +826,10 @@ if entorno_activo == "Auditoría Interna":
     col_hallazgo = buscar_columna_por_patron(df_raw, ["transcribir", "situacion evidenciada", "del hallazgo", "titulo del hallazgo", "hallazgo"])
     col_nombre = buscar_columna_por_patron(df_raw, ["nombre", "nombre hallazgo", "titulo"])
     col_riesgo = buscar_columna_por_patron(df_raw, ["riesgo", "nivel de riesgo"])
+    col_fecha_inicio = buscar_columna_por_patron(df_raw, ["inicio"])
     col_fecha_cierre = buscar_columna_por_patron(df_raw, ["cierre", "fecha cierre", "fecha compromiso"])
     col_obs_audit = buscar_columna_por_patron(df_raw, ["observacion auditoria"]) or "Observación Auditoría"
-    col_link_evidencia = buscar_columna_por_patron(df_raw, ["enlace pdf", "soporte", "evidencia", "drive", "link"])
+    col_link_evidencia = buscar_columna_por_patron(df_raw, ["enlace para cargar evidencias", "evidencias", "cargar evidencia", "soporte", "link"])
 
     col_a5 = buscar_columna_por_patron(df_raw, ["alerta 5"])
     col_a10 = buscar_columna_por_patron(df_raw, ["alerta 10"])
@@ -835,6 +838,24 @@ if entorno_activo == "Auditoría Interna":
 
     if col_estado:
         df_raw[col_estado] = df_raw[col_estado].astype(str).str.capitalize()
+
+    # Formateo estricto de fechas en df_raw para evitar hora
+    for col_f in [col_fecha_inicio, col_fecha_cierre]:
+        if col_f and col_f in df_raw.columns:
+            def formatear_fecha_corta(val):
+                if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", ""]:
+                    return ""
+                if isinstance(val, (datetime, pd.Timestamp, date)):
+                    return val.strftime("%d/%m/%Y")
+                val_str = str(val).strip()
+                try:
+                    dt = pd.to_datetime(val_str, errors="coerce")
+                    if pd.notnull(dt):
+                        return dt.strftime("%d/%m/%Y")
+                except Exception:
+                    pass
+                return val_str
+            df_raw[col_f] = df_raw[col_f].apply(formatear_fecha_corta)
 
     meses_es = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
     conteo_meses = {m: 0 for m in meses_es}
@@ -1188,7 +1209,6 @@ if entorno_activo == "Auditoría Interna":
 
                 df_tabla.index = range(1, len(df_tabla) + 1)
 
-                # 📌 CONFIGURACIÓN DE BOTÓN INTERACTIVO PARA ENLACES DE EVIDENCIA
                 col_config_dict = {}
                 if col_link_evidencia and col_link_evidencia in df_tabla.columns:
                     def normalizar_url(val):
@@ -1198,7 +1218,7 @@ if entorno_activo == "Auditoría Interna":
                         return val_str
                     df_tabla[col_link_evidencia] = df_tabla[col_link_evidencia].apply(normalizar_url)
                     col_config_dict[col_link_evidencia] = st.column_config.LinkColumn(
-                        "Cargar / Ver Evidencia",
+                        "Enlace para cargar evidencias",
                         help="Haz clic para abrir o cargar la evidencia en Google Drive",
                         display_text="📂 Cargar Evidencia"
                     )

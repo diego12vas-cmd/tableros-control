@@ -710,10 +710,7 @@ def buscar_columna_por_patron(df, patrones):
                 return col
     return None
 
-def filtrar_solo_columnas_amarillas(df):
-    """
-    Lista estricta de exactamente las 15 cabeceras amarillas
-    """
+def filtrar_solo_columnas_amarillas_ai(df):
     columnas_permitidas_exactas = [
         "Plan Auditoría",
         "Auditoría",
@@ -739,7 +736,6 @@ def filtrar_solo_columnas_amarillas(df):
             if str(c_df).strip().lower() == col_req.lower():
                 col_m = c_df
                 break
-        
         if not col_m:
             if "transcribir" in col_req.lower():
                 col_m = buscar_columna_por_patron(df, ["transcribir el del hallazgo", "situacion evidenciada"])
@@ -753,11 +749,55 @@ def filtrar_solo_columnas_amarillas(df):
 
     return df[cols_finales].copy() if cols_finales else df.copy()
 
-def generar_excel_formateado(df):
-    output = io.BytesIO()
-    df_export = filtrar_solo_columnas_amarillas(df)
+def filtrar_solo_columnas_amarillas_c(df):
+    columnas_c_exactas = [
+        "VIGENCIA DE LA AUDITORÍA O VISITA",
+        "CODIGO AUDITORÍA SEGÚN PAD DE LA VIGENCIA",
+        "No. HALLAZGO",
+        "CODIGO ACCION",
+        "DESCRIPCIÓN HALLAZGO",
+        "DESCRIPCIÓN ACCIÓN",
+        "AREA RESPONSABLE",
+        "FECHA DE INICIO",
+        "FECHA DE TERMINACIÓN",
+        "ESTADO",
+        "ENLACE PARA CARGAR EVIDENCIAS",
+        "Alerta 10",
+        "Alerta 20",
+        "Alerta 30",
+        "Alerta 5"
+    ]
 
-    # Formateo estricto de fechas (DD/MM/YYYY) sin horas
+    cols_finales = []
+    for col_req in columnas_c_exactas:
+        col_m = None
+        for c_df in df.columns:
+            if str(c_df).strip().lower() == col_req.lower():
+                col_m = c_df
+                break
+        if not col_m:
+            if "vigencia" in col_req.lower():
+                col_m = buscar_columna_por_patron(df, ["vigencia de la auditoria"])
+            elif "descripcion accion" in col_req.lower():
+                col_m = buscar_columna_por_patron(df, ["descripcion accion"])
+            elif "area responsable" in col_req.lower():
+                col_m = buscar_columna_por_patron(df, ["area responsable", "dependencia"])
+            elif "inicio" in col_req.lower():
+                col_m = buscar_columna_por_patron(df, ["fecha de inicio"])
+            elif "terminacion" in col_req.lower():
+                col_m = buscar_columna_por_patron(df, ["fecha de terminacion"])
+            elif "enlace" in col_req.lower():
+                col_m = buscar_columna_por_patron(df, ["enlace para cargar evidencias", "evidencias"])
+
+        if col_m and col_m in df.columns and col_m not in cols_finales:
+            cols_finales.append(col_m)
+
+    return df[cols_finales].copy() if cols_finales else df.copy()
+
+def generar_excel_formateado_ai(df):
+    output = io.BytesIO()
+    df_export = filtrar_solo_columnas_amarillas_ai(df)
+
     for col in df_export.columns:
         if any(p in str(col).lower() for p in ["fecha", "terminacion", "cierre", "inicio", "vencimiento"]):
             def formatear_fecha_limpia(val):
@@ -779,6 +819,48 @@ def generar_excel_formateado(df):
         df_export.to_excel(writer, index=False, sheet_name="Detalle_Compromisos")
         workbook = writer.book
         worksheet = writer.sheets["Detalle_Compromisos"]
+        header_format = workbook.add_format({"bold": True, "text_wrap": True, "valign": "vcenter", "align": "center", "fg_color": "#1F4E78", "font_color": "#FFFFFF", "border": 1})
+        cell_format = workbook.add_format({"valign": "vcenter", "border": 1})
+        date_cell_format = workbook.add_format({"valign": "vcenter", "align": "center", "border": 1})
+
+        for col_num, value in enumerate(df_export.columns.values):
+            worksheet.write(0, col_num, str(value), header_format)
+
+        for i, col in enumerate(df_export.columns):
+            es_col_fecha = any(p in str(col).lower() for p in ["fecha", "terminacion", "cierre", "inicio", "vencimiento"])
+            longitudes = [len(str(val)) for val in df_export[col].dropna().tolist()] if not df_export.empty else []
+            max_len = max(longitudes) if longitudes else 0
+            adjusted_width = min(max(max_len + 4, len(str(col)) + 4, 14), 65)
+            worksheet.set_column(i, i, adjusted_width, date_cell_format if es_col_fecha else cell_format)
+
+        worksheet.hide_gridlines(2)
+    return output.getvalue()
+
+def generar_excel_formateado_c(df):
+    output = io.BytesIO()
+    df_export = filtrar_solo_columnas_amarillas_c(df)
+
+    for col in df_export.columns:
+        if any(p in str(col).lower() for p in ["fecha", "terminacion", "cierre", "inicio", "vencimiento"]):
+            def formatear_fecha_limpia(val):
+                if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", ""]:
+                    return ""
+                if isinstance(val, (datetime, pd.Timestamp, date)):
+                    return val.strftime("%d/%m/%Y")
+                val_str = str(val).strip()
+                try:
+                    dt = pd.to_datetime(val_str, errors="coerce")
+                    if pd.notnull(dt):
+                        return dt.strftime("%d/%m/%Y")
+                except Exception:
+                    pass
+                return val_str
+            df_export[col] = df_export[col].apply(formatear_fecha_limpia)
+
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df_export.to_excel(writer, index=False, sheet_name="Detalle_Contraloria")
+        workbook = writer.book
+        worksheet = writer.sheets["Detalle_Contraloria"]
         header_format = workbook.add_format({"bold": True, "text_wrap": True, "valign": "vcenter", "align": "center", "fg_color": "#1F4E78", "font_color": "#FFFFFF", "border": 1})
         cell_format = workbook.add_format({"valign": "vcenter", "border": 1})
         date_cell_format = workbook.add_format({"valign": "vcenter", "align": "center", "border": 1})
@@ -857,7 +939,6 @@ if entorno_activo == "Auditoría Interna":
     if col_estado:
         df_raw[col_estado] = df_raw[col_estado].astype(str).str.capitalize()
 
-    # Formateo estricto de fechas en df_raw para evitar hora
     for col_f in [col_fecha_inicio, col_fecha_cierre]:
         if col_f and col_f in df_raw.columns:
             def formatear_fecha_corta(val):
@@ -1225,8 +1306,7 @@ if entorno_activo == "Auditoría Interna":
                         s_val = df_tabla[col_a30].fillna("").astype(str).str.strip().str.lower()
                         df_tabla = df_tabla[~s_val.isin(["nan", "none", "", "0", "0.0", "false"])]
 
-                # 📌 FILTRADO DIRECTO DE ÚNICAMENTE LAS 15 COLUMNAS AMARILLAS EN PANTALLA
-                df_tabla_vista = filtrar_solo_columnas_amarillas(df_tabla)
+                df_tabla_vista = filtrar_solo_columnas_amarillas_ai(df_tabla)
                 df_tabla_vista.index = range(1, len(df_tabla_vista) + 1)
 
                 col_config_dict = {}
@@ -1249,7 +1329,7 @@ if entorno_activo == "Auditoría Interna":
 
                 st.download_button(
                     label="📥 Descargar Excel (.xlsx)",
-                    data=generar_excel_formateado(df_tabla),
+                    data=generar_excel_formateado_ai(df_tabla),
                     file_name=f"Detalle_Compromisos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=False,
@@ -1304,7 +1384,7 @@ if entorno_activo == "Auditoría Interna":
                         st.markdown("---")
                         st.download_button(
                             label="📥 Descargar Programa Anual de Auditoría (.xlsx)",
-                            data=generar_excel_formateado(df_paa_vista),
+                            data=generar_excel_formateado_ai(df_paa_vista),
                             file_name=f"Programa_Anual_Auditoria_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                             key="btn_download_paa",
@@ -1431,14 +1511,14 @@ if entorno_activo == "Auditoría Interna":
                 col_ac2.metric("⏱️ Promedio Días Vencidos", f"{prom_mora} días")
 
                 if not df_criticos_30.empty:
-                    df_criticos_30_vista = filtrar_solo_columnas_amarillas(df_criticos_30)
+                    df_criticos_30_vista = filtrar_solo_columnas_amarillas_ai(df_criticos_30)
                     df_criticos_30_vista.index = range(1, len(df_criticos_30_vista) + 1)
                     st.subheader("📋 Tabla de Compromisos Críticos")
                     st.dataframe(df_criticos_30_vista, use_container_width=True)
 
                     st.download_button(
                         label="📥 Descargar Acciones Críticas en Excel (.xlsx)",
-                        data=generar_excel_formateado(df_criticos_30),
+                        data=generar_excel_formateado_ai(df_criticos_30),
                         file_name=f"Compromisos_Criticos_30Dias_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         use_container_width=False,
@@ -1611,7 +1691,7 @@ if entorno_activo == "Auditoría Interna":
 
                 with col_btn_dl:
                     if cant_modificados > 0:
-                        excel_lote = generar_excel_formateado(pd.DataFrame(lista_acumulada))
+                        excel_lote = generar_excel_formateado_ai(pd.DataFrame(lista_acumulada))
                         st.download_button(
                             label=f"📥 Descargar Modificaciones ({cant_modificados})",
                             data=excel_lote,
@@ -1726,7 +1806,7 @@ if entorno_activo == "Auditoría Interna":
 
                         st.download_button(
                             label="📥 Descargar Listado de Oficios (.xlsx)",
-                            data=generar_excel_formateado(df_oficios_vista),
+                            data=generar_excel_formateado_ai(df_oficios_vista),
                             file_name=f"Historial_Oficios_Radicados_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                             key="btn_download_oficios",
@@ -1754,13 +1834,13 @@ if entorno_activo == "Auditoría Interna":
                     df_finalizadas_tabla = df_filtrado[df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
 
                     if not df_finalizadas_tabla.empty:
-                        df_finalizadas_vista = filtrar_solo_columnas_amarillas(df_finalizadas_tabla)
+                        df_finalizadas_vista = filtrar_solo_columnas_amarillas_ai(df_finalizadas_tabla)
                         df_finalizadas_vista.index = range(1, len(df_finalizadas_vista) + 1)
                         st.dataframe(df_finalizadas_vista, use_container_width=True)
 
                         st.download_button(
                             label="📥 Descargar Solo Finalizadas (.xlsx)",
-                            data=generar_excel_formateado(df_finalizadas_tabla),
+                            data=generar_excel_formateado_ai(df_finalizadas_tabla),
                             file_name=f"Acciones_Finalizadas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                             key="btn_download_finalizadas_only",
@@ -1826,7 +1906,7 @@ if entorno_activo == "Auditoría Interna":
                 st.markdown("---")
                 st.download_button(
                     label="📥 Descargar Relación Completa de Informes (.xlsx)",
-                    data=generar_excel_formateado(df_inf_vista),
+                    data=generar_excel_formateado_ai(df_inf_vista),
                     file_name=f"Relacion_Informes_Auditoria_Interna_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     key="btn_download_informes_pdf_ai_subtabs_exclusivas",
@@ -1901,14 +1981,17 @@ else:
         st.stop()
 
     col_estado_c = "ESTADO" if "ESTADO" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["estado"])
-    col_responsable_c = buscar_columna_por_patron(df_raw_c, ["area responsable", "responsable", "dependencia"])
+    col_responsable_c = "AREA RESPONSABLE" if "AREA RESPONSABLE" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["area responsable", "responsable", "dependencia"])
     col_entidad_c = buscar_columna_por_patron(df_raw_c, ["nombre de la entidad", "entidad", "sectorial"])
     col_plan_accion_c = "DESCRIPCIÓN ACCIÓN" if "DESCRIPCIÓN ACCIÓN" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["descripcion accion", "accion", "compromiso", "plan de accion"])
-    col_auditoria_c = "Vigencia Auditoría" if "Vigencia Auditoría" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["vigencia de la auditoria", "vigencia auditoria", "vigencia"])
+    col_auditoria_c = "VIGENCIA DE LA AUDITORÍA O VISITA" if "VIGENCIA DE LA AUDITORÍA O VISITA" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["vigencia de la auditoria", "vigencia auditoria", "vigencia"])
     col_hallazgo_c = "DESCRIPCIÓN HALLAZGO" if "DESCRIPCIÓN HALLAZGO" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["descripcion hallazgo", "titulo del hallazgo", "hallazgo", "id"])
+    col_fecha_inicio_c = "FECHA DE INICIO" if "FECHA DE INICIO" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["fecha de inicio"])
     col_fecha_cierre_c = "FECHA DE TERMINACIÓN" if "FECHA DE TERMINACIÓN" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["fecha de terminacion", "vencimiento", "cierre", "fecha cierre"])
     col_fecha_cierre_aud_c = "Fecha cierre x Auditoría" if "Fecha cierre x Auditoría" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["fecha cierre x auditoria", "cierre x auditoria"])
     col_obs_audit_c = "OBSERVACIÓN" if "OBSERVACIÓN" in df_raw_c.columns else (buscar_columna_por_patron(df_raw_c, ["observacion"]) or "OBSERVACIÓN")
+    
+    col_link_evidencia_c = "ENLACE PARA CARGAR EVIDENCIAS" if "ENLACE PARA CARGAR EVIDENCIAS" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["enlace para cargar evidencias", "evidencias"])
 
     col_a5_c = "Alerta 5" if "Alerta 5" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["alerta 5"])
     col_a10_c = "Alerta 10" if "Alerta 10" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["alerta 10"])
@@ -1917,6 +2000,23 @@ else:
 
     if col_estado_c:
         df_raw_c[col_estado_c] = df_raw_c[col_estado_c].astype(str).str.capitalize()
+
+    for col_f in [col_fecha_inicio_c, col_fecha_cierre_c]:
+        if col_f and col_f in df_raw_c.columns:
+            def formatear_fecha_corta(val):
+                if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", ""]:
+                    return ""
+                if isinstance(val, (datetime, pd.Timestamp, date)):
+                    return val.strftime("%d/%m/%Y")
+                val_str = str(val).strip()
+                try:
+                    dt = pd.to_datetime(val_str, errors="coerce")
+                    if pd.notnull(dt):
+                        return dt.strftime("%d/%m/%Y")
+                except Exception:
+                    pass
+                return val_str
+            df_raw_c[col_f] = df_raw_c[col_f].apply(formatear_fecha_corta)
 
     st.sidebar.title("🔍 Filtros Contraloría")
     fecha_excel_c = obtener_fecha_excel(EXCEL_PATH_C)
@@ -2261,12 +2361,32 @@ else:
         st.subheader("📋 Detalle de Compromisos Contraloría")
 
         df_c_tabla = df_activos_c.copy()
-        df_c_tabla.index = range(1, len(df_c_tabla) + 1)
-        st.dataframe(df_c_tabla, use_container_width=True)
+        
+        # 📌 FILTRADO EXCLUSIVO PARA CONTRALORÍA
+        df_c_tabla_vista = filtrar_solo_columnas_amarillas_c(df_c_tabla)
+        df_c_tabla_vista.index = range(1, len(df_c_tabla_vista) + 1)
+
+        col_config_dict_c = {}
+        col_ev_vista_c = "ENLACE PARA CARGAR EVIDENCIAS" if "ENLACE PARA CARGAR EVIDENCIAS" in df_c_tabla_vista.columns else buscar_columna_por_patron(df_c_tabla_vista, ["enlace para cargar evidencias", "cargar evidencias"])
+        
+        if col_ev_vista_c and col_ev_vista_c in df_c_tabla_vista.columns:
+            def normalizar_url_c(val):
+                val_str = str(val).strip()
+                if val_str and val_str.lower() not in ["nan", "none", ""] and not val_str.startswith("http"):
+                    return f"https://{val_str}"
+                return val_str
+            df_c_tabla_vista[col_ev_vista_c] = df_c_tabla_vista[col_ev_vista_c].apply(normalizar_url_c)
+            col_config_dict_c[col_ev_vista_c] = st.column_config.LinkColumn(
+                col_ev_vista_c,
+                help="Haz clic para abrir o cargar la evidencia en Google Drive",
+                display_text="📂 Cargar Evidencia"
+            )
+
+        st.dataframe(df_c_tabla_vista, use_container_width=True, column_config=col_config_dict_c)
 
         st.download_button(
             label="📥 Descargar Excel Contraloría (.xlsx)",
-            data=generar_excel_formateado(df_c_tabla),
+            data=generar_excel_formateado_c(df_c_tabla),
             file_name=f"Detalle_Contraloria_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=False,
@@ -2313,8 +2433,9 @@ else:
             st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Tabla de Planes Finalizados Contraloría</div>', unsafe_allow_html=True)
             df_fin_c = df_filtrado_c[df_filtrado_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado_c else pd.DataFrame()
             if not df_fin_c.empty:
-                df_fin_c.index = range(1, len(df_fin_c) + 1)
-                st.dataframe(df_fin_c, use_container_width=True)
+                df_fin_c_vista = filtrar_solo_columnas_amarillas_c(df_fin_c)
+                df_fin_c_vista.index = range(1, len(df_fin_c_vista) + 1)
+                st.dataframe(df_fin_c_vista, use_container_width=True)
             else:
                 st.info("ℹ️ No hay acciones finalizadas en Contraloría.")
 

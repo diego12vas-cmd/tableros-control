@@ -712,50 +712,16 @@ def buscar_columna_por_patron(df, patrones):
 
 def filtrar_solo_columnas_amarillas(df):
     """
-    Filtra estrictamente ÚNICAMENTE las 15 columnas amarillas requeridas mediante coincidencia exacta o directa.
+    Selecciona las columnas por su ÍNDICE POSICIONAL DIRECTO (A a O) en el DataFrame.
     """
-    columnas_amarillas_estrictas = [
-        "Plan Auditoría",
-        "Auditoría",
-        "Titulo del Hallazgo",
-        "Transcribir el del Hallazgo o Situación Evidenciada",
-        "Nivel del Riesgo",
-        "Plan de Acción",
-        "Responsable",
-        "Inicio",
-        "Cierre",
-        "Enlace para cargar evidencias",
-        "Estado",
-        "Alerta 10 días",
-        "Alerta 20 días",
-        "Alerta 30 días",
-        "Alerta 5 días"
-    ]
+    if df.empty:
+        return df.copy()
 
-    cols_existentes = []
-    # 1. Búsqueda por coincidencia exacta insensible a mayúsculas
-    for col_req in columnas_amarillas_estrictas:
-        col_found = None
-        for col_df in df.columns:
-            if str(col_df).strip().lower() == col_req.lower():
-                col_found = col_df
-                break
-        
-        # 2. Búsqueda por patrones súper específicos si no coincide exacto
-        if not col_found:
-            if col_req == "Transcribir el del Hallazgo o Situación Evidenciada":
-                col_found = buscar_columna_por_patron(df, ["transcribir el del hallazgo", "situacion evidenciada"])
-            elif col_req == "Nivel del Riesgo":
-                col_found = buscar_columna_por_patron(df, ["nivel del riesgo"])
-            elif col_req == "Enlace para cargar evidencias":
-                col_found = buscar_columna_por_patron(df, ["enlace para cargar evidencias", "cargar evidencias"])
-            elif col_req == "Estado":
-                col_found = buscar_columna_por_patron(df, ["estado del compromiso", "estado compromiso"]) if "Estado" not in df.columns else "Estado"
-
-        if col_found and col_found in df.columns and col_found not in cols_existentes:
-            cols_existentes.append(col_found)
-
-    return df[cols_existentes].copy() if cols_existentes else df.copy()
+    # Si el dataframe tiene 15 o más columnas, recortamos directamente de la 0 a la 14
+    if len(df.columns) >= 15:
+        return df.iloc[:, 0:15].copy()
+    
+    return df.copy()
 
 def generar_excel_formateado(df):
     output = io.BytesIO()
@@ -838,24 +804,27 @@ if entorno_activo == "Auditoría Interna":
     if df_raw.empty:
         st.stop()
 
-    col_estado = buscar_columna_por_patron(df_raw, ["estado del compromiso", "estado compromiso"]) or ("Estado" if "Estado" in df_raw.columns else None)
-    col_responsable = buscar_columna_por_patron(df_raw, ["responsable", "area responsable"])
-    col_auditor_resp = "Auditor Responsable" if "Auditor Responsable" in df_raw.columns else buscar_columna_por_patron(df_raw, ["auditor responsable", "auditor"])
-    col_plan_filtro = "Plan Auditoría" if "Plan Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["plan auditoria", "vigencia"])
-    col_plan_accion = "Plan de Acción" if "Plan de Acción" in df_raw.columns else buscar_columna_por_patron(df_raw, ["compromiso", "plan de accion", "accion"]) or col_plan_filtro
-    col_auditoria = "Auditoría" if "Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["auditoria especifica"])
-    col_hallazgo = buscar_columna_por_patron(df_raw, ["transcribir", "situacion evidenciada", "del hallazgo", "titulo del hallazgo", "hallazgo"])
-    col_nombre = buscar_columna_por_patron(df_raw, ["nombre", "nombre hallazgo", "titulo"])
-    col_riesgo = buscar_columna_por_patron(df_raw, ["riesgo", "nivel de riesgo"])
-    col_fecha_inicio = buscar_columna_por_patron(df_raw, ["inicio"])
-    col_fecha_cierre = buscar_columna_por_patron(df_raw, ["cierre"])
+    # Mapeo directo por posición o nombre seguro
+    col_estado = df_raw.columns[10] if len(df_raw.columns) > 10 else buscar_columna_por_patron(df_raw, ["estado"])
+    col_responsable = df_raw.columns[6] if len(df_raw.columns) > 6 else buscar_columna_por_patron(df_raw, ["responsable"])
+    col_auditor_resp = buscar_columna_por_patron(df_raw, ["auditor responsable", "auditor"])
+    col_plan_filtro = df_raw.columns[0] if len(df_raw.columns) > 0 else buscar_columna_por_patron(df_raw, ["plan auditoria"])
+    col_plan_accion = df_raw.columns[5] if len(df_raw.columns) > 5 else buscar_columna_por_patron(df_raw, ["plan de accion"])
+    col_auditoria = df_raw.columns[1] if len(df_raw.columns) > 1 else buscar_columna_por_patron(df_raw, ["auditoria"])
+    col_hallazgo = df_raw.columns[3] if len(df_raw.columns) > 3 else buscar_columna_por_patron(df_raw, ["transcribir"])
+    col_nombre = df_raw.columns[2] if len(df_raw.columns) > 2 else buscar_columna_por_patron(df_raw, ["titulo"])
+    col_riesgo = df_raw.columns[4] if len(df_raw.columns) > 4 else buscar_columna_por_patron(df_raw, ["riesgo"])
+    col_fecha_inicio = df_raw.columns[7] if len(df_raw.columns) > 7 else None
+    col_fecha_cierre = df_raw.columns[8] if len(df_raw.columns) > 8 else None
     col_obs_audit = buscar_columna_por_patron(df_raw, ["observacion auditoria"]) or "Observación Auditoría"
-    col_link_evidencia = buscar_columna_por_patron(df_raw, ["enlace para cargar evidencias", "evidencias", "cargar evidencia"])
+    
+    # Columna J (índice 9) es estrictamente el enlace de evidencias
+    col_link_evidencia = df_raw.columns[9] if len(df_raw.columns) > 9 else None
 
-    col_a5 = buscar_columna_por_patron(df_raw, ["alerta 5"])
-    col_a10 = buscar_columna_por_patron(df_raw, ["alerta 10"])
-    col_a20 = buscar_columna_por_patron(df_raw, ["alerta 20"])
-    col_a30 = buscar_columna_por_patron(df_raw, ["alerta 30"])
+    col_a5 = df_raw.columns[14] if len(df_raw.columns) > 14 else None
+    col_a10 = df_raw.columns[11] if len(df_raw.columns) > 11 else None
+    col_a20 = df_raw.columns[12] if len(df_raw.columns) > 12 else None
+    col_a30 = df_raw.columns[13] if len(df_raw.columns) > 13 else None
 
     if col_estado:
         df_raw[col_estado] = df_raw[col_estado].astype(str).str.capitalize()
@@ -1228,26 +1197,22 @@ if entorno_activo == "Auditoría Interna":
                         s_val = df_tabla[col_a30].fillna("").astype(str).str.strip().str.lower()
                         df_tabla = df_tabla[~s_val.isin(["nan", "none", "", "0", "0.0", "false"])]
 
-                # 📌 FILTRADO DIRECTO PARA MOSTRAR ÚNICAMENTE LAS COLUMNAS AMARILLAS EN PANTALLA
+                # 📌 FILTRADO DIRECTO PARA MOSTRAR ÚNICAMENTE LAS COLUMNAS A HASTA O
                 df_tabla_vista = filtrar_solo_columnas_amarillas(df_tabla)
                 df_tabla_vista.index = range(1, len(df_tabla_vista) + 1)
 
                 col_config_dict = {}
-                col_ev_vista = None
-                for c_check in df_tabla_vista.columns:
-                    if "enlace" in str(c_check).lower() or "evidencia" in str(c_check).lower():
-                        col_ev_vista = c_check
-                        break
                 
-                if col_ev_vista and col_ev_vista in df_tabla_vista.columns:
+                # La columna J es exactamente la posición 9
+                if col_link_evidencia and col_link_evidencia in df_tabla_vista.columns:
                     def normalizar_url(val):
                         val_str = str(val).strip()
                         if val_str and val_str.lower() not in ["nan", "none", ""] and not val_str.startswith("http"):
                             return f"https://{val_str}"
                         return val_str
-                    df_tabla_vista[col_ev_vista] = df_tabla_vista[col_ev_vista].apply(normalizar_url)
-                    col_config_dict[col_ev_vista] = st.column_config.LinkColumn(
-                        col_ev_vista,
+                    df_tabla_vista[col_link_evidencia] = df_tabla_vista[col_link_evidencia].apply(normalizar_url)
+                    col_config_dict[col_link_evidencia] = st.column_config.LinkColumn(
+                        col_link_evidencia,
                         help="Haz clic para abrir o cargar la evidencia en Google Drive",
                         display_text="📂 Cargar Evidencia"
                     )

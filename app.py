@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import sqlite3
 import smtplib
 from email.mime.text import MIMEText
 import random
@@ -12,7 +13,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from supabase import create_client, Client
 
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA
@@ -23,21 +23,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-# ---------------------------------------------------------
-# CONEXIÓN A BASE DE DATOS EN LA NUBE (SUPABASE)
-# ---------------------------------------------------------
-@st.cache_resource
-def init_supabase() -> Client:
-    try:
-        supabase_url = st.secrets["supabase"]["url"]
-        supabase_key = st.secrets["supabase"]["key"]
-        return create_client(supabase_url, supabase_key)
-    except Exception as e:
-        st.error(f"⚠️ Error al conectar con Supabase. Verifica tus Secrets en Streamlit: {e}")
-        st.stop()
-
-supabase = init_supabase()
 
 # ---------------------------------------------------------
 # BÚSQUEDA DEL LOGO LOCAL
@@ -54,8 +39,10 @@ def buscar_logo_local():
 LOGO_PATH = buscar_logo_local()
 
 # ---------------------------------------------------------
-# GESTIÓN DE ROLES, PERMISOS Y AUTENTICACIÓN (SUPABASE)
+# BASE DE DATOS LOCAL Y GESTIÓN DE ROLES/PERMISOS (SQLITE)
 # ---------------------------------------------------------
+DB_PATH = "usuarios_app.db"
+
 TODAS_LAS_PESTANIAS = [
     "Tablero", 
     "Programa Anual", 
@@ -78,34 +65,76 @@ def hash_password(password):
 def verificar_password(password, hashed):
     return hmac.compare_digest(hash_password(password), hashed)
 
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS usuarios (
+            usuario TEXT PRIMARY KEY,
+            email TEXT UNIQUE,
+            password_hash TEXT,
+            autorizado INTEGER DEFAULT 1,
+            token_recuperacion TEXT
+        )
+    ''')
+    conn.commit()
+
+    try:
+        c.execute("ALTER TABLE usuarios ADD COLUMN perm_pestañas TEXT DEFAULT 'TODOS'")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        c.execute("ALTER TABLE usuarios ADD COLUMN perm_entornos TEXT DEFAULT 'TODOS'")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+    pw_hash = hash_password("admin123")
+    c.execute('''
+        INSERT OR IGNORE INTO usuarios (usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos) 
+        VALUES (?, ?, ?, 1, 'TODOS', 'TODOS')
+    ''', ("admin", "admin@empresa.com", pw_hash))
+    conn.commit()
+    conn.close()
+
+init_db()
+
 def obtener_usuarios_df():
-    res = supabase.table("usuarios").select("usuario, email, autorizado, perm_pestañas, perm_entornos").execute()
-    if res.data:
-        return pd.DataFrame(res.data)
-    return pd.DataFrame(columns=["usuario", "email", "autorizado", "perm_pestañas", "perm_entornos"])
+    conn = sqlite3.connect(DB_PATH)
+    df = pd.read_sql_query("SELECT usuario, email, autorizado, perm_pestañas, perm_entornos FROM usuarios", conn)
+    conn.close()
+    return df
 
 def actualizar_permisos_usuario(usuario, lista_pestañas, lista_entornos):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
     perm_str = ",".join(lista_pestañas) if lista_pestañas else ""
     ent_str = ",".join(lista_entornos) if lista_entornos else ""
-    supabase.table("usuarios").update({
-        "perm_pestañas": perm_str,
-        "perm_entornos": ent_str
-    }).eq("usuario", usuario).execute()
+    c.execute("UPDATE usuarios SET perm_pestañas = ?, perm_entornos = ? WHERE usuario = ?", (perm_str, ent_str, usuario))
+    conn.commit()
+    conn.close()
 
 def guardar_o_actualizar_usuario(usuario, email, password, permisos_list, entornos_list):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
     pw_hash = hash_password(password)
     perm_str = ",".join(permisos_list) if permisos_list else "TODOS"
     ent_str = ",".join(entornos_list) if entornos_list else "TODOS"
     
-    data = {
-        "usuario": usuario,
-        "email": email,
-        "password_hash": pw_hash,
-        "autorizado": 1,
-        "perm_pestañas": perm_str,
-        "perm_entornos": ent_str
-    }
-    supabase.table("usuarios").upsert(data).execute()
+    c.execute('''
+        INSERT INTO usuarios (usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos)
+        VALUES (?, ?, ?, 1, ?, ?)
+        ON CONFLICT(usuario) DO UPDATE SET
+            email=excluded.email,
+            password_hash=excluded.password_hash,
+            autorizado=1,
+            perm_pestañas=excluded.perm_pestañas,
+            perm_entornos=excluded.perm_entornos
+    ''', (usuario, email, pw_hash, perm_str, ent_str))
+    conn.commit()
+    conn.close()
 
 def enviar_correo_token(email_destino, token):
     try:
@@ -196,16 +225,14 @@ def validar_login():
                 password = st.text_input("Contraseña", type="password", key="pass_input_ai")
                 
                 if st.button("Iniciar Sesión", type="primary", use_container_width=True):
-                    res = supabase.table("usuarios").select("password_hash, autorizado, perm_pestañas, perm_entornos").eq("usuario", usuario.strip()).execute()
-                    rows = res.data
+                    conn = sqlite3.connect(DB_PATH)
+                    c = conn.cursor()
+                    c.execute("SELECT password_hash, autorizado, perm_pestañas, perm_entornos FROM usuarios WHERE usuario = ?", (usuario.strip(),))
+                    row = c.fetchone()
+                    conn.close()
 
-                    if rows:
-                        row = rows[0]
-                        pw_hash = row.get("password_hash")
-                        autorizado = row.get("autorizado", 1)
-                        perm_str = row.get("perm_pestañas", "TODOS")
-                        ent_str = row.get("perm_entornos", "TODOS")
-
+                    if row:
+                        pw_hash, autorizado, perm_str, ent_str = row
                         if autorizado == 0:
                             st.error("🚫 Tu usuario no está autorizado para acceder. Contacta al administrador.")
                         elif verificar_password(password, pw_hash):
@@ -239,14 +266,19 @@ def validar_login():
                     if paso == 1:
                         email_req = st.text_input("Ingresa tu correo electrónico registrado:")
                         if st.button("Enviar Código de Verificación", use_container_width=True):
-                            res = supabase.table("usuarios").select("usuario, autorizado").eq("email", email_req.strip().lower()).execute()
-                            if res.data:
-                                aut = res.data[0].get("autorizado", 1)
+                            conn = sqlite3.connect(DB_PATH)
+                            c = conn.cursor()
+                            c.execute("SELECT usuario, autorizado FROM usuarios WHERE email = ?", (email_req.strip().lower(),))
+                            row = c.fetchone()
+
+                            if row:
+                                user_found, aut = row
                                 if aut == 0:
                                     st.error("🚫 Este usuario no está autorizado.")
                                 else:
                                     token = "".join(random.choices(string.digits, k=6))
-                                    supabase.table("usuarios").update({"token_recuperacion": token}).eq("email", email_req.strip().lower()).execute()
+                                    c.execute("UPDATE usuarios SET token_recuperacion = ? WHERE email = ?", (token, email_req.strip().lower()))
+                                    conn.commit()
                                     
                                     if enviar_correo_token(email_req.strip().lower(), token):
                                         st.session_state["email_recuperacion"] = email_req.strip().lower()
@@ -255,6 +287,7 @@ def validar_login():
                                         st.rerun()
                             else:
                                 st.error("❌ El correo no se encuentra registrado en el sistema.")
+                            conn.close()
 
                     elif paso == 2:
                         st.info(f"Código enviado a: **{st.session_state.get('email_recuperacion')}**")
@@ -268,23 +301,28 @@ def validar_login():
                             elif len(nueva_pw) < 6:
                                 st.error("⚠️ La contraseña debe tener al menos 6 caracteres.")
                             else:
-                                res = supabase.table("usuarios").select("token_recuperacion").eq("email", st.session_state.get("email_recuperacion")).execute()
-                                if res.data and res.data[0].get("token_recuperacion") == token_ingresado.strip():
+                                conn = sqlite3.connect(DB_PATH)
+                                c = conn.cursor()
+                                c.execute("SELECT token_recuperacion FROM usuarios WHERE email = ?", (st.session_state.get("email_recuperacion"),))
+                                row = c.fetchone()
+
+                                if row and row[0] == token_ingresado.strip():
                                     new_hash = hash_password(nueva_pw)
-                                    supabase.table("usuarios").update({
-                                        "password_hash": new_hash,
-                                        "token_recuperacion": None
-                                    }).eq("email", st.session_state.get("email_recuperacion")).execute()
+                                    c.execute("UPDATE usuarios SET password_hash = ?, token_recuperacion = NULL WHERE email = ?", 
+                                              (new_hash, st.session_state.get("email_recuperacion")))
+                                    conn.commit()
+                                    conn.close()
 
                                     st.success("🎉 ¡Contraseña actualizada con éxito! Ya puedes iniciar sesión.")
                                     st.session_state["paso_recuperacion"] = 1
                                     st.session_state["email_recuperacion"] = None
                                 else:
                                     st.error("❌ El código de verificación es incorrecto.")
+                                    conn.close()
 
-                        if st.button("Volver a empezar"):
-                            st.session_state["paso_recuperacion"] = 1
-                            st.rerun()
+                    if st.button("Volver a empezar"):
+                        st.session_state["paso_recuperacion"] = 1
+                        st.rerun()
         return False
     return True
 
@@ -352,7 +390,7 @@ st.markdown(
             padding-top: 0px !important;
         }
 
-        /* AJUSTE NATIVO EXCLUSIVO DE TEXTO PARA SIDEBAR */
+        /* REGLA EXCLUSIVA PARA LOS FILTROS DE LA BARRA LATERAL */
         [data-testid="stSidebar"] div[role="listbox"] li,
         [data-testid="stSidebar"] div[role="listbox"] li span {
             white-space: normal !important;
@@ -611,6 +649,7 @@ def buscar_excel_contraloria():
 
 EXCEL_PATH_C = buscar_excel_contraloria()
 
+# EXTRAE EXCLUSIVAMENTE LA FECHA DE LA CELDA (SIN HORA NI TEXTOS EXTRA)
 def obtener_fecha_excel(ruta_target):
     if not ruta_target or not os.path.exists(ruta_target):
         return None
@@ -792,15 +831,12 @@ if entorno_activo == "Auditoría Interna":
             st.divider()
             st.caption("2. Modificar Permisos Existentes")
             df_users = obtener_usuarios_df()
-            user_sel = st.selectbox("Seleccionar usuario:", df_users['usuario'].tolist() if not df_users.empty else [], key="sel_mod_user")
+            user_sel = st.selectbox("Seleccionar usuario:", df_users['usuario'].tolist(), key="sel_mod_user")
             
             if user_sel:
                 row_u = df_users[df_users['usuario'] == user_sel].iloc[0]
-                p_act_raw = str(row_u.get('perm_pestañas', 'TODOS'))
-                e_act_raw = str(row_u.get('perm_entornos', 'TODOS'))
-                
-                p_actuales = p_act_raw.split(",") if p_act_raw != "TODOS" else TODAS_LAS_PESTANIAS
-                e_actuales = e_act_raw.split(",") if e_act_raw != "TODOS" else TODOS_LOS_ENTORNOS
+                p_actuales = row_u['perm_pestañas'].split(",") if row_u['perm_pestañas'] != "TODOS" else TODAS_LAS_PESTANIAS
+                e_actuales = row_u['perm_entornos'].split(",") if row_u['perm_entornos'] != "TODOS" else TODOS_LOS_ENTORNOS
                 
                 st.markdown("**Modificar Entornos Permitidos:**")
                 nuevos_ents = []
@@ -824,26 +860,25 @@ if entorno_activo == "Auditoría Interna":
             st.divider()
             st.caption("3. 📦 Respaldo de Usuarios")
             
-            if not df_users.empty:
-                csv_bytes = df_users.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    label="📄 Descargar Respaldo (.CSV)",
-                    data=csv_bytes,
-                    file_name=f"respaldo_usuarios_{datetime.now().strftime('%Y%m%d')}.csv",
-                    mime="text/csv",
-                    use_container_width=True
-                )
-                
-                buf = io.BytesIO()
-                with pd.ExcelWriter(buf, engine='openpyxl') as writer:
-                    df_users.to_excel(writer, index=False, sheet_name='Usuarios')
-                st.download_button(
-                    label="📊 Descargar Respaldo (.XLSX)",
-                    data=buf.getvalue(),
-                    file_name=f"respaldo_usuarios_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
-                )
+            csv_bytes = df_users.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📄 Descargar Respaldo (.CSV)",
+                data=csv_bytes,
+                file_name=f"respaldo_usuarios_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+            
+            buf = io.BytesIO()
+            with pd.ExcelWriter(buf, engine='openpyxl') as writer:
+                df_users.to_excel(writer, index=False, sheet_name='Usuarios')
+            st.download_button(
+                label="📊 Descargar Respaldo (.XLSX)",
+                data=buf.getvalue(),
+                file_name=f"respaldo_usuarios_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
 
     if st.sidebar.button("🚪 Cerrar Sesión"):
         st.session_state["autenticado"] = False

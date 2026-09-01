@@ -387,23 +387,30 @@ st.markdown(
             visibility: hidden !important;
         }
 
-        [data-testid="stSidebarCollapsedControl"],
-        button[data-testid="stBaseButton-headerNoPadding"],
-        button[aria-label="Close sidebar"],
-        button[aria-label="Open sidebar"],
-        button[aria-label="Collapse sidebar"],
-        button[aria-label="Expand sidebar"] {
-            display: none !important;
-            visibility: hidden !important;
-            pointer-events: none !important;
+        /* PERMITIR FLOTANTE LIBRE EN LOS MENÚS DESPLEGABLES (MULTISELECT) */
+        div[role="listbox"], 
+        ul[role="listbox"],
+        div[data-baseweb="popover"],
+        div[data-baseweb="menu"] {
+            width: max-content !important;
+            min-width: 320px !important;
+            max-width: 550px !important;
+            z-index: 999999 !important;
         }
 
+        /* REGLA EXCLUSIVA PARA AJUSTAR TEXTO EN LOS OPCIONES DEL MULTISELECT */
+        div[role="listbox"] li,
+        div[role="listbox"] li span {
+            white-space: normal !important;
+            word-break: break-word !important;
+            line-height: 1.3 !important;
+            height: auto !important;
+        }
+
+        /* PERMITIR REORGANIZACIÓN O RECOGIMIENTO DE LA BARRA LATERAL CON LA FLECHA */
         [data-testid="stSidebar"] {
-            min-width: 320px !important;
-            max-width: 320px !important;
-            display: block !important;
-            visibility: visible !important;
-            transform: none !important;
+            min-width: 300px !important;
+            max-width: 380px !important;
             border-top: 5px solid #7AB800 !important;
             padding-top: 0px !important;
         }
@@ -413,17 +420,8 @@ st.markdown(
         }
 
         [data-testid="stSidebar"] [data-testid="stImage"] {
-            margin-top: -30px !important;
+            margin-top: -10px !important;
             padding-top: 0px !important;
-        }
-
-        /* REGLA EXCLUSIVA PARA LOS FILTROS DE LA BARRA LATERAL */
-        [data-testid="stSidebar"] div[role="listbox"] li,
-        [data-testid="stSidebar"] div[role="listbox"] li span {
-            white-space: normal !important;
-            word-break: break-word !important;
-            line-height: 1.25 !important;
-            height: auto !important;
         }
 
         header[data-testid="stHeader"] {
@@ -2362,7 +2360,6 @@ else:
 
         df_c_tabla = df_activos_c.copy()
         
-        # 📌 FILTRADO EXCLUSIVO PARA CONTRALORÍA
         df_c_tabla_vista = filtrar_solo_columnas_amarillas_c(df_c_tabla)
         df_c_tabla_vista.index = range(1, len(df_c_tabla_vista) + 1)
 

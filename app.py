@@ -363,11 +363,9 @@ st.markdown(
     """
     <style>
         #MainMenu {visibility: hidden;}
-        header {visibility: hidden;}
+        header {visibility: visible !important;}
         footer {visibility: hidden;}
         .stAppDeployButton {display:none !important;}
-        [data-testid="stHeader"] {display:none !important;}
-        [data-testid="stToolbar"] {display:none !important;}
         [data-testid="stDecoration"] {display:none !important;}
         [data-testid="stStatusWidget"] {display:none !important;}
         
@@ -387,30 +385,34 @@ st.markdown(
             visibility: hidden !important;
         }
 
-        /* PERMITIR FLOTANTE LIBRE EN LOS MENÚS DESPLEGABLES (MULTISELECT) */
+        /* REHABILITAR FLECHA DE EXPANDIR/COLAPSAR LA BARRA LATERAL */
+        [data-testid="stSidebarCollapsedControl"] {
+            display: block !important;
+            visibility: visible !important;
+            z-index: 1000000 !important;
+        }
+
+        /* ACTIVAR CAJA FLOTANTE (TOOLTIP HOVER) Y AJUSTAR DESPLEGABLE */
         div[role="listbox"], 
         ul[role="listbox"],
         div[data-baseweb="popover"],
         div[data-baseweb="menu"] {
             width: max-content !important;
             min-width: 320px !important;
-            max-width: 550px !important;
+            max-width: 600px !important;
             z-index: 999999 !important;
         }
 
-        /* REGLA EXCLUSIVA PARA AJUSTAR TEXTO EN LOS OPCIONES DEL MULTISELECT */
-        div[role="listbox"] li,
-        div[role="listbox"] li span {
+        /* FORMATO TEXTO EN OPCIONES DE FILTROS */
+        div[role="listbox"] li span,
+        [data-testid="stSidebar"] div[role="listbox"] li {
             white-space: normal !important;
             word-break: break-word !important;
-            line-height: 1.3 !important;
+            line-height: 1.25 !important;
             height: auto !important;
         }
 
-        /* PERMITIR REORGANIZACIÓN O RECOGIMIENTO DE LA BARRA LATERAL CON LA FLECHA */
         [data-testid="stSidebar"] {
-            min-width: 300px !important;
-            max-width: 380px !important;
             border-top: 5px solid #7AB800 !important;
             padding-top: 0px !important;
         }
@@ -425,7 +427,6 @@ st.markdown(
         }
 
         header[data-testid="stHeader"] {
-            height: 0rem !important;
             background: transparent !important;
         }
 

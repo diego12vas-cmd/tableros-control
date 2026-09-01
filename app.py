@@ -12,7 +12,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
 
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA
@@ -25,9 +24,9 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
-# URL DE GOOGLE SHEETS
+# URL DIRECTA DE LECTURA (GOOGLE SHEETS CSV)
 # ---------------------------------------------------------
-URL_GSHEETS = "https://docs.google.com/spreadsheets/d/1Dy177j1etKePN8EJndQ5KoATSA25GTW7JhUy0QNtuyc/edit?usp=sharing"
+URL_CSV_USUARIOS = "https://docs.google.com/spreadsheets/d/1Dy177j1etKePN8EJndQ5KoATSA25GTW7JhUy0QNtuyc/export?format=csv"
 
 # ---------------------------------------------------------
 # BÚSQUEDA DEL LOGO LOCAL
@@ -71,13 +70,11 @@ def verificar_password(password, hashed):
 # ---------------------------------------------------------
 # CONEXIÓN Y GESTIÓN DE USUARIOS VÍA GOOGLE SHEETS
 # ---------------------------------------------------------
-def obtener_conexion_gsheets():
-    return st.connection("gsheets", type=GSheetsConnection)
-
 def obtener_usuarios_df():
     try:
-        conn = obtener_conexion_gsheets()
-        df = conn.read(spreadsheet=URL_GSHEETS, worksheet="Hoja 1", ttl=0)
+        df = pd.read_csv(URL_CSV_USUARIOS)
+        # Limpieza automática de nombres de columnas
+        df.columns = [str(c).strip() for c in df.columns]
         return df
     except Exception as e:
         st.error(f"Error al leer usuarios desde Google Sheets: {e}")
@@ -85,8 +82,10 @@ def obtener_usuarios_df():
 
 def guardar_tabla_usuarios(df_actualizado):
     try:
-        conn = obtener_conexion_gsheets()
-        conn.update(spreadsheet=URL_GSHEETS, worksheet="Hoja 1", data=df_actualizado)
+        from streamlit_gsheets import GSheetsConnection
+        conn = st.connection("gsheets", type=GSheetsConnection)
+        URL_GSHEETS = "https://docs.google.com/spreadsheets/d/1Dy177j1etKePN8EJndQ5KoATSA25GTW7JhUy0QNtuyc/edit?usp=sharing"
+        conn.update(spreadsheet=URL_GSHEETS, data=df_actualizado)
         return True
     except Exception as e:
         st.error(f"Error al guardar cambios en Google Sheets: {e}")

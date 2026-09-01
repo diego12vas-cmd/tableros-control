@@ -710,10 +710,10 @@ def buscar_columna_por_patron(df, patrones):
                 return col
     return None
 
-def generar_excel_formateado(df):
-    output = io.BytesIO()
-    
-    # 📌 RESTRICCIÓN SOLICITADA: EXPORTAR ÚNICAMENTE LAS 15 COLUMNAS AMARILLAS EXACTAS
+def filtrar_solo_columnas_amarillas(df):
+    """
+    Filtra strictly solo las 15 columnas amarillas definidas.
+    """
     patrones_amarillos_exactos = [
         ["plan auditoria"],
         ["auditoria"],
@@ -738,7 +738,11 @@ def generar_excel_formateado(df):
         if col_found and col_found in df.columns and col_found not in cols_a_exportar:
             cols_a_exportar.append(col_found)
 
-    df_export = df[cols_a_exportar].copy() if cols_a_exportar else df.copy()
+    return df[cols_a_exportar].copy() if cols_a_exportar else df.copy()
+
+def generar_excel_formateado(df):
+    output = io.BytesIO()
+    df_export = filtrar_solo_columnas_amarillas(df)
 
     # Formateo estricto de fechas (DD/MM/YYYY) sin horas
     for col in df_export.columns:
@@ -1207,23 +1211,27 @@ if entorno_activo == "Auditoría Interna":
                         s_val = df_tabla[col_a30].fillna("").astype(str).str.strip().str.lower()
                         df_tabla = df_tabla[~s_val.isin(["nan", "none", "", "0", "0.0", "false"])]
 
-                df_tabla.index = range(1, len(df_tabla) + 1)
+                # 📌 FILTRADO DIRECTO PARA MOSTRAR ÚNICAMENTE LAS COLUMNAS AMARILLAS EN PANTALLA
+                df_tabla_vista = filtrar_solo_columnas_amarillas(df_tabla)
+                df_tabla_vista.index = range(1, len(df_tabla_vista) + 1)
 
                 col_config_dict = {}
-                if col_link_evidencia and col_link_evidencia in df_tabla.columns:
+                col_ev_vista = buscar_columna_por_patron(df_tabla_vista, ["enlace para cargar evidencias", "evidencias", "cargar evidencia", "soporte", "link"])
+                
+                if col_ev_vista and col_ev_vista in df_tabla_vista.columns:
                     def normalizar_url(val):
                         val_str = str(val).strip()
                         if val_str and val_str.lower() not in ["nan", "none", ""] and not val_str.startswith("http"):
                             return f"https://{val_str}"
                         return val_str
-                    df_tabla[col_link_evidencia] = df_tabla[col_link_evidencia].apply(normalizar_url)
-                    col_config_dict[col_link_evidencia] = st.column_config.LinkColumn(
-                        "Enlace para cargar evidencias",
+                    df_tabla_vista[col_ev_vista] = df_tabla_vista[col_ev_vista].apply(normalizar_url)
+                    col_config_dict[col_ev_vista] = st.column_config.LinkColumn(
+                        col_ev_vista,
                         help="Haz clic para abrir o cargar la evidencia en Google Drive",
                         display_text="📂 Cargar Evidencia"
                     )
 
-                st.dataframe(df_tabla, use_container_width=True, column_config=col_config_dict)
+                st.dataframe(df_tabla_vista, use_container_width=True, column_config=col_config_dict)
 
                 st.download_button(
                     label="📥 Descargar Excel (.xlsx)",
@@ -1409,14 +1417,14 @@ if entorno_activo == "Auditoría Interna":
                 col_ac2.metric("⏱️ Promedio Días Vencidos", f"{prom_mora} días")
 
                 if not df_criticos_30.empty:
-                    df_criticos_30_vista = df_criticos_30.copy()
+                    df_criticos_30_vista = filtrar_solo_columnas_amarillas(df_criticos_30)
                     df_criticos_30_vista.index = range(1, len(df_criticos_30_vista) + 1)
                     st.subheader("📋 Tabla de Compromisos Críticos")
                     st.dataframe(df_criticos_30_vista, use_container_width=True)
 
                     st.download_button(
                         label="📥 Descargar Acciones Críticas en Excel (.xlsx)",
-                        data=generar_excel_formateado(df_criticos_30_vista),
+                        data=generar_excel_formateado(df_criticos_30),
                         file_name=f"Compromisos_Criticos_30Dias_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         use_container_width=False,
@@ -1732,8 +1740,9 @@ if entorno_activo == "Auditoría Interna":
                     df_finalizadas_tabla = df_filtrado[df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
 
                     if not df_finalizadas_tabla.empty:
-                        df_finalizadas_tabla.index = range(1, len(df_finalizadas_tabla) + 1)
-                        st.dataframe(df_finalizadas_tabla, use_container_width=True)
+                        df_finalizadas_vista = filtrar_solo_columnas_amarillas(df_finalizadas_tabla)
+                        df_finalizadas_vista.index = range(1, len(df_finalizadas_vista) + 1)
+                        st.dataframe(df_finalizadas_vista, use_container_width=True)
 
                         st.download_button(
                             label="📥 Descargar Solo Finalizadas (.xlsx)",

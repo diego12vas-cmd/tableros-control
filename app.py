@@ -385,14 +385,12 @@ st.markdown(
             visibility: hidden !important;
         }
 
-        /* FLECHA DE EXPANDIR/COLAPSAR ACTIVADA */
         [data-testid="stSidebarCollapsedControl"] {
             display: block !important;
             visibility: visible !important;
             z-index: 1000000 !important;
         }
 
-        /* ESTIMULAR LA CAJA FLOTANTE (TOOLTIP) CON TEXT-OVERFLOW */
         div[role="listbox"] li,
         div[role="listbox"] li span,
         [data-testid="stSidebar"] div[role="listbox"] li {
@@ -402,7 +400,6 @@ st.markdown(
             line-height: 1.3 !important;
         }
 
-        /* CONTENEDOR POPUP FLOTANTE AMPLIO EN EL HOVER DE FILTROS */
         div[role="listbox"], 
         ul[role="listbox"],
         div[data-baseweb="popover"],
@@ -711,9 +708,6 @@ def buscar_columna_por_patron(df, patrones):
     return None
 
 def filtrar_solo_columnas_amarillas_ai(df):
-    """
-    Incluye estrictamente las 15 columnas amarillas (incluyendo Inicio y Cierre)
-    """
     columnas_permitidas_exactas = [
         "Plan Auditoría",
         "Auditoría",
@@ -747,7 +741,7 @@ def filtrar_solo_columnas_amarillas_ai(df):
             elif "inicio" in col_req.lower():
                 col_m = buscar_columna_por_patron(df, ["inicio"])
             elif "cierre" in col_req.lower():
-                col_m = buscar_columna_por_patron(df, ["cierre"])
+                col_m = buscar_columna_por_patron(df, ["cierre", "fecha cierre", "fecha compromiso"])
             elif "estado" in col_req.lower():
                 col_m = buscar_columna_por_patron(df, ["estado del compromiso", "estado compromiso"]) or ("Estado" if "Estado" in df.columns else None)
 
@@ -757,9 +751,6 @@ def filtrar_solo_columnas_amarillas_ai(df):
     return df[cols_finales].copy() if cols_finales else df.copy()
 
 def filtrar_solo_columnas_amarillas_c(df):
-    """
-    Incluye las 15 columnas amarillas de Contraloría
-    """
     columnas_c_exactas = [
         "VIGENCIA DE LA AUDITORÍA O VISITA",
         "CODIGO AUDITORÍA SEGÚN PAD DE LA VIGENCIA",
@@ -1506,14 +1497,19 @@ if entorno_activo == "Auditoría Interna":
                 df_alertas = df_filtrado.copy()
                 hoy = pd.to_datetime(date.today())
 
+                # CONVERSIÓN FLEXIBLE Y RIGUROSA DE FECHA DE CIERRE DE COMPROMISO
                 if col_fecha_cierre and col_fecha_cierre in df_alertas.columns:
-                    df_alertas["Fecha_DT"] = pd.to_datetime(df_alertas[col_fecha_cierre], errors="coerce")
+                    df_alertas["Fecha_DT"] = pd.to_datetime(df_alertas[col_fecha_cierre], errors="coerce", dayfirst=True)
                     df_alertas["Dias_Atraso"] = (hoy - df_alertas["Fecha_DT"]).dt.days
-                    df_alertas["Dias_Atraso"] = df_alertas["Dias_Atraso"].apply(lambda x: x if x > 0 else 0)
+                    df_alertas["Dias_Atraso"] = df_alertas["Dias_Atraso"].apply(lambda x: x if pd.notnull(x) and x > 0 else 0)
                 else:
                     df_alertas["Dias_Atraso"] = 0
 
-                df_criticos_30 = df_alertas[(~df_alertas[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)) & (df_alertas["Dias_Atraso"] >= 30)].sort_values(by="Dias_Atraso", ascending=False)
+                # CALCULO DE PLANES CRÍTICOS PENDIENTES CON MAS DE 30 DÍAS DE ATRASO
+                df_criticos_30 = df_alertas[
+                    (~df_alertas[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)) & 
+                    (df_alertas["Dias_Atraso"] >= 30)
+                ].sort_values(by="Dias_Atraso", ascending=False)
 
                 col_ac1, col_ac2 = st.columns(2)
                 col_ac1.metric("🔴 Planes Críticos (≥ 30 Días Mora)", len(df_criticos_30))
@@ -1615,7 +1611,7 @@ if entorno_activo == "Auditoría Interna":
                         fecha_antigua_str = ""
                         if registro is not None and col_fecha_cierre and pd.notnull(registro[col_fecha_cierre]):
                             try:
-                                fecha_def_obj = pd.to_datetime(registro[col_fecha_cierre]).date()
+                                fecha_def_obj = pd.to_datetime(registro[col_fecha_cierre], dayfirst=True).date()
                                 fecha_antigua_str = fecha_def_obj.strftime("%d/%m/%Y")
                             except Exception:
                                 fecha_antigua_str = str(registro[col_fecha_cierre])

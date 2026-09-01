@@ -72,7 +72,8 @@ def obtener_conexion_gsheets():
 def obtener_usuarios_df():
     try:
         conn = obtener_conexion_gsheets()
-        df = conn.read(ttl="0d")
+        # Se especifica 'worksheet' explícitamente para evitar cuellos de botella en la lectura
+        df = conn.read(worksheet="Hoja 1", ttl=0)
         return df
     except Exception as e:
         st.error(f"Error al leer usuarios desde Google Sheets: {e}")
@@ -81,7 +82,7 @@ def obtener_usuarios_df():
 def guardar_tabla_usuarios(df_actualizado):
     try:
         conn = obtener_conexion_gsheets()
-        conn.update(data=df_actualizado)
+        conn.update(worksheet="Hoja 1", data=df_actualizado)
         return True
     except Exception as e:
         st.error(f"Error al guardar cambios en Google Sheets: {e}")
@@ -222,8 +223,8 @@ def validar_login():
                             row = user_row.iloc[0]
                             pw_hash = str(row['password_hash']).strip()
                             autorizado = int(row['autorizado'])
-                            perm_str = str(row.get('perm_pestañas', 'TODOS'))
-                            ent_str = str(row.get('perm_entornos', 'TODOS'))
+                            perm_str = str(row.get('perm_pestañas', 'TODOS')).upper()
+                            ent_str = str(row.get('perm_entornos', 'TODOS')).upper()
 
                             if autorizado == 0:
                                 st.error("🚫 Tu usuario no está autorizado para acceder. Contacta al administrador.")
@@ -834,8 +835,8 @@ if entorno_activo == "Auditoría Interna":
                 
                 if user_sel:
                     row_u = df_users[df_users['usuario'] == user_sel].iloc[0]
-                    p_actuales = str(row_u.get('perm_pestañas', 'TODOS')).split(",") if str(row_u.get('perm_pestañas', 'TODOS')) != "TODOS" else TODAS_LAS_PESTANIAS
-                    e_actuales = str(row_u.get('perm_entornos', 'TODOS')).split(",") if str(row_u.get('perm_entornos', 'TODOS')) != "TODOS" else TODOS_LOS_ENTORNOS
+                    p_actuales = str(row_u.get('perm_pestañas', 'TODOS')).upper().split(",") if str(row_u.get('perm_pestañas', 'TODOS')).upper() != "TODOS" else TODAS_LAS_PESTANIAS
+                    e_actuales = str(row_u.get('perm_entornos', 'TODOS')).upper().split(",") if str(row_u.get('perm_entornos', 'TODOS')).upper() != "TODOS" else TODOS_LOS_ENTORNOS
                     
                     st.markdown("**Modificar Entornos Permitidos:**")
                     nuevos_ents = []

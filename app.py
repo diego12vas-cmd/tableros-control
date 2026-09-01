@@ -25,6 +25,11 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
+# URL DE GOOGLE SHEETS
+# ---------------------------------------------------------
+URL_GSHEETS = "https://docs.google.com/spreadsheets/d/1Dy177j1etKePN8EJndQ5KoATSA25GTW7JhUy0QNtuyc/edit?usp=sharing"
+
+# ---------------------------------------------------------
 # BÚSQUEDA DEL LOGO LOCAL
 # ---------------------------------------------------------
 def buscar_logo_local():
@@ -72,7 +77,7 @@ def obtener_conexion_gsheets():
 def obtener_usuarios_df():
     try:
         conn = obtener_conexion_gsheets()
-        df = conn.read(worksheet="Hoja 1", ttl=0)
+        df = conn.read(spreadsheet=URL_GSHEETS, worksheet="Hoja 1", ttl=0)
         return df
     except Exception as e:
         st.error(f"Error al leer usuarios desde Google Sheets: {e}")
@@ -81,7 +86,7 @@ def obtener_usuarios_df():
 def guardar_tabla_usuarios(df_actualizado):
     try:
         conn = obtener_conexion_gsheets()
-        conn.update(worksheet="Hoja 1", data=df_actualizado)
+        conn.update(spreadsheet=URL_GSHEETS, worksheet="Hoja 1", data=df_actualizado)
         return True
     except Exception as e:
         st.error(f"Error al guardar cambios en Google Sheets: {e}")

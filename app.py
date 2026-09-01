@@ -702,9 +702,41 @@ def obtener_fecha_excel(ruta_target):
             return datetime.fromtimestamp(os.path.getmtime(ruta_target)).strftime("%d/%m/%Y")
         return None
 
+def buscar_columna_por_patron(df, patrones):
+    for col in df.columns:
+        col_clean = str(col).lower().replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
+        for pat in patrones:
+            if pat in col_clean:
+                return col
+    return None
+
 def generar_excel_formateado(df):
     output = io.BytesIO()
-    df_export = df.copy()
+    
+    # 📌 RESTRICCIÓN SOLICITADA: EXPORTAR ÚNICAMENTE LAS COLUMNAS AMARILLAS (LAS 7 SELECCIONADAS)
+    cols_amarillas_deseadas = [
+        "Plan Auditoría",
+        "Auditoría",
+        "Titulo del Hallazgo",
+        "Transcribir el del Hallazgo o Situación Evidenciada",
+        "Nivel del Riesgo",
+        "Plan de Acción",
+        "Responsable"
+    ]
+
+    # Mapeo flexible de columnas para coincidir exactamente con el dataframe actual
+    cols_a_exportar = []
+    for col_req in cols_amarillas_deseadas:
+        encontrada = buscar_columna_por_patron(df, [col_req.lower()])
+        if encontrada and encontrada in df.columns:
+            cols_a_exportar.append(encontrada)
+
+    # Si por alguna razón no mapea por patrón, buscamos si existen exactamente
+    if not cols_a_exportar:
+        cols_a_exportar = [c for c in cols_amarillas_deseadas if c in df.columns]
+
+    # Si se encontraron las columnas amarillas, filtramos solo esas. Si no, mantenemos el df
+    df_export = df[cols_a_exportar].copy() if cols_a_exportar else df.copy()
 
     cols_fecha = [col for col in df_export.columns if any(p in str(col).lower() for p in ["fecha", "terminacion", "cierre", "inicio", "vencimiento"])]
 
@@ -744,14 +776,6 @@ def generar_excel_formateado(df):
 
         worksheet.hide_gridlines(2)
     return output.getvalue()
-
-def buscar_columna_por_patron(df, patrones):
-    for col in df.columns:
-        col_clean = str(col).lower().replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
-        for pat in patrones:
-            if pat in col_clean:
-                return col
-    return None
 
 # =========================================================
 # VISTA 1: AUDITORÍA INTERNA
@@ -802,6 +826,7 @@ if entorno_activo == "Auditoría Interna":
     col_riesgo = buscar_columna_por_patron(df_raw, ["riesgo", "nivel de riesgo"])
     col_fecha_cierre = buscar_columna_por_patron(df_raw, ["cierre", "fecha cierre", "fecha compromiso"])
     col_obs_audit = buscar_columna_por_patron(df_raw, ["observacion auditoria"]) or "Observación Auditoría"
+    col_link_evidencia = buscar_columna_por_patron(df_raw, ["enlace pdf", "soporte", "evidencia", "drive", "link"])
 
     col_a5 = buscar_columna_por_patron(df_raw, ["alerta 5"])
     col_a10 = buscar_columna_por_patron(df_raw, ["alerta 10"])
@@ -1162,7 +1187,23 @@ if entorno_activo == "Auditoría Interna":
                         df_tabla = df_tabla[~s_val.isin(["nan", "none", "", "0", "0.0", "false"])]
 
                 df_tabla.index = range(1, len(df_tabla) + 1)
-                st.dataframe(df_tabla, use_container_width=True)
+
+                # 📌 CONFIGURACIÓN DE BOTÓN INTERACTIVO PARA ENLACES DE EVIDENCIA
+                col_config_dict = {}
+                if col_link_evidencia and col_link_evidencia in df_tabla.columns:
+                    def normalizar_url(val):
+                        val_str = str(val).strip()
+                        if val_str and val_str.lower() not in ["nan", "none", ""] and not val_str.startswith("http"):
+                            return f"https://{val_str}"
+                        return val_str
+                    df_tabla[col_link_evidencia] = df_tabla[col_link_evidencia].apply(normalizar_url)
+                    col_config_dict[col_link_evidencia] = st.column_config.LinkColumn(
+                        "Cargar / Ver Evidencia",
+                        help="Haz clic para abrir o cargar la evidencia en Google Drive",
+                        display_text="📂 Cargar Evidencia"
+                    )
+
+                st.dataframe(df_tabla, use_container_width=True, column_config=col_config_dict)
 
                 st.download_button(
                     label="📥 Descargar Excel (.xlsx)",
@@ -1683,7 +1724,7 @@ if entorno_activo == "Auditoría Interna":
                             use_container_width=False,
                         )
                     else:
-                        st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros applied.")
+                        st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
 
             elif nombre_tab_real == "Informes":
                 st.header("📑 Informes de Auditoría Interna por Vigencia")

@@ -72,7 +72,6 @@ def obtener_conexion_gsheets():
 def obtener_usuarios_df():
     try:
         conn = obtener_conexion_gsheets()
-        # Se especifica 'worksheet' explícitamente para evitar cuellos de botella en la lectura
         df = conn.read(worksheet="Hoja 1", ttl=0)
         return df
     except Exception as e:

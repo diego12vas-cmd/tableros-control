@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import sqlite3
 import smtplib
 from email.mime.text import MIMEText
 import random
@@ -24,11 +25,6 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
-# URL DIRECTA DE LECTURA (GOOGLE SHEETS CSV)
-# ---------------------------------------------------------
-URL_CSV_USUARIOS = "https://docs.google.com/spreadsheets/d/1Dy177j1etKePN8EJndQ5KoATSA25GTW7JhUy0QNtuyc/export?format=csv"
-
-# ---------------------------------------------------------
 # BÚSQUEDA DEL LOGO LOCAL
 # ---------------------------------------------------------
 def buscar_logo_local():
@@ -43,8 +39,10 @@ def buscar_logo_local():
 LOGO_PATH = buscar_logo_local()
 
 # ---------------------------------------------------------
-# CONSTANTES DE ENTORNO Y PESTAÑAS
+# BASE DE DATOS LOCAL Y USUARIOS RESPALDO (SQLITE)
 # ---------------------------------------------------------
+DB_PATH = "usuarios_app.db"
+
 TODAS_LAS_PESTANIAS = [
     "Tablero", 
     "Programa Anual", 
@@ -67,66 +65,102 @@ def hash_password(password):
 def verificar_password(password, hashed):
     return hmac.compare_digest(hash_password(password), str(hashed).strip())
 
-# ---------------------------------------------------------
-# CONEXIÓN Y GESTIÓN DE USUARIOS VÍA GOOGLE SHEETS
-# ---------------------------------------------------------
-def obtener_usuarios_df():
-    try:
-        df = pd.read_csv(URL_CSV_USUARIOS)
-        # Limpieza automática de nombres de columnas
-        df.columns = [str(c).strip() for c in df.columns]
-        return df
-    except Exception as e:
-        st.error(f"Error al leer usuarios desde Google Sheets: {e}")
-        return pd.DataFrame()
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS usuarios (
+            usuario TEXT PRIMARY KEY,
+            email TEXT UNIQUE,
+            password_hash TEXT,
+            autorizado INTEGER DEFAULT 1,
+            token_recuperacion TEXT,
+            perm_pestañas TEXT DEFAULT 'TODOS',
+            perm_entornos TEXT DEFAULT 'TODOS'
+        )
+    ''')
+    conn.commit()
 
-def guardar_tabla_usuarios(df_actualizado):
-    try:
-        from streamlit_gsheets import GSheetsConnection
-        conn = st.connection("gsheets", type=GSheetsConnection)
-        URL_GSHEETS = "https://docs.google.com/spreadsheets/d/1Dy177j1etKePN8EJndQ5KoATSA25GTW7JhUy0QNtuyc/edit?usp=sharing"
-        conn.update(spreadsheet=URL_GSHEETS, data=df_actualizado)
-        return True
-    except Exception as e:
-        st.error(f"Error al guardar cambios en Google Sheets: {e}")
-        return False
+    pw_defecto = hash_password("123456")
+
+    usuarios_base = [
+        ('edgar.ortiz', 'edgar.ortiz@terminaldetransporte.gov', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('manuel.cifuentes', 'manuel.cifuentes@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('eduardo.gonzalez', 'eduardo.gonzalez@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('oscar.garzon', 'oscar.garzon@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('manuel.santamaria', 'manuel.santamaria@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('carlos.salcedo', 'carlos.salcedo@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('juan.alviz', 'juan.alviz@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('julio.mosquera', 'julio.mosquera@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('marcela.angarita', 'marcela.angarita@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('roberto.bermudez', 'roberto.bermudez@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('miguel.salina', 'miguel.salina@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('oscar.castañeda', 'oscar.castaneda@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('andres.panqueva', 'andres.panqueva@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('christian.pardo', 'christian.pardo@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('diana.ortiz', 'diana.ortiz@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('andrea.lievano', 'andrea.lievano@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('william.camargo', 'william.camargo@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('gerson.lugo', 'gerson.lugo@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('leonardo.vasquez', 'leonardo.vasquez@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('javier.veloza', 'javier.veloza@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('manuel.salgado', 'manuel.salgado@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('edgar.guzman', 'edgar.guzman@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('carolina.bueno', 'carolina.bueno@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('jenny.gomez', 'jenny.gomez@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('paola.copete', 'paola.copete@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('hugo.montoya', 'hugo.montoya@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('admin', 'diego.vasquez@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('diego.12', 'diego12vas@gmail.com', pw_defecto, 1, 'Tablero,Programa Anual,Métricas,Histórico,Alertas y Edición,Oficios,Finalizadas,Informes', 'TODOS'),
+        ('fabian.silva', 'fabian.silva@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('manuel.gutierrez', 'manuel.gutierrez@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
+        ('omar.diaz', 'omar.diaz@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS')
+    ]
+
+    c.executemany('''
+        INSERT OR IGNORE INTO usuarios (usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', usuarios_base)
+
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def obtener_usuarios_df():
+    conn = sqlite3.connect(DB_PATH)
+    df = pd.read_sql_query("SELECT usuario, email, autorizado, perm_pestañas, perm_entornos FROM usuarios", conn)
+    conn.close()
+    return df
 
 def actualizar_permisos_usuario(usuario, lista_pestañas, lista_entornos):
-    df = obtener_usuarios_df()
-    if not df.empty and 'usuario' in df.columns:
-        perm_str = ",".join(lista_pestañas) if lista_pestañas else "TODOS"
-        ent_str = ",".join(lista_entornos) if lista_entornos else "TODOS"
-        
-        idx = df[df['usuario'] == usuario].index
-        if not idx.empty:
-            df.loc[idx, 'perm_pestañas'] = perm_str
-            df.loc[idx, 'perm_entornos'] = ent_str
-            guardar_tabla_usuarios(df)
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    perm_str = ",".join(lista_pestañas) if lista_pestañas else "TODOS"
+    ent_str = ",".join(lista_entornos) if lista_entornos else "TODOS"
+    c.execute("UPDATE usuarios SET perm_pestañas = ?, perm_entornos = ? WHERE usuario = ?", (perm_str, ent_str, usuario))
+    conn.commit()
+    conn.close()
 
 def guardar_o_actualizar_usuario(usuario, email, password, permisos_list, entornos_list):
-    df = obtener_usuarios_df()
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
     pw_hash = hash_password(password)
     perm_str = ",".join(permisos_list) if permisos_list else "TODOS"
     ent_str = ",".join(entornos_list) if entornos_list else "TODOS"
     
-    nuevo_registro = {
-        'usuario': usuario,
-        'email': email,
-        'password_hash': pw_hash,
-        'autorizado': 1,
-        'perm_pestañas': perm_str,
-        'perm_entornos': ent_str
-    }
-    
-    if not df.empty and 'usuario' in df.columns and usuario in df['usuario'].values:
-        idx = df[df['usuario'] == usuario].index
-        for col, val in nuevo_registro.items():
-            if col in df.columns:
-                df.loc[idx, col] = val
-    else:
-        df = pd.concat([df, pd.DataFrame([nuevo_registro])], ignore_index=True)
-        
-    guardar_tabla_usuarios(df)
+    c.execute('''
+        INSERT INTO usuarios (usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos)
+        VALUES (?, ?, ?, 1, ?, ?)
+        ON CONFLICT(usuario) DO UPDATE SET
+            email=excluded.email,
+            password_hash=excluded.password_hash,
+            autorizado=1,
+            perm_pestañas=excluded.perm_pestañas,
+            perm_entornos=excluded.perm_entornos
+    ''', (usuario, email, pw_hash, perm_str, ent_str))
+    conn.commit()
+    conn.close()
 
 def enviar_correo_token(email_destino, token):
     try:
@@ -217,44 +251,38 @@ def validar_login():
                 password = st.text_input("Contraseña", type="password", key="pass_input_ai")
                 
                 if st.button("Iniciar Sesión", type="primary", use_container_width=True):
-                    df_users = obtener_usuarios_df()
-                    
-                    if not df_users.empty and 'usuario' in df_users.columns:
-                        user_row = df_users[df_users['usuario'].astype(str).str.strip() == usuario.strip()]
+                    conn = sqlite3.connect(DB_PATH)
+                    c = conn.cursor()
+                    c.execute("SELECT password_hash, autorizado, perm_pestañas, perm_entornos FROM usuarios WHERE usuario = ?", (usuario.strip(),))
+                    row = c.fetchone()
+                    conn.close()
 
-                        if not user_row.empty:
-                            row = user_row.iloc[0]
-                            pw_hash = str(row['password_hash']).strip()
-                            autorizado = int(row['autorizado'])
-                            perm_str = str(row.get('perm_pestañas', 'TODOS')).upper()
-                            ent_str = str(row.get('perm_entornos', 'TODOS')).upper()
-
-                            if autorizado == 0:
-                                st.error("🚫 Tu usuario no está autorizado para acceder. Contacta al administrador.")
-                            elif verificar_password(password, pw_hash):
-                                st.session_state["autenticado"] = True
-                                st.session_state["usuario_actual"] = usuario.strip()
-                                
-                                perm_val = perm_str if perm_str else "TODOS"
-                                if perm_val == "TODOS" or usuario.strip() == "admin":
-                                    st.session_state["permisos_usuario"] = TODAS_LAS_PESTANIAS
-                                else:
-                                    st.session_state["permisos_usuario"] = [p.strip() for p in perm_val.split(",") if p.strip()]
-                                    
-                                ent_val = ent_str if ent_str else "TODOS"
-                                if ent_val == "TODOS" or usuario.strip() == "admin":
-                                    st.session_state["permisos_entornos"] = TODOS_LOS_ENTORNOS
-                                else:
-                                    st.session_state["permisos_entornos"] = [e.strip() for e in ent_val.split(",") if e.strip()]
-                                    
-                                login_container.empty()
-                                st.rerun()
+                    if row:
+                        pw_hash, autorizado, perm_str, ent_str = row
+                        if autorizado == 0:
+                            st.error("🚫 Tu usuario no está autorizado para acceder. Contacta al administrador.")
+                        elif verificar_password(password, pw_hash):
+                            st.session_state["autenticado"] = True
+                            st.session_state["usuario_actual"] = usuario.strip()
+                            
+                            perm_val = perm_str if perm_str else "TODOS"
+                            if perm_val == "TODOS" or usuario.strip() == "admin":
+                                st.session_state["permisos_usuario"] = TODAS_LAS_PESTANIAS
                             else:
-                                st.error("❌ Usuario o contraseña incorrectos.")
+                                st.session_state["permisos_usuario"] = [p.strip() for p in perm_val.split(",") if p.strip()]
+                                
+                            ent_val = ent_str if ent_str else "TODOS"
+                            if ent_val == "TODOS" or usuario.strip() == "admin":
+                                st.session_state["permisos_entornos"] = TODOS_LOS_ENTORNOS
+                            else:
+                                st.session_state["permisos_entornos"] = [e.strip() for e in ent_val.split(",") if e.strip()]
+                                
+                            login_container.empty()
+                            st.rerun()
                         else:
                             st.error("❌ Usuario o contraseña incorrectos.")
                     else:
-                        st.error("⚠️ No se pudo cargar la base de datos de usuarios desde Google Sheets.")
+                        st.error("❌ Usuario o contraseña incorrectos.")
 
                 st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
@@ -264,32 +292,29 @@ def validar_login():
                     if paso == 1:
                         email_req = st.text_input("Ingresa tu correo electrónico registrado:")
                         if st.button("Enviar Código de Verificación", use_container_width=True):
-                            df_users = obtener_usuarios_df()
-                            if not df_users.empty and 'email' in df_users.columns:
-                                row_email = df_users[df_users['email'].astype(str).str.strip().str.lower() == email_req.strip().lower()]
+                            conn = sqlite3.connect(DB_PATH)
+                            c = conn.cursor()
+                            c.execute("SELECT usuario, autorizado FROM usuarios WHERE LOWER(email) = ?", (email_req.strip().lower(),))
+                            row = c.fetchone()
 
-                                if not row_email.empty:
-                                    row = row_email.iloc[0]
-                                    aut = int(row['autorizado'])
-                                    if aut == 0:
-                                        st.error("🚫 Este usuario no está autorizado.")
-                                    else:
-                                        token = "".join(random.choices(string.digits, k=6))
-                                        idx = row_email.index
-                                        if 'token_recuperacion' not in df_users.columns:
-                                            df_users['token_recuperacion'] = None
-                                        df_users.loc[idx, 'token_recuperacion'] = token
-                                        guardar_tabla_usuarios(df_users)
-                                        
-                                        if enviar_correo_token(email_req.strip().lower(), token):
-                                            st.session_state["email_recuperacion"] = email_req.strip().lower()
-                                            st.session_state["paso_recuperacion"] = 2
-                                            st.success("✅ Código generado. Revisa el mensaje arriba o tu correo.")
-                                            st.rerun()
+                            if row:
+                                user_found, aut = row
+                                if aut == 0:
+                                    st.error("🚫 Este usuario no está autorizado.")
                                 else:
-                                    st.error("❌ El correo no se encuentra registrado en el sistema.")
+                                    token = "".join(random.choices(string.digits, k=6))
+                                    c.execute("UPDATE usuarios SET token_recuperacion = ? WHERE LOWER(email) = ?", (token, email_req.strip().lower()))
+                                    conn.commit()
+                                    conn.close()
+                                    
+                                    if enviar_correo_token(email_req.strip().lower(), token):
+                                        st.session_state["email_recuperacion"] = email_req.strip().lower()
+                                        st.session_state["paso_recuperacion"] = 2
+                                        st.success("✅ Código enviado con éxito. Revisa tu bandeja de entrada.")
+                                        st.rerun()
                             else:
-                                st.error("❌ Error al acceder a Google Sheets.")
+                                conn.close()
+                                st.error("❌ El correo no se encuentra registrado en el sistema.")
 
                     elif paso == 2:
                         st.info(f"Código enviado a: **{st.session_state.get('email_recuperacion')}**")
@@ -303,25 +328,24 @@ def validar_login():
                             elif len(nueva_pw) < 6:
                                 st.error("⚠️ La contraseña debe tener al menos 6 caracteres.")
                             else:
-                                df_users = obtener_usuarios_df()
-                                if not df_users.empty and 'email' in df_users.columns:
-                                    idx_email = df_users[df_users['email'].astype(str).str.strip().str.lower() == st.session_state.get("email_recuperacion")].index
-                                    
-                                    if not idx_email.empty:
-                                        token_guardado = str(df_users.loc[idx_email[0], 'token_recuperacion']).strip() if 'token_recuperacion' in df_users.columns else ""
-                                        
-                                        if token_guardado == token_ingresado.strip():
-                                            new_hash = hash_password(nueva_pw)
-                                            df_users.loc[idx_email, 'password_hash'] = new_hash
-                                            if 'token_recuperacion' in df_users.columns:
-                                                df_users.loc[idx_email, 'token_recuperacion'] = ""
-                                            guardar_tabla_usuarios(df_users)
+                                conn = sqlite3.connect(DB_PATH)
+                                c = conn.cursor()
+                                c.execute("SELECT token_recuperacion FROM usuarios WHERE LOWER(email) = ?", (st.session_state.get("email_recuperacion"),))
+                                row = c.fetchone()
 
-                                            st.success("🎉 ¡Contraseña actualizada con éxito! Ya puedes iniciar sesión.")
-                                            st.session_state["paso_recuperacion"] = 1
-                                            st.session_state["email_recuperacion"] = None
-                                        else:
-                                            st.error("❌ El código de verificación es incorrecto.")
+                                if row and row[0] == token_ingresado.strip():
+                                    new_hash = hash_password(nueva_pw)
+                                    c.execute("UPDATE usuarios SET password_hash = ?, token_recuperacion = NULL WHERE LOWER(email) = ?", 
+                                              (new_hash, st.session_state.get("email_recuperacion")))
+                                    conn.commit()
+                                    conn.close()
+
+                                    st.success("🎉 ¡Contraseña actualizada con éxito! Ya puedes iniciar sesión.")
+                                    st.session_state["paso_recuperacion"] = 1
+                                    st.session_state["email_recuperacion"] = None
+                                else:
+                                    conn.close()
+                                    st.error("❌ El código de verificación es incorrecto.")
 
                     if st.button("Volver a empezar"):
                         st.session_state["paso_recuperacion"] = 1
@@ -826,7 +850,7 @@ if entorno_activo == "Auditoría Interna":
             if st.button("Guardar / Autorizar Usuario"):
                 if new_u and new_e and new_p:
                     guardar_o_actualizar_usuario(new_u.strip(), new_e.strip().lower(), new_p, u_permisos, u_entornos)
-                    st.success(f"Usuario `{new_u}` actualizado en Google Sheets.")
+                    st.success(f"Usuario `{new_u}` actualizado.")
                 else:
                     st.warning("Completa todos los campos.")
                     
@@ -857,7 +881,7 @@ if entorno_activo == "Auditoría Interna":
                             
                     if st.button(f"Actualizar Permisos de {user_sel}"):
                         actualizar_permisos_usuario(user_sel, nuevos_perms, nuevos_ents)
-                        st.success("Permisos guardados en Google Sheets.")
+                        st.success("Permisos guardados.")
                         st.rerun()
 
             st.divider()
@@ -1659,7 +1683,7 @@ if entorno_activo == "Auditoría Interna":
                             use_container_width=False,
                         )
                     else:
-                        st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
+                        st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros applied.")
 
             elif nombre_tab_real == "Informes":
                 st.header("📑 Informes de Auditoría Interna por Vigencia")

@@ -72,20 +72,24 @@ def commit_usuarios_a_github(data_list):
     """
     Sincroniza automáticamente la lista de usuarios con el repositorio de GitHub usando el Token.
     """
-    token = st.secrets.get("GITHUB_TOKEN", "")
-    repo = st.secrets.get("GITHUB_REPO", "")
+    token = st.secrets.get("GITHUB_TOKEN", "").strip()
+    repo = st.secrets.get("GITHUB_REPO", "").strip()
     
     if not token or not repo:
+        st.warning("⚠️ No se encontraron las credenciales GITHUB_TOKEN o GITHUB_REPO en Secrets.")
         return False
 
     url = f"https://api.github.com/repos/{repo}/contents/{JSON_USERS_FILE}"
+    
+    # Encabezados estandarizados para GitHub API v3
     headers = {
-        "Authorization": f"token {token}",
-        "Accept": "application/vnd.github.v3+json"
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "StreamlitApp-LaTerminal"
     }
 
     try:
-        # 1. Obtener SHA actual si el archivo ya existe en GitHub
+        # 1. Obtener SHA actual del archivo usuarios.json
         res_get = requests.get(url, headers=headers)
         sha = None
         if res_get.status_code == 200:
@@ -104,9 +108,15 @@ def commit_usuarios_a_github(data_list):
 
         # 3. Guardar directamente en GitHub
         res_put = requests.put(url, headers=headers, json=payload)
-        return res_put.status_code in [200, 201]
+        
+        if res_put.status_code in [200, 201]:
+            return True
+        else:
+            st.error(f"❌ Error al guardar en GitHub (Status {res_put.status_code}): {res_put.json().get('message', '')}")
+            return False
+            
     except Exception as e:
-        print(f"Error al sincronizar con GitHub API: {e}")
+        st.error(f"❌ Excepción al conectar con GitHub API: {e}")
         return False
 
 def init_db():

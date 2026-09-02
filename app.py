@@ -10,6 +10,7 @@ import io
 import os
 import re
 import json
+import base64
 import requests
 import pandas as pd
 import plotly.express as px
@@ -95,9 +96,9 @@ def commit_usuarios_a_github(data_list):
         if res_get.status_code == 200:
             sha = res_get.json().get("sha")
 
-        # 2. Preparar el contenido codificado en Base64
+        # 2. Preparar el contenido codificado en Base64 usando la librería base64
         content_str = json.dumps(data_list, indent=4, ensure_ascii=False)
-        content_b64 = requests.compat.base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
+        content_b64 = base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
 
         payload = {
             "message": "🔒 Actualización automática de credenciales de usuario",

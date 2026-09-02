@@ -75,6 +75,7 @@ def commit_usuarios_a_github(data_list):
     """
     token = st.secrets.get("GITHUB_TOKEN", "").strip()
     repo = st.secrets.get("GITHUB_REPO", "").strip()
+    branch = st.secrets.get("GITHUB_BRANCH", "main").strip()
     
     if not token or not repo:
         st.warning("⚠️ No se encontraron las credenciales GITHUB_TOKEN o GITHUB_REPO en Secrets.")
@@ -82,7 +83,6 @@ def commit_usuarios_a_github(data_list):
 
     url = f"https://api.github.com/repos/{repo}/contents/{JSON_USERS_FILE}"
     
-    # Encabezados estandarizados para GitHub API v3
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github.v3+json",
@@ -90,24 +90,25 @@ def commit_usuarios_a_github(data_list):
     }
 
     try:
-        # 1. Obtener SHA actual del archivo usuarios.json
-        res_get = requests.get(url, headers=headers)
+        # 1. Obtener SHA actual especificando la rama exacta
+        res_get = requests.get(f"{url}?ref={branch}", headers=headers)
         sha = None
         if res_get.status_code == 200:
             sha = res_get.json().get("sha")
 
-        # 2. Preparar el contenido codificado en Base64 usando la librería base64
+        # 2. Codificar contenido en Base64
         content_str = json.dumps(data_list, indent=4, ensure_ascii=False)
         content_b64 = base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
 
         payload = {
             "message": "🔒 Actualización automática de credenciales de usuario",
-            "content": content_b64
+            "content": content_b64,
+            "branch": branch
         }
         if sha:
             payload["sha"] = sha
 
-        # 3. Guardar directamente en GitHub
+        # 3. Guardar en la rama especificada de GitHub
         res_put = requests.put(url, headers=headers, json=payload)
         
         if res_put.status_code in [200, 201]:

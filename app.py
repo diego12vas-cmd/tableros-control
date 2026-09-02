@@ -9,6 +9,8 @@ from datetime import date, datetime
 import io
 import os
 import re
+import json
+import requests
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -39,9 +41,10 @@ def buscar_logo_local():
 LOGO_PATH = buscar_logo_local()
 
 # ---------------------------------------------------------
-# BASE DE DATOS LOCAL Y USUARIOS RESPALDO (SQLITE)
+# PERSISTENCIA VÍA GITHUB API & SQLITE LOCAL
 # ---------------------------------------------------------
 DB_PATH = "usuarios_app.db"
+JSON_USERS_FILE = "usuarios.json"
 
 TODAS_LAS_PESTANIAS = [
     "Tablero", 
@@ -64,6 +67,47 @@ def hash_password(password):
 
 def verificar_password(password, hashed):
     return hmac.compare_digest(hash_password(password), str(hashed).strip())
+
+def commit_usuarios_a_github(data_list):
+    """
+    Sincroniza automáticamente la lista de usuarios con el repositorio de GitHub usando el Token.
+    """
+    token = st.secrets.get("GITHUB_TOKEN", "")
+    repo = st.secrets.get("GITHUB_REPO", "")
+    
+    if not token or not repo:
+        return False
+
+    url = f"https://api.github.com/repos/{repo}/contents/{JSON_USERS_FILE}"
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+
+    try:
+        # 1. Obtener SHA actual si el archivo ya existe en GitHub
+        res_get = requests.get(url, headers=headers)
+        sha = None
+        if res_get.status_code == 200:
+            sha = res_get.json().get("sha")
+
+        # 2. Preparar el contenido codificado en Base64
+        content_str = json.dumps(data_list, indent=4, ensure_ascii=False)
+        content_b64 = requests.compat.base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
+
+        payload = {
+            "message": "🔒 Actualización automática de credenciales de usuario",
+            "content": content_b64
+        }
+        if sha:
+            payload["sha"] = sha
+
+        # 3. Guardar directamente en GitHub
+        res_put = requests.put(url, headers=headers, json=payload)
+        return res_put.status_code in [200, 201]
+    except Exception as e:
+        print(f"Error al sincronizar con GitHub API: {e}")
+        return False
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -117,6 +161,16 @@ def init_db():
         ('omar.diaz', 'omar.diaz@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS')
     ]
 
+    # Cargar respaldo si existe en la raíz
+    if os.path.exists(JSON_USERS_FILE):
+        try:
+            with open(JSON_USERS_FILE, "r", encoding="utf-8") as f:
+                usuarios_json = json.load(f)
+                if usuarios_json:
+                    usuarios_base = [(u["usuario"], u["email"], u["password_hash"], u.get("autorizado", 1), u.get("perm_pestañas", "TODOS"), u.get("perm_entornos", "TODOS")) for u in usuarios_json]
+        except Exception:
+            pass
+
     c.executemany('''
         INSERT OR IGNORE INTO usuarios (usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -133,6 +187,30 @@ def obtener_usuarios_df():
     conn.close()
     return df
 
+def exportar_y_sincronizar_usuarios():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos FROM usuarios")
+    rows = c.fetchall()
+    conn.close()
+
+    lista_dict = [
+        {
+            "usuario": r[0],
+            "email": r[1],
+            "password_hash": r[2],
+            "autorizado": r[3],
+            "perm_pestañas": r[4],
+            "perm_entornos": r[5]
+        }
+        for r in rows
+    ]
+
+    with open(JSON_USERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(lista_dict, f, indent=4, ensure_ascii=False)
+
+    commit_usuarios_a_github(lista_dict)
+
 def actualizar_permisos_usuario(usuario, lista_pestañas, lista_entornos):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -141,6 +219,7 @@ def actualizar_permisos_usuario(usuario, lista_pestañas, lista_entornos):
     c.execute("UPDATE usuarios SET perm_pestañas = ?, perm_entornos = ? WHERE usuario = ?", (perm_str, ent_str, usuario))
     conn.commit()
     conn.close()
+    exportar_y_sincronizar_usuarios()
 
 def guardar_o_actualizar_usuario(usuario, email, password, permisos_list, entornos_list):
     conn = sqlite3.connect(DB_PATH)
@@ -161,6 +240,7 @@ def guardar_o_actualizar_usuario(usuario, email, password, permisos_list, entorn
     ''', (usuario, email, pw_hash, perm_str, ent_str))
     conn.commit()
     conn.close()
+    exportar_y_sincronizar_usuarios()
 
 def enviar_correo_token(email_destino, token):
     try:
@@ -340,7 +420,9 @@ def validar_login():
                                     conn.commit()
                                     conn.close()
 
-                                    st.success("🎉 ¡Contraseña actualizada con éxito! Ya puedes iniciar sesión.")
+                                    exportar_y_sincronizar_usuarios()
+
+                                    st.success("🎉 ¡Contraseña actualizada con éxito y guardada de forma permanente! Ya puedes iniciar sesión.")
                                     st.session_state["paso_recuperacion"] = 1
                                     st.session_state["email_recuperacion"] = None
                                 else:
@@ -1497,7 +1579,6 @@ if entorno_activo == "Auditoría Interna":
                 df_alertas = df_filtrado.copy()
                 hoy = pd.to_datetime(date.today())
 
-                # CONVERSIÓN FLEXIBLE Y RIGUROSA DE FECHA DE CIERRE DE COMPROMISO
                 if col_fecha_cierre and col_fecha_cierre in df_alertas.columns:
                     df_alertas["Fecha_DT"] = pd.to_datetime(df_alertas[col_fecha_cierre], errors="coerce", dayfirst=True)
                     df_alertas["Dias_Atraso"] = (hoy - df_alertas["Fecha_DT"]).dt.days
@@ -1505,7 +1586,6 @@ if entorno_activo == "Auditoría Interna":
                 else:
                     df_alertas["Dias_Atraso"] = 0
 
-                # CALCULO DE PLANES CRÍTICOS PENDIENTES CON MAS DE 30 DÍAS DE ATRASO
                 df_criticos_30 = df_alertas[
                     (~df_alertas[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)) & 
                     (df_alertas["Dias_Atraso"] >= 30)

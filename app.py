@@ -9,9 +9,6 @@ from datetime import date, datetime
 import io
 import os
 import re
-import json
-import base64
-import requests
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -42,10 +39,9 @@ def buscar_logo_local():
 LOGO_PATH = buscar_logo_local()
 
 # ---------------------------------------------------------
-# PERSISTENCIA VÍA GITHUB API & SQLITE LOCAL
+# BASE DE DATOS LOCAL Y USUARIOS RESPALDO (SQLITE)
 # ---------------------------------------------------------
 DB_PATH = "usuarios_app.db"
-JSON_USERS_FILE = "usuarios.json"
 
 TODAS_LAS_PESTANIAS = [
     "Tablero", 
@@ -68,58 +64,6 @@ def hash_password(password):
 
 def verificar_password(password, hashed):
     return hmac.compare_digest(hash_password(password), str(hashed).strip())
-
-def commit_usuarios_a_github(data_list):
-    """
-    Sincroniza automáticamente la lista de usuarios con el repositorio de GitHub usando el Token.
-    """
-    token = st.secrets.get("GITHUB_TOKEN", "").strip()
-    repo = st.secrets.get("GITHUB_REPO", "").strip()
-    branch = st.secrets.get("GITHUB_BRANCH", "main").strip()
-    
-    if not token or not repo:
-        st.warning("⚠️ No se encontraron las credenciales GITHUB_TOKEN o GITHUB_REPO en Secrets.")
-        return False
-
-    url = f"https://api.github.com/repos/{repo}/contents/{JSON_USERS_FILE}"
-    
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/vnd.github.v3+json",
-        "User-Agent": "StreamlitApp-LaTerminal"
-    }
-
-    try:
-        # 1. Obtener SHA actual especificando la rama exacta
-        res_get = requests.get(f"{url}?ref={branch}", headers=headers)
-        sha = None
-        if res_get.status_code == 200:
-            sha = res_get.json().get("sha")
-
-        # 2. Codificar contenido en Base64
-        content_str = json.dumps(data_list, indent=4, ensure_ascii=False)
-        content_b64 = base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
-
-        payload = {
-            "message": "🔒 Actualización automática de credenciales de usuario",
-            "content": content_b64,
-            "branch": branch
-        }
-        if sha:
-            payload["sha"] = sha
-
-        # 3. Guardar en la rama especificada de GitHub
-        res_put = requests.put(url, headers=headers, json=payload)
-        
-        if res_put.status_code in [200, 201]:
-            return True
-        else:
-            st.error(f"❌ Error al guardar en GitHub (Status {res_put.status_code}): {res_put.json().get('message', '')}")
-            return False
-            
-    except Exception as e:
-        st.error(f"❌ Excepción al conectar con GitHub API: {e}")
-        return False
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -173,16 +117,6 @@ def init_db():
         ('omar.diaz', 'omar.diaz@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS')
     ]
 
-    # Cargar respaldo desde el archivo JSON si ya existe en el repositorio
-    if os.path.exists(JSON_USERS_FILE):
-        try:
-            with open(JSON_USERS_FILE, "r", encoding="utf-8") as f:
-                usuarios_json = json.load(f)
-                if usuarios_json:
-                    usuarios_base = [(u["usuario"], u["email"], u["password_hash"], u.get("autorizado", 1), u.get("perm_pestañas", "TODOS"), u.get("perm_entornos", "TODOS")) for u in usuarios_json]
-        except Exception:
-            pass
-
     c.executemany('''
         INSERT OR IGNORE INTO usuarios (usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -199,30 +133,6 @@ def obtener_usuarios_df():
     conn.close()
     return df
 
-def exportar_y_sincronizar_usuarios():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos FROM usuarios")
-    rows = c.fetchall()
-    conn.close()
-
-    lista_dict = [
-        {
-            "usuario": r[0],
-            "email": r[1],
-            "password_hash": r[2],
-            "autorizado": r[3],
-            "perm_pestañas": r[4],
-            "perm_entornos": r[5]
-        }
-        for r in rows
-    ]
-
-    with open(JSON_USERS_FILE, "w", encoding="utf-8") as f:
-        json.dump(lista_dict, f, indent=4, ensure_ascii=False)
-
-    commit_usuarios_a_github(lista_dict)
-
 def actualizar_permisos_usuario(usuario, lista_pestañas, lista_entornos):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -231,7 +141,6 @@ def actualizar_permisos_usuario(usuario, lista_pestañas, lista_entornos):
     c.execute("UPDATE usuarios SET perm_pestañas = ?, perm_entornos = ? WHERE usuario = ?", (perm_str, ent_str, usuario))
     conn.commit()
     conn.close()
-    exportar_y_sincronizar_usuarios()
 
 def guardar_o_actualizar_usuario(usuario, email, password, permisos_list, entornos_list):
     conn = sqlite3.connect(DB_PATH)
@@ -252,7 +161,6 @@ def guardar_o_actualizar_usuario(usuario, email, password, permisos_list, entorn
     ''', (usuario, email, pw_hash, perm_str, ent_str))
     conn.commit()
     conn.close()
-    exportar_y_sincronizar_usuarios()
 
 def enviar_correo_token(email_destino, token):
     try:
@@ -263,7 +171,8 @@ def enviar_correo_token(email_destino, token):
         password_remitente = smtp_config.get("password", "")
 
         if not remitente or not password_remitente:
-            return False
+            st.warning(f"🔑 [Entorno de Pruebas] Código generado para {email_destino}: **{token}**")
+            return True
 
         asunto = "Código de Recuperación de Contraseña - Tablero Auditoría"
         cuerpo = f"Hola,\n\nTu código de verificación para restablecer la contraseña es: {token}\n\nSi no solicitaste este cambio, ignora este mensaje."
@@ -278,7 +187,8 @@ def enviar_correo_token(email_destino, token):
             server.login(remitente, password_remitente)
             server.sendmail(remitente, [email_destino], msg.as_string())
         return True
-    except Exception:
+    except Exception as e:
+        st.error(f"Error al enviar correo: {e}")
         return False
 
 # ---------------------------------------------------------
@@ -397,24 +307,17 @@ def validar_login():
                                     conn.commit()
                                     conn.close()
                                     
-                                    # Se intenta enviar por correo; si no está activo el SMTP se habilita la clave en pantalla
-                                    enviado_ok = enviar_correo_token(email_req.strip().lower(), token)
-                                    
-                                    st.session_state["token_demo"] = token if not enviado_ok else None
-                                    st.session_state["email_recuperacion"] = email_req.strip().lower()
-                                    st.session_state["paso_recuperacion"] = 2
-                                    st.rerun()
+                                    if enviar_correo_token(email_req.strip().lower(), token):
+                                        st.session_state["email_recuperacion"] = email_req.strip().lower()
+                                        st.session_state["paso_recuperacion"] = 2
+                                        st.success("✅ Código enviado con éxito. Revisa tu bandeja de entrada.")
+                                        st.rerun()
                             else:
                                 conn.close()
                                 st.error("❌ El correo no se encuentra registrado en el sistema.")
 
                     elif paso == 2:
                         st.info(f"Código enviado a: **{st.session_state.get('email_recuperacion')}**")
-                        
-                        # Si no hay servidor SMTP configurado, mostramos el código generado en pantalla para pruebas
-                        if st.session_state.get("token_demo"):
-                            st.warning(f"🔑 **[Modo Pruebas] Tu código de verificación es:** `{st.session_state['token_demo']}`")
-
                         token_ingresado = st.text_input("Ingresa el código de 6 dígitos recibido:")
                         nueva_pw = st.text_input("Nueva Contraseña:", type="password")
                         nueva_pw_conf = st.text_input("Confirmar Nueva Contraseña:", type="password")
@@ -437,19 +340,15 @@ def validar_login():
                                     conn.commit()
                                     conn.close()
 
-                                    exportar_y_sincronizar_usuarios()
-
-                                    st.success("🎉 ¡Contraseña actualizada con éxito y guardada en GitHub! Ya puedes iniciar sesión.")
+                                    st.success("🎉 ¡Contraseña actualizada con éxito! Ya puedes iniciar sesión.")
                                     st.session_state["paso_recuperacion"] = 1
                                     st.session_state["email_recuperacion"] = None
-                                    st.session_state["token_demo"] = None
                                 else:
                                     conn.close()
                                     st.error("❌ El código de verificación es incorrecto.")
 
                     if st.button("Volver a empezar"):
                         st.session_state["paso_recuperacion"] = 1
-                        st.session_state["token_demo"] = None
                         st.rerun()
         return False
     return True
@@ -1598,6 +1497,7 @@ if entorno_activo == "Auditoría Interna":
                 df_alertas = df_filtrado.copy()
                 hoy = pd.to_datetime(date.today())
 
+                # CONVERSIÓN FLEXIBLE Y RIGUROSA DE FECHA DE CIERRE DE COMPROMISO
                 if col_fecha_cierre and col_fecha_cierre in df_alertas.columns:
                     df_alertas["Fecha_DT"] = pd.to_datetime(df_alertas[col_fecha_cierre], errors="coerce", dayfirst=True)
                     df_alertas["Dias_Atraso"] = (hoy - df_alertas["Fecha_DT"]).dt.days
@@ -1605,6 +1505,7 @@ if entorno_activo == "Auditoría Interna":
                 else:
                     df_alertas["Dias_Atraso"] = 0
 
+                # CALCULO DE PLANES CRÍTICOS PENDIENTES CON MAS DE 30 DÍAS DE ATRASO
                 df_criticos_30 = df_alertas[
                     (~df_alertas[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)) & 
                     (df_alertas["Dias_Atraso"] >= 30)

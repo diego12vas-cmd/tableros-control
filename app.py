@@ -161,7 +161,7 @@ def init_db():
         ('omar.diaz', 'omar.diaz@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS')
     ]
 
-    # Cargar respaldo si existe en la raíz
+    # Cargar respaldo desde el archivo JSON si ya existe en el repositorio
     if os.path.exists(JSON_USERS_FILE):
         try:
             with open(JSON_USERS_FILE, "r", encoding="utf-8") as f:
@@ -251,8 +251,7 @@ def enviar_correo_token(email_destino, token):
         password_remitente = smtp_config.get("password", "")
 
         if not remitente or not password_remitente:
-            st.warning(f"🔑 [Entorno de Pruebas] Código generado para {email_destino}: **{token}**")
-            return True
+            return False
 
         asunto = "Código de Recuperación de Contraseña - Tablero Auditoría"
         cuerpo = f"Hola,\n\nTu código de verificación para restablecer la contraseña es: {token}\n\nSi no solicitaste este cambio, ignora este mensaje."
@@ -267,8 +266,7 @@ def enviar_correo_token(email_destino, token):
             server.login(remitente, password_remitente)
             server.sendmail(remitente, [email_destino], msg.as_string())
         return True
-    except Exception as e:
-        st.error(f"Error al enviar correo: {e}")
+    except Exception:
         return False
 
 # ---------------------------------------------------------
@@ -387,17 +385,24 @@ def validar_login():
                                     conn.commit()
                                     conn.close()
                                     
-                                    if enviar_correo_token(email_req.strip().lower(), token):
-                                        st.session_state["email_recuperacion"] = email_req.strip().lower()
-                                        st.session_state["paso_recuperacion"] = 2
-                                        st.success("✅ Código enviado con éxito. Revisa tu bandeja de entrada.")
-                                        st.rerun()
+                                    # Se intenta enviar por correo; si no está activo el SMTP se habilita la clave en pantalla
+                                    enviado_ok = enviar_correo_token(email_req.strip().lower(), token)
+                                    
+                                    st.session_state["token_demo"] = token if not enviado_ok else None
+                                    st.session_state["email_recuperacion"] = email_req.strip().lower()
+                                    st.session_state["paso_recuperacion"] = 2
+                                    st.rerun()
                             else:
                                 conn.close()
                                 st.error("❌ El correo no se encuentra registrado en el sistema.")
 
                     elif paso == 2:
                         st.info(f"Código enviado a: **{st.session_state.get('email_recuperacion')}**")
+                        
+                        # Si no hay servidor SMTP configurado, mostramos el código generado en pantalla para pruebas
+                        if st.session_state.get("token_demo"):
+                            st.warning(f"🔑 **[Modo Pruebas] Tu código de verificación es:** `{st.session_state['token_demo']}`")
+
                         token_ingresado = st.text_input("Ingresa el código de 6 dígitos recibido:")
                         nueva_pw = st.text_input("Nueva Contraseña:", type="password")
                         nueva_pw_conf = st.text_input("Confirmar Nueva Contraseña:", type="password")
@@ -422,15 +427,17 @@ def validar_login():
 
                                     exportar_y_sincronizar_usuarios()
 
-                                    st.success("🎉 ¡Contraseña actualizada con éxito y guardada de forma permanente! Ya puedes iniciar sesión.")
+                                    st.success("🎉 ¡Contraseña actualizada con éxito y guardada en GitHub! Ya puedes iniciar sesión.")
                                     st.session_state["paso_recuperacion"] = 1
                                     st.session_state["email_recuperacion"] = None
+                                    st.session_state["token_demo"] = None
                                 else:
                                     conn.close()
                                     st.error("❌ El código de verificación es incorrecto.")
 
                     if st.button("Volver a empezar"):
                         st.session_state["paso_recuperacion"] = 1
+                        st.session_state["token_demo"] = None
                         st.rerun()
         return False
     return True

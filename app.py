@@ -63,6 +63,16 @@ TODOS_LOS_ENTORNOS = [
     "Contraloría de Bogotá"
 ]
 
+# Lista global de correos y usuarios exentos de 2FA (Ingreso directo con clave)
+USUARIOS_AMARILLOS = [
+    'admin', 
+    'diego.vasquez@terminaldetransporte.gov.co', 
+    'manuel.gutierrez', 
+    'manuel.gutierrez@terminaldetransporte.gov.co',
+    'omar.diaz',
+    'omar.diaz@terminaldetransporte.gov.co'
+]
+
 def hash_password(password):
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
@@ -146,9 +156,6 @@ def init_db():
 
     pw_defecto = hash_password("123456")
 
-    # Usuarios marcados en amarillo en el respaldo Excel (ingresan directamente con contraseña)
-    usuarios_amarillos = ['admin', 'diego.vasquez@terminaldetransporte.gov.co', 'manuel.gutierrez', 'omar.diaz']
-
     usuarios_base_raw = [
         ('edgar.ortiz', 'edgar.ortiz@terminaldetransporte.gov'),
         ('manuel.cifuentes', 'manuel.cifuentes@terminaldetransporte.gov.co'),
@@ -184,7 +191,7 @@ def init_db():
     ]
 
     usuarios_base = [
-        (u, email, pw_defecto, 1, 'TODOS', 'TODOS', 0 if (u in usuarios_amarillos or email in usuarios_amarillos) else 1)
+        (u, email, pw_defecto, 1, 'TODOS', 'TODOS', 0 if (u in USUARIOS_AMARILLOS or email in USUARIOS_AMARILLOS) else 1)
         for u, email in usuarios_base_raw
     ]
 
@@ -202,7 +209,7 @@ def init_db():
                             u.get("autorizado", 1), 
                             u.get("perm_pestañas", "TODOS"), 
                             u.get("perm_entornos", "TODOS"),
-                            u.get("requiere_2fa", 0 if (u["usuario"] in usuarios_amarillos or u["email"] in usuarios_amarillos) else 1)
+                            0 if (u["usuario"] in USUARIOS_AMARILLOS or u["email"] in USUARIOS_AMARILLOS) else 1
                         ) 
                         for u in usuarios_json
                     ]
@@ -213,6 +220,10 @@ def init_db():
         INSERT OR IGNORE INTO usuarios (usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos, requiere_2fa)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     ''', usuarios_base)
+
+    # Forzar actualización en la base de datos para los usuarios exentos de 2FA
+    for item in USUARIOS_AMARILLOS:
+        c.execute("UPDATE usuarios SET requiere_2fa = 0 WHERE LOWER(usuario) = ? OR LOWER(email) = ?", (item.lower(), item.lower()))
 
     conn.commit()
     conn.close()
@@ -394,17 +405,21 @@ def validar_login():
                                 st.error("🚫 Tu usuario no está autorizado para acceder. Contacta al administrador.")
                             else:
                                 user_db, email_db, pw_hash, aut, perm_str, ent_str, req_2fa = row
+                                
+                                # Verificación estricta: Si el usuario o correo está en la lista de exentos, forzar clave directa
+                                es_exento = (user_db.lower() in [u.lower() for u in USUARIOS_AMARILLOS]) or (email_db.lower() in [e.lower() for e in USUARIOS_AMARILLOS]) or (req_2fa == 0)
+
                                 st.session_state["login_temp_data"] = {
                                     "usuario": user_db,
                                     "email": email_db,
                                     "pw_hash": pw_hash,
                                     "perm_str": perm_str,
                                     "ent_str": ent_str,
-                                    "requiere_2fa": req_2fa
+                                    "requiere_2fa": 0 if es_exento else 1
                                 }
 
-                                if req_2fa == 0:
-                                    # Usuario Amarillo (admin, manuel.gutierrez, omar.diaz) -> Ingresa con Contraseña
+                                if es_exento:
+                                    # Usuario Amarillo (admin, diego.vasquez@terminaldetransporte.gov.co, etc.) -> Ingresa con Contraseña
                                     st.session_state["paso_login"] = "password"
                                     st.rerun()
                                 else:

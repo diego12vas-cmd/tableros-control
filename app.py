@@ -10,8 +10,6 @@ import io
 import os
 import re
 import json
-import base64
-import requests
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -42,7 +40,7 @@ def buscar_logo_local():
 LOGO_PATH = buscar_logo_local()
 
 # ---------------------------------------------------------
-# PERSISTENCIA VÍA GITHUB API & SQLITE LOCAL
+# PERSISTENCIA LOCAL Y BASE DE DATOS
 # ---------------------------------------------------------
 DB_PATH = "usuarios_app.db"
 JSON_USERS_FILE = "usuarios.json"
@@ -78,65 +76,11 @@ def hash_password(password):
 def verificar_password(password, hashed):
     return hmac.compare_digest(hash_password(password), str(hashed).strip())
 
-def obtener_credenciales_github():
-    """
-    Busca flexiblemente el token, repositorio y rama en Secrets de Streamlit.
-    """
-    gh_sec = st.secrets.get("github", {})
-    token = st.secrets.get("GITHUB_TOKEN") or gh_sec.get("token") or gh_sec.get("GITHUB_TOKEN", "")
-    repo = st.secrets.get("GITHUB_REPO") or gh_sec.get("repo") or gh_sec.get("GITHUB_REPO", "")
-    branch = st.secrets.get("GITHUB_BRANCH") or gh_sec.get("branch") or gh_sec.get("GITHUB_BRANCH", "main")
-    
-    return str(token).strip(), str(repo).strip(), str(branch).strip()
-
 def commit_usuarios_a_github(data_list):
     """
-    Sincroniza automáticamente la lista de usuarios con el repositorio de GitHub usando el Token.
+    Deshabilitado para evitar errores de red/tokens en pantalla.
     """
-    token, repo, branch = obtener_credenciales_github()
-    
-    if not token or not repo:
-        st.warning("⚠️ No se encontraron las credenciales de GitHub en Secrets. Revisa el bloque [github] en la configuración de Streamlit.")
-        return False
-
-    url = f"https://api.github.com/repos/{repo}/contents/{JSON_USERS_FILE}"
-    
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/vnd.github.v3+json",
-        "User-Agent": "StreamlitApp-LaTerminal"
-    }
-
-    try:
-        res_get = requests.get(f"{url}?ref={branch}", headers=headers)
-        sha = None
-        if res_get.status_code == 200:
-            sha = res_get.json().get("sha")
-
-        content_str = json.dumps(data_list, indent=4, ensure_ascii=False)
-        content_b64 = base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
-
-        payload = {
-            "message": "🔒 Actualización automática de usuarios.json",
-            "content": content_b64,
-            "branch": branch
-        }
-        if sha:
-            payload["sha"] = sha
-
-        res_put = requests.put(url, headers=headers, json=payload)
-        
-        if res_put.status_code in [200, 201]:
-            st.toast("☁️ ¡usuarios.json guardado en GitHub con éxito!", icon="✅")
-            return True
-        else:
-            err_msg = res_put.json().get("message", "Error desconocido")
-            st.error(f"❌ Error al guardar en GitHub (Status {res_put.status_code}): {err_msg}")
-            return False
-            
-    except Exception as e:
-        st.error(f"❌ Excepción al conectar con GitHub API: {e}")
-        return False
+    return True
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -241,6 +185,31 @@ def obtener_usuarios_df():
     conn.close()
     return df
 
+def obtener_usuarios_json_bytes():
+    """
+    Genera el archivo JSON exacto listo para descargar y subir a GitHub.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos, requiere_2fa FROM usuarios")
+    rows = c.fetchall()
+    conn.close()
+
+    lista_dict = [
+        {
+            "usuario": r[0],
+            "email": r[1],
+            "password_hash": r[2],
+            "autorizado": r[3],
+            "perm_pestañas": r[4],
+            "perm_entornos": r[5],
+            "requiere_2fa": r[6]
+        }
+        for r in rows
+    ]
+
+    return json.dumps(lista_dict, indent=4, ensure_ascii=False).encode('utf-8')
+
 def exportar_y_sincronizar_usuarios():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -263,8 +232,6 @@ def exportar_y_sincronizar_usuarios():
 
     with open(JSON_USERS_FILE, "w", encoding="utf-8") as f:
         json.dump(lista_dict, f, indent=4, ensure_ascii=False)
-
-    commit_usuarios_a_github(lista_dict)
 
 def actualizar_permisos_usuario(usuario, lista_pestañas, lista_entornos):
     conn = sqlite3.connect(DB_PATH)
@@ -1137,7 +1104,7 @@ if entorno_activo == "Auditoría Interna":
             if st.button("Guardar / Autorizar Usuario"):
                 if new_u and new_e and new_p:
                     guardar_o_actualizar_usuario(new_u.strip(), new_e.strip().lower(), new_p, u_permisos, u_entornos)
-                    st.success(f"Usuario `{new_u}` actualizado.")
+                    st.success(f"Usuario `{new_u}` actualizado localmente.")
                 else:
                     st.warning("Completa todos los campos.")
                     
@@ -1168,32 +1135,20 @@ if entorno_activo == "Auditoría Interna":
                             
                     if st.button(f"Actualizar Permisos de {user_sel}"):
                         actualizar_permisos_usuario(user_sel, nuevos_perms, nuevos_ents)
-                        st.success("Permisos guardados.")
+                        st.success("Permisos guardados con éxito.")
                         st.rerun()
 
             st.divider()
-            st.caption("3. 📦 Respaldo de Usuarios")
+            st.caption("3. 📦 Respaldo para GitHub")
             
-            if not df_users.empty:
-                csv_bytes = df_users.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    label="📄 Descargar Respaldo (.CSV)",
-                    data=csv_bytes,
-                    file_name=f"respaldo_usuarios_{datetime.now().strftime('%Y%m%d')}.csv",
-                    mime="text/csv",
-                    use_container_width=True
-                )
-                
-                buf = io.BytesIO()
-                with pd.ExcelWriter(buf, engine='openpyxl') as writer:
-                    df_users.to_excel(writer, index=False, sheet_name='Usuarios')
-                st.download_button(
-                    label="📊 Descargar Respaldo (.XLSX)",
-                    data=buf.getvalue(),
-                    file_name=f"respaldo_usuarios_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
-                )
+            json_bytes = obtener_usuarios_json_bytes()
+            st.download_button(
+                label="☁️ Descargar usuarios.json",
+                data=json_bytes,
+                file_name="usuarios.json",
+                mime="application/json",
+                use_container_width=True
+            )
 
     if st.sidebar.button("🚪 Cerrar Sesión"):
         st.session_state["autenticado"] = False

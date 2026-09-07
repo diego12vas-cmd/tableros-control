@@ -79,12 +79,15 @@ def verificar_password(password, hashed):
     return hmac.compare_digest(hash_password(password), str(hashed).strip())
 
 def commit_usuarios_a_github(data_list):
+    """
+    Sincroniza automáticamente la lista de usuarios con el repositorio de GitHub usando el Token.
+    """
     token = st.secrets.get("GITHUB_TOKEN", "").strip()
     repo = st.secrets.get("GITHUB_REPO", "").strip()
     branch = st.secrets.get("GITHUB_BRANCH", "main").strip()
     
     if not token or not repo:
-        st.warning("⚠️ No se encontraron las credenciales GITHUB_TOKEN o GITHUB_REPO en Secrets.")
+        st.warning("⚠️ No se encontraron las credenciales GITHUB_TOKEN o GITHUB_REPO en Secrets de Streamlit.")
         return False
 
     url = f"https://api.github.com/repos/{repo}/contents/{JSON_USERS_FILE}"
@@ -105,7 +108,7 @@ def commit_usuarios_a_github(data_list):
         content_b64 = base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
 
         payload = {
-            "message": "🔒 Actualización automática de credenciales de usuario",
+            "message": "🔒 Actualización automática de usuarios.json",
             "content": content_b64,
             "branch": branch
         }
@@ -113,7 +116,14 @@ def commit_usuarios_a_github(data_list):
             payload["sha"] = sha
 
         res_put = requests.put(url, headers=headers, json=payload)
-        return res_put.status_code in [200, 201]
+        
+        if res_put.status_code in [200, 201]:
+            st.toast("☁️ ¡usuarios.json guardado en GitHub con éxito!", icon="✅")
+            return True
+        else:
+            err_msg = res_put.json().get("message", "Error desconocido")
+            st.error(f"❌ Error al guardar en GitHub (Status {res_put.status_code}): {err_msg}")
+            return False
             
     except Exception as e:
         st.error(f"❌ Excepción al conectar con GitHub API: {e}")

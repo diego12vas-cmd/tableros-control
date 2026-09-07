@@ -185,6 +185,16 @@ def obtener_usuarios_df():
     conn.close()
     return df
 
+def obtener_usuarios_excel_bytes():
+    """
+    Genera el archivo Excel de respaldo.
+    """
+    df = obtener_usuarios_df()
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Usuarios')
+    return buf.getvalue()
+
 def obtener_usuarios_json_bytes():
     """
     Genera el archivo JSON exacto listo para descargar y subir a GitHub.
@@ -1139,8 +1149,17 @@ if entorno_activo == "Auditoría Interna":
                         st.rerun()
 
             st.divider()
-            st.caption("3. 📦 Respaldo para GitHub")
+            st.caption("3. 📦 Respaldo de Usuarios")
             
+            excel_bytes = obtener_usuarios_excel_bytes()
+            st.download_button(
+                label="📊 Descargar usuarios.xlsx",
+                data=excel_bytes,
+                file_name=f"usuarios_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
+
             json_bytes = obtener_usuarios_json_bytes()
             st.download_button(
                 label="☁️ Descargar usuarios.json",
@@ -2489,7 +2508,7 @@ else:
         df_c_tabla_vista.index = range(1, len(df_c_tabla_vista) + 1)
 
         col_config_dict_c = {}
-        col_ev_vista_c = "ENLACE PARA CARGAR EVIDENCIAS" if "ENLACE PARA CARGAR EVIDENCIAS" in df_c_tabla_vista.columns else buscar_columna_por_patron(df_c_tabla_vista, ["enlace para cargar evidencias", "cargar evidencias"])
+        col_ev_vista_c = "ENLACE PARA CARGAR EVIDENCIAS" if "ENLACE PARA CARGAR EVIDENCIAS" in df_c_tabla_vista.columns else buscar_columna_por_patron(df_c_tabla_vista, ["enlace para cargar evidencias", "evidencias"])
         
         if col_ev_vista_c and col_ev_vista_c in df_c_tabla_vista.columns:
             def normalizar_url_c(val):

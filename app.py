@@ -9,6 +9,9 @@ from datetime import date, datetime
 import io
 import os
 import re
+import json
+import base64
+import requests
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -39,9 +42,10 @@ def buscar_logo_local():
 LOGO_PATH = buscar_logo_local()
 
 # ---------------------------------------------------------
-# BASE DE DATOS LOCAL Y USUARIOS RESPALDO (SQLITE)
+# PERSISTENCIA VÍA GITHUB API & SQLITE LOCAL
 # ---------------------------------------------------------
 DB_PATH = "usuarios_app.db"
+JSON_USERS_FILE = "usuarios.json"
 
 TODAS_LAS_PESTANIAS = [
     "Tablero", 
@@ -65,6 +69,58 @@ def hash_password(password):
 def verificar_password(password, hashed):
     return hmac.compare_digest(hash_password(password), str(hashed).strip())
 
+def commit_usuarios_a_github(data_list):
+    """
+    Sincroniza automáticamente la lista de usuarios con el repositorio de GitHub usando el Token.
+    """
+    token = st.secrets.get("GITHUB_TOKEN", "").strip()
+    repo = st.secrets.get("GITHUB_REPO", "").strip()
+    branch = st.secrets.get("GITHUB_BRANCH", "main").strip()
+    
+    if not token or not repo:
+        st.warning("⚠️ No se encontraron las credenciales GITHUB_TOKEN o GITHUB_REPO en Secrets.")
+        return False
+
+    url = f"https://api.github.com/repos/{repo}/contents/{JSON_USERS_FILE}"
+    
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "StreamlitApp-LaTerminal"
+    }
+
+    try:
+        # 1. Obtener SHA actual especificando la rama exacta
+        res_get = requests.get(f"{url}?ref={branch}", headers=headers)
+        sha = None
+        if res_get.status_code == 200:
+            sha = res_get.json().get("sha")
+
+        # 2. Codificar contenido en Base64
+        content_str = json.dumps(data_list, indent=4, ensure_ascii=False)
+        content_b64 = base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
+
+        payload = {
+            "message": "🔒 Actualización automática de credenciales de usuario",
+            "content": content_b64,
+            "branch": branch
+        }
+        if sha:
+            payload["sha"] = sha
+
+        # 3. Guardar en la rama especificada de GitHub
+        res_put = requests.put(url, headers=headers, json=payload)
+        
+        if res_put.status_code in [200, 201]:
+            return True
+        else:
+            st.error(f"❌ Error al guardar en GitHub (Status {res_put.status_code}): {res_put.json().get('message', '')}")
+            return False
+            
+    except Exception as e:
+        st.error(f"❌ Excepción al conectar con GitHub API: {e}")
+        return False
+
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -76,50 +132,87 @@ def init_db():
             autorizado INTEGER DEFAULT 1,
             token_recuperacion TEXT,
             perm_pestañas TEXT DEFAULT 'TODOS',
-            perm_entornos TEXT DEFAULT 'TODOS'
+            perm_entornos TEXT DEFAULT 'TODOS',
+            requiere_2fa INTEGER DEFAULT 1
         )
     ''')
     conn.commit()
 
+    # Si la tabla ya existía sin la columna requiere_2fa, la agregamos dinámicamente
+    try:
+        c.execute("ALTER TABLE usuarios ADD COLUMN requiere_2fa INTEGER DEFAULT 1")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
     pw_defecto = hash_password("123456")
 
-    usuarios_base = [
-        ('edgar.ortiz', 'edgar.ortiz@terminaldetransporte.gov', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('manuel.cifuentes', 'manuel.cifuentes@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('eduardo.gonzalez', 'eduardo.gonzalez@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('oscar.garzon', 'oscar.garzon@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('manuel.santamaria', 'manuel.santamaria@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('carlos.salcedo', 'carlos.salcedo@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('juan.alviz', 'juan.alviz@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('julio.mosquera', 'julio.mosquera@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('marcela.angarita', 'marcela.angarita@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('roberto.bermudez', 'roberto.bermudez@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('miguel.salina', 'miguel.salina@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('oscar.castañeda', 'oscar.castaneda@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('andres.panqueva', 'andres.panqueva@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('christian.pardo', 'christian.pardo@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('diana.ortiz', 'diana.ortiz@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('andrea.lievano', 'andrea.lievano@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('william.camargo', 'william.camargo@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('gerson.lugo', 'gerson.lugo@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('leonardo.vasquez', 'leonardo.vasquez@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('javier.veloza', 'javier.veloza@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('manuel.salgado', 'manuel.salgado@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('edgar.guzman', 'edgar.guzman@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('carolina.bueno', 'carolina.bueno@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('jenny.gomez', 'jenny.gomez@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('paola.copete', 'paola.copete@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('hugo.montoya', 'hugo.montoya@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('admin', 'diego.vasquez@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('diego.12', 'diego12vas@gmail.com', pw_defecto, 1, 'Tablero,Programa Anual,Métricas,Histórico,Alertas y Edición,Oficios,Finalizadas,Informes', 'TODOS'),
-        ('fabian.silva', 'fabian.silva@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('manuel.gutierrez', 'manuel.gutierrez@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS'),
-        ('omar.diaz', 'omar.diaz@terminaldetransporte.gov.co', pw_defecto, 1, 'TODOS', 'TODOS')
+    # Definimos los usuarios amarillos que ingresan con contraseña (requiere_2fa = 0)
+    usuarios_amarillos = ['admin', 'manuel.gutierrez', 'omar.diaz']
+
+    usuarios_base_raw = [
+        ('edgar.ortiz', 'edgar.ortiz@terminaldetransporte.gov'),
+        ('manuel.cifuentes', 'manuel.cifuentes@terminaldetransporte.gov.co'),
+        ('eduardo.gonzalez', 'eduardo.gonzalez@terminaldetransporte.gov.co'),
+        ('oscar.garzon', 'oscar.garzon@terminaldetransporte.gov.co'),
+        ('manuel.santamaria', 'manuel.santamaria@terminaldetransporte.gov.co'),
+        ('carlos.salcedo', 'carlos.salcedo@terminaldetransporte.gov.co'),
+        ('juan.alviz', 'juan.alviz@terminaldetransporte.gov.co'),
+        ('julio.mosquera', 'julio.mosquera@terminaldetransporte.gov.co'),
+        ('marcela.angarita', 'marcela.angarita@terminaldetransporte.gov.co'),
+        ('roberto.bermudez', 'roberto.bermudez@terminaldetransporte.gov.co'),
+        ('miguel.salina', 'miguel.salina@terminaldetransporte.gov.co'),
+        ('oscar.castañeda', 'oscar.castaneda@terminaldetransporte.gov.co'),
+        ('andres.panqueva', 'andres.panqueva@terminaldetransporte.gov.co'),
+        ('christian.pardo', 'christian.pardo@terminaldetransporte.gov.co'),
+        ('diana.ortiz', 'diana.ortiz@terminaldetransporte.gov.co'),
+        ('andrea.lievano', 'andrea.lievano@terminaldetransporte.gov.co'),
+        ('william.camargo', 'william.camargo@terminaldetransporte.gov.co'),
+        ('gerson.lugo', 'gerson.lugo@terminaldetransporte.gov.co'),
+        ('leonardo.vasquez', 'leonardo.vasquez@terminaldetransporte.gov.co'),
+        ('javier.veloza', 'javier.veloza@terminaldetransporte.gov.co'),
+        ('manuel.salgado', 'manuel.salgado@terminaldetransporte.gov.co'),
+        ('edgar.guzman', 'edgar.guzman@terminaldetransporte.gov.co'),
+        ('carolina.bueno', 'carolina.bueno@terminaldetransporte.gov.co'),
+        ('jenny.gomez', 'jenny.gomez@terminaldetransporte.gov.co'),
+        ('paola.copete', 'paola.copete@terminaldetransporte.gov.co'),
+        ('hugo.montoya', 'hugo.montoya@terminaldetransporte.gov.co'),
+        ('admin', 'diego.vasquez@terminaldetransporte.gov.co'),
+        ('diego.12', 'diego12vas@gmail.com'),
+        ('fabian.silva', 'fabian.silva@terminaldetransporte.gov.co'),
+        ('manuel.gutierrez', 'manuel.gutierrez@terminaldetransporte.gov.co'),
+        ('omar.diaz', 'omar.diaz@terminaldetransporte.gov.co')
     ]
 
+    usuarios_base = [
+        (u, email, pw_defecto, 1, 'TODOS', 'TODOS', 0 if u in usuarios_amarillos else 1)
+        for u, email in usuarios_base_raw
+    ]
+
+    # Cargar respaldo desde el archivo JSON si ya existe en el repositorio
+    if os.path.exists(JSON_USERS_FILE):
+        try:
+            with open(JSON_USERS_FILE, "r", encoding="utf-8") as f:
+                usuarios_json = json.load(f)
+                if usuarios_json:
+                    usuarios_base = [
+                        (
+                            u["usuario"], 
+                            u["email"], 
+                            u["password_hash"], 
+                            u.get("autorizado", 1), 
+                            u.get("perm_pestañas", "TODOS"), 
+                            u.get("perm_entornos", "TODOS"),
+                            u.get("requiere_2fa", 0 if u["usuario"] in usuarios_amarillos else 1)
+                        ) 
+                        for u in usuarios_json
+                    ]
+        except Exception:
+            pass
+
     c.executemany('''
-        INSERT OR IGNORE INTO usuarios (usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT OR IGNORE INTO usuarios (usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos, requiere_2fa)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     ''', usuarios_base)
 
     conn.commit()
@@ -129,9 +222,34 @@ init_db()
 
 def obtener_usuarios_df():
     conn = sqlite3.connect(DB_PATH)
-    df = pd.read_sql_query("SELECT usuario, email, autorizado, perm_pestañas, perm_entornos FROM usuarios", conn)
+    df = pd.read_sql_query("SELECT usuario, email, autorizado, perm_pestañas, perm_entornos, requiere_2fa FROM usuarios", conn)
     conn.close()
     return df
+
+def exportar_y_sincronizar_usuarios():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos, requiere_2fa FROM usuarios")
+    rows = c.fetchall()
+    conn.close()
+
+    lista_dict = [
+        {
+            "usuario": r[0],
+            "email": r[1],
+            "password_hash": r[2],
+            "autorizado": r[3],
+            "perm_pestañas": r[4],
+            "perm_entornos": r[5],
+            "requiere_2fa": r[6]
+        }
+        for r in rows
+    ]
+
+    with open(JSON_USERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(lista_dict, f, indent=4, ensure_ascii=False)
+
+    commit_usuarios_a_github(lista_dict)
 
 def actualizar_permisos_usuario(usuario, lista_pestañas, lista_entornos):
     conn = sqlite3.connect(DB_PATH)
@@ -141,26 +259,29 @@ def actualizar_permisos_usuario(usuario, lista_pestañas, lista_entornos):
     c.execute("UPDATE usuarios SET perm_pestañas = ?, perm_entornos = ? WHERE usuario = ?", (perm_str, ent_str, usuario))
     conn.commit()
     conn.close()
+    exportar_y_sincronizar_usuarios()
 
-def guardar_o_actualizar_usuario(usuario, email, password, permisos_list, entornos_list):
+def guardar_o_actualizar_usuario(usuario, email, password, permisos_list, entornos_list, requiere_2fa=1):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     pw_hash = hash_password(password)
     perm_str = ",".join(permisos_list) if permisos_list else "TODOS"
-    ent_str = ",".join(entornos_list) if entornos_list else "TODOS"
+    ent_str = ",".join(lista_entornos) if entornos_list else "TODOS"
     
     c.execute('''
-        INSERT INTO usuarios (usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos)
-        VALUES (?, ?, ?, 1, ?, ?)
+        INSERT INTO usuarios (usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos, requiere_2fa)
+        VALUES (?, ?, ?, 1, ?, ?, ?)
         ON CONFLICT(usuario) DO UPDATE SET
             email=excluded.email,
             password_hash=excluded.password_hash,
             autorizado=1,
             perm_pestañas=excluded.perm_pestañas,
-            perm_entornos=excluded.perm_entornos
-    ''', (usuario, email, pw_hash, perm_str, ent_str))
+            perm_entornos=excluded.perm_entornos,
+            requiere_2fa=excluded.requiere_2fa
+    ''', (usuario, email, pw_hash, perm_str, ent_str, requiere_2fa))
     conn.commit()
     conn.close()
+    exportar_y_sincronizar_usuarios()
 
 def enviar_correo_token(email_destino, token):
     try:
@@ -171,11 +292,10 @@ def enviar_correo_token(email_destino, token):
         password_remitente = smtp_config.get("password", "")
 
         if not remitente or not password_remitente:
-            st.warning(f"🔑 [Entorno de Pruebas] Código generado para {email_destino}: **{token}**")
-            return True
+            return False
 
-        asunto = "Código de Recuperación de Contraseña - Tablero Auditoría"
-        cuerpo = f"Hola,\n\nTu código de verificación para restablecer la contraseña es: {token}\n\nSi no solicitaste este cambio, ignora este mensaje."
+        asunto = "Código de Acceso / Verificación - Tablero La Terminal"
+        cuerpo = f"Hola,\n\nTu código de verificación de 6 dígitos para ingresar al sistema es: {token}\n\nSi no intentaste iniciar sesión, ignora este mensaje."
 
         msg = MIMEText(cuerpo)
         msg['Subject'] = asunto
@@ -187,8 +307,7 @@ def enviar_correo_token(email_destino, token):
             server.login(remitente, password_remitente)
             server.sendmail(remitente, [email_destino], msg.as_string())
         return True
-    except Exception as e:
-        st.error(f"Error al enviar correo: {e}")
+    except Exception:
         return False
 
 # ---------------------------------------------------------
@@ -203,6 +322,10 @@ def validar_login():
         st.session_state["permisos_usuario"] = []
     if "permisos_entornos" not in st.session_state:
         st.session_state["permisos_entornos"] = []
+    if "paso_login" not in st.session_state:
+        st.session_state["paso_login"] = 1
+    if "login_temp_data" not in st.session_state:
+        st.session_state["login_temp_data"] = {}
 
     if not st.session_state["autenticado"]:
         login_container = st.empty()
@@ -245,48 +368,149 @@ def validar_login():
                 st.markdown("<h4 style='text-align: center; color: #0077C8; font-weight: bold; margin-top: 5px; margin-bottom: 20px;'>Tablero de Control y Gestión</h4>", unsafe_allow_html=True)
                 
                 st.markdown("### 🔒 Acceso Restringido")
-                st.caption("Ingresa tus credenciales para acceder al sistema.")
-                
-                usuario = st.text_input("Usuario", key="user_input_ai")
-                password = st.text_input("Contraseña", type="password", key="pass_input_ai")
-                
-                if st.button("Iniciar Sesión", type="primary", use_container_width=True):
-                    conn = sqlite3.connect(DB_PATH)
-                    c = conn.cursor()
-                    c.execute("SELECT password_hash, autorizado, perm_pestañas, perm_entornos FROM usuarios WHERE usuario = ?", (usuario.strip(),))
-                    row = c.fetchone()
-                    conn.close()
 
-                    if row:
-                        pw_hash, autorizado, perm_str, ent_str = row
-                        if autorizado == 0:
-                            st.error("🚫 Tu usuario no está autorizado para acceder. Contacta al administrador.")
-                        elif verificar_password(password, pw_hash):
+                # PASO 1: Ingreso de Usuario o Correo Electronico
+                if st.session_state["paso_login"] == 1:
+                    st.caption("Ingresa tu usuario o correo electrónico para continuar.")
+                    
+                    usuario_input = st.text_input("Usuario o Correo Electrónico", key="user_login_input").strip().lower()
+
+                    if st.button("Continuar ➡️", type="primary", use_container_width=True):
+                        if not usuario_input:
+                            st.warning("⚠️ Por favor ingresa tu usuario o correo.")
+                        else:
+                            conn = sqlite3.connect(DB_PATH)
+                            c = conn.cursor()
+                            c.execute('''
+                                SELECT usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos, requiere_2fa 
+                                FROM usuarios 
+                                WHERE LOWER(usuario) = ? OR LOWER(email) = ?
+                            ''', (usuario_input, usuario_input))
+                            row = c.fetchone()
+                            conn.close()
+
+                            if not row:
+                                st.error("❌ El usuario o correo no se encuentra registrado.")
+                            elif row[3] == 0:
+                                st.error("🚫 Tu usuario no está autorizado para acceder. Contacta al administrador.")
+                            else:
+                                user_db, email_db, pw_hash, aut, perm_str, ent_str, req_2fa = row
+                                st.session_state["login_temp_data"] = {
+                                    "usuario": user_db,
+                                    "email": email_db,
+                                    "pw_hash": pw_hash,
+                                    "perm_str": perm_str,
+                                    "ent_str": ent_str,
+                                    "requiere_2fa": req_2fa
+                                }
+
+                                if req_2fa == 0:
+                                    # Usuario Amarillo -> Ingresa directamente con Contraseña (123456)
+                                    st.session_state["paso_login"] = "password"
+                                    st.rerun()
+                                else:
+                                    # Resto de Usuarios -> Envío de Código de 6 dígitos al Correo
+                                    token_6_digitos = "".join(random.choices(string.digits, k=6))
+                                    conn = sqlite3.connect(DB_PATH)
+                                    c = conn.cursor()
+                                    c.execute("UPDATE usuarios SET token_recuperacion = ? WHERE usuario = ?", (token_6_digitos, user_db))
+                                    conn.commit()
+                                    conn.close()
+
+                                    enviado_ok = enviar_correo_token(email_db, token_6_digitos)
+                                    st.session_state["token_demo_login"] = token_6_digitos if not enviado_ok else None
+                                    st.session_state["paso_login"] = "otp"
+                                    st.rerun()
+
+                # PASO 2A: Validación con Contraseña (Usuarios en Amarillo)
+                elif st.session_state["paso_login"] == "password":
+                    u_data = st.session_state.get("login_temp_data", {})
+                    st.info(f"👤 Usuario: **{u_data.get('usuario')}**")
+                    password_ingresada = st.text_input("Contraseña", type="password", key="pass_yellow_input")
+
+                    if st.button("Iniciar Sesión 🚀", type="primary", use_container_width=True):
+                        if verificar_password(password_ingresada, u_data.get("pw_hash")):
                             st.session_state["autenticado"] = True
-                            st.session_state["usuario_actual"] = usuario.strip()
+                            st.session_state["usuario_actual"] = u_data.get("usuario")
                             
-                            perm_val = perm_str if perm_str else "TODOS"
-                            if perm_val == "TODOS" or usuario.strip() == "admin":
+                            perm_val = u_data.get("perm_str", "TODOS")
+                            if perm_val == "TODOS" or u_data.get("usuario") == "admin":
                                 st.session_state["permisos_usuario"] = TODAS_LAS_PESTANIAS
                             else:
                                 st.session_state["permisos_usuario"] = [p.strip() for p in perm_val.split(",") if p.strip()]
                                 
-                            ent_val = ent_str if ent_str else "TODOS"
-                            if ent_val == "TODOS" or usuario.strip() == "admin":
+                            ent_val = u_data.get("ent_str", "TODOS")
+                            if ent_val == "TODOS" or u_data.get("usuario") == "admin":
                                 st.session_state["permisos_entornos"] = TODOS_LOS_ENTORNOS
                             else:
                                 st.session_state["permisos_entornos"] = [e.strip() for e in ent_val.split(",") if e.strip()]
-                                
+
+                            st.session_state["paso_login"] = 1
+                            st.session_state["login_temp_data"] = {}
                             login_container.empty()
                             st.rerun()
                         else:
-                            st.error("❌ Usuario o contraseña incorrectos.")
-                    else:
-                        st.error("❌ Usuario o contraseña incorrectos.")
+                            st.error("❌ Contraseña incorrecta.")
+
+                    if st.button("⬅️ Cambiar de Usuario"):
+                        st.session_state["paso_login"] = 1
+                        st.session_state["login_temp_data"] = {}
+                        st.rerun()
+
+                # PASO 2B: Validación con Código de 6 dígitos al Correo (Demás Usuarios)
+                elif st.session_state["paso_login"] == "otp":
+                    u_data = st.session_state.get("login_temp_data", {})
+                    st.info(f"📧 Se ha enviado un código de verificación de 6 dígitos a: **{u_data.get('email')}**")
+
+                    if st.session_state.get("token_demo_login"):
+                        st.warning(f"🔑 **[Modo Pruebas / Sin SMTP] Tu código de verificación es:** `{st.session_state['token_demo_login']}`")
+
+                    otp_ingresado = st.text_input("Ingresa el código de 6 dígitos recibido:", key="otp_code_input").strip()
+
+                    if st.button("Verificar e Iniciar Sesión 🚀", type="primary", use_container_width=True):
+                        conn = sqlite3.connect(DB_PATH)
+                        c = conn.cursor()
+                        c.execute("SELECT token_recuperacion FROM usuarios WHERE usuario = ?", (u_data.get("usuario"),))
+                        row = c.fetchone()
+
+                        if row and row[0] == otp_ingresado:
+                            c.execute("UPDATE usuarios SET token_recuperacion = NULL WHERE usuario = ?", (u_data.get("usuario"),))
+                            conn.commit()
+                            conn.close()
+
+                            st.session_state["autenticado"] = True
+                            st.session_state["usuario_actual"] = u_data.get("usuario")
+                            
+                            perm_val = u_data.get("perm_str", "TODOS")
+                            if perm_val == "TODOS" or u_data.get("usuario") == "admin":
+                                st.session_state["permisos_usuario"] = TODAS_LAS_PESTANIAS
+                            else:
+                                st.session_state["permisos_usuario"] = [p.strip() for p in perm_val.split(",") if p.strip()]
+                                
+                            ent_val = u_data.get("ent_str", "TODOS")
+                            if ent_val == "TODOS" or u_data.get("usuario") == "admin":
+                                st.session_state["permisos_entornos"] = TODOS_LOS_ENTORNOS
+                            else:
+                                st.session_state["permisos_entornos"] = [e.strip() for e in ent_val.split(",") if e.strip()]
+
+                            st.session_state["paso_login"] = 1
+                            st.session_state["login_temp_data"] = {}
+                            st.session_state["token_demo_login"] = None
+                            login_container.empty()
+                            st.rerun()
+                        else:
+                            conn.close()
+                            st.error("❌ Código de verificación incorrecto.")
+
+                    if st.button("⬅️ Cambiar de Usuario"):
+                        st.session_state["paso_login"] = 1
+                        st.session_state["login_temp_data"] = {}
+                        st.session_state["token_demo_login"] = None
+                        st.rerun()
 
                 st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-                with st.expander("❓ Olvidé mi Contraseña"):
+                with st.expander("❓ Olvidé mi Contraseña / Restablecer"):
                     paso = st.session_state.get("paso_recuperacion", 1)
 
                     if paso == 1:
@@ -307,17 +531,24 @@ def validar_login():
                                     conn.commit()
                                     conn.close()
                                     
-                                    if enviar_correo_token(email_req.strip().lower(), token):
-                                        st.session_state["email_recuperacion"] = email_req.strip().lower()
-                                        st.session_state["paso_recuperacion"] = 2
-                                        st.success("✅ Código enviado con éxito. Revisa tu bandeja de entrada.")
-                                        st.rerun()
+                                    # Se intenta enviar por correo; si no está activo el SMTP se habilita la clave en pantalla
+                                    enviado_ok = enviar_correo_token(email_req.strip().lower(), token)
+                                    
+                                    st.session_state["token_demo"] = token if not enviado_ok else None
+                                    st.session_state["email_recuperacion"] = email_req.strip().lower()
+                                    st.session_state["paso_recuperacion"] = 2
+                                    st.rerun()
                             else:
                                 conn.close()
                                 st.error("❌ El correo no se encuentra registrado en el sistema.")
 
                     elif paso == 2:
                         st.info(f"Código enviado a: **{st.session_state.get('email_recuperacion')}**")
+                        
+                        # Si no hay servidor SMTP configurado, mostramos el código generado en pantalla para pruebas
+                        if st.session_state.get("token_demo"):
+                            st.warning(f"🔑 **[Modo Pruebas] Tu código de verificación es:** `{st.session_state['token_demo']}`")
+
                         token_ingresado = st.text_input("Ingresa el código de 6 dígitos recibido:")
                         nueva_pw = st.text_input("Nueva Contraseña:", type="password")
                         nueva_pw_conf = st.text_input("Confirmar Nueva Contraseña:", type="password")
@@ -340,15 +571,19 @@ def validar_login():
                                     conn.commit()
                                     conn.close()
 
-                                    st.success("🎉 ¡Contraseña actualizada con éxito! Ya puedes iniciar sesión.")
+                                    exportar_y_sincronizar_usuarios()
+
+                                    st.success("🎉 ¡Contraseña actualizada con éxito y guardada en GitHub! Ya puedes iniciar sesión.")
                                     st.session_state["paso_recuperacion"] = 1
                                     st.session_state["email_recuperacion"] = None
+                                    st.session_state["token_demo"] = None
                                 else:
                                     conn.close()
                                     st.error("❌ El código de verificación es incorrecto.")
 
                     if st.button("Volver a empezar"):
                         st.session_state["paso_recuperacion"] = 1
+                        st.session_state["token_demo"] = None
                         st.rerun()
         return False
     return True
@@ -1497,7 +1732,6 @@ if entorno_activo == "Auditoría Interna":
                 df_alertas = df_filtrado.copy()
                 hoy = pd.to_datetime(date.today())
 
-                # CONVERSIÓN FLEXIBLE Y RIGUROSA DE FECHA DE CIERRE DE COMPROMISO
                 if col_fecha_cierre and col_fecha_cierre in df_alertas.columns:
                     df_alertas["Fecha_DT"] = pd.to_datetime(df_alertas[col_fecha_cierre], errors="coerce", dayfirst=True)
                     df_alertas["Dias_Atraso"] = (hoy - df_alertas["Fecha_DT"]).dt.days
@@ -1505,7 +1739,6 @@ if entorno_activo == "Auditoría Interna":
                 else:
                     df_alertas["Dias_Atraso"] = 0
 
-                # CALCULO DE PLANES CRÍTICOS PENDIENTES CON MAS DE 30 DÍAS DE ATRASO
                 df_criticos_30 = df_alertas[
                     (~df_alertas[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)) & 
                     (df_alertas["Dias_Atraso"] >= 30)

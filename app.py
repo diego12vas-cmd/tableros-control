@@ -63,7 +63,6 @@ TODOS_LOS_ENTORNOS = [
     "Contraloría de Bogotá"
 ]
 
-# Lista global de correos y usuarios exentos de 2FA (Ingreso directo con clave)
 USUARIOS_AMARILLOS = [
     'admin', 
     'diego.vasquez@terminaldetransporte.gov.co', 
@@ -80,9 +79,6 @@ def verificar_password(password, hashed):
     return hmac.compare_digest(hash_password(password), str(hashed).strip())
 
 def commit_usuarios_a_github(data_list):
-    """
-    Sincroniza automáticamente la lista de usuarios con el repositorio de GitHub usando el Token.
-    """
     token = st.secrets.get("GITHUB_TOKEN", "").strip()
     repo = st.secrets.get("GITHUB_REPO", "").strip()
     branch = st.secrets.get("GITHUB_BRANCH", "main").strip()
@@ -100,13 +96,11 @@ def commit_usuarios_a_github(data_list):
     }
 
     try:
-        # 1. Obtener SHA actual especificando la rama exacta
         res_get = requests.get(f"{url}?ref={branch}", headers=headers)
         sha = None
         if res_get.status_code == 200:
             sha = res_get.json().get("sha")
 
-        # 2. Codificar contenido en Base64
         content_str = json.dumps(data_list, indent=4, ensure_ascii=False)
         content_b64 = base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
 
@@ -118,14 +112,8 @@ def commit_usuarios_a_github(data_list):
         if sha:
             payload["sha"] = sha
 
-        # 3. Guardar en la rama especificada de GitHub
         res_put = requests.put(url, headers=headers, json=payload)
-        
-        if res_put.status_code in [200, 201]:
-            return True
-        else:
-            st.error(f"❌ Error al guardar en GitHub (Status {res_put.status_code}): {res_put.json().get('message', '')}")
-            return False
+        return res_put.status_code in [200, 201]
             
     except Exception as e:
         st.error(f"❌ Excepción al conectar con GitHub API: {e}")
@@ -535,7 +523,6 @@ st.markdown(
         button[title*="Manage app"] {display: none !important;}
         iframe[title*="manage-app"] {display: none !important;}
 
-        /* OCULTAR BARRA DE HERRAMIENTAS SOLO EN PLOTLY, PERMITIR EN TABLAS ST.DATAFRAME */
         .plotly .modebar,
         button[title="View fullscreen"] {
             display: none !important;
@@ -756,7 +743,6 @@ else:
 
 st.sidebar.markdown("---")
 
-# ENCABEZADO PRINCIPAL DINÁMICO
 col_head_logo, col_head_title = st.columns([1, 4])
 with col_head_logo:
     if LOGO_PATH:
@@ -791,9 +777,6 @@ def buscar_excel_inteligente():
 
 EXCEL_PATH_AI = buscar_excel_inteligente()
 
-# ---------------------------------------------------------
-# BÚSQUEDA Y CARGA DE EXCEL DE CONTRALORÍA
-# ---------------------------------------------------------
 def buscar_excel_contraloria():
     dir_script = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
     dir_padre = os.path.dirname(dir_script)
@@ -1407,9 +1390,13 @@ if entorno_activo == "Auditoría Interna":
 
                 st.markdown("---")
 
-                col_sub, col_filtro_rapido = st.columns([2, 1])
+                col_sub, col_search_box, col_filtro_rapido = st.columns([1.8, 1.3, 1])
                 with col_sub:
                     st.subheader("📋 Detalle General de Compromisos Pendientes")
+                
+                with col_search_box:
+                    busqueda_texto = st.text_input("🔍 Buscar texto en la tabla:", placeholder="Escribe para filtrar...", key="search_tabla_general").strip().lower()
+
                 with col_filtro_rapido:
                     opciones_rapidas = ["(Mostrar Todos)", "Riesgo: Alto", "Riesgo: Medio", "Riesgo: Bajo", "Estado: Abiertos", "Estado: Vencidos", "Estado: Sin definir"]
                     if col_a5: opciones_rapidas.append("Alerta: Próximos a 5 días")
@@ -1417,7 +1404,7 @@ if entorno_activo == "Auditoría Interna":
                     if col_a20: opciones_rapidas.append("Alerta: Próximos a 20 días")
                     if col_a30: opciones_rapidas.append("Alerta: Próximos a 30 días")
 
-                    filtro_elegido = st.selectbox("⚡ Filtrar vista detallada por categoría:", options=opciones_rapidas, index=0)
+                    filtro_elegido = st.selectbox("⚡ Filtrar por categoría:", options=opciones_rapidas, index=0)
 
                 df_tabla = df_activos.copy()
                 if filtro_elegido != "(Mostrar Todos)":
@@ -1447,6 +1434,14 @@ if entorno_activo == "Auditoría Interna":
                         df_tabla = df_tabla[~s_val.isin(["nan", "none", "", "0", "0.0", "false"])]
 
                 df_tabla_vista = filtrar_solo_columnas_amarillas_ai(df_tabla)
+
+                # FILTRADO DINÁMICO POR TEXTO LIBRE
+                if busqueda_texto:
+                    mask_texto = df_tabla_vista.apply(
+                        lambda row: row.astype(str).str.lower().str.contains(busqueda_texto, case=False, na=False).any(),
+                        axis=1
+                    )
+                    df_tabla_vista = df_tabla_vista[mask_texto]
 
                 col_config_dict = {}
                 col_ev_vista = "Enlace para cargar evidencias" if "Enlace para cargar evidencias" in df_tabla_vista.columns else buscar_columna_por_patron(df_tabla_vista, ["enlace para cargar evidencias", "cargar evidencias"])
@@ -2230,7 +2225,6 @@ else:
 
     total_planes_c = abiertos_c + vencidos_c
 
-    # Gráfica de Barras Ampliada
     max_val_c = max([abiertos_c, vencidos_c, 1])
     df_bar_c = pd.DataFrame({"Estado": ["Abiertos", "Vencidos"], "Cantidad": [abiertos_c, vencidos_c]})
 
@@ -2249,7 +2243,6 @@ else:
         plot_bgcolor="rgba(0,0,0,0)"
     )
 
-    # Donas Paralelas
     pct_abiertos_c = round((abiertos_c / total_planes_c) * 100) if total_planes_c > 0 else 0
     colors_abiertos_c = ["#00B050" if i < (pct_abiertos_c / 5) else "#E0E0E0" for i in range(20)]
 
@@ -2457,7 +2450,6 @@ else:
                 plot_bgcolor="rgba(0,0,0,0)"
             )
 
-    # 4 PESTAÑAS DE CONTRALORÍA
     tab_c1, tab_c2, tab_c4, tab_c5 = st.tabs([
         "📊 Tablero Principal",
         "📈 Métricas de Cumplimiento",
@@ -2497,11 +2489,22 @@ else:
             st.plotly_chart(fig_dona_vencidos_c, use_container_width=True, key="fig_dona_vencidos_c_view", config={'displayModeBar': False})
 
         st.markdown("---")
-        st.subheader("📋 Detalle de Compromisos Contraloría")
+        
+        col_c_sub, col_c_search = st.columns([2.2, 1.8])
+        with col_c_sub:
+            st.subheader("📋 Detalle de Compromisos Contraloría")
+        with col_c_search:
+            busqueda_texto_c = st.text_input("🔍 Buscar texto en Contraloría:", placeholder="Escribe para filtrar...", key="search_tabla_contraloria").strip().lower()
 
         df_c_tabla = df_activos_c.copy()
-        
         df_c_tabla_vista = filtrar_solo_columnas_amarillas_c(df_c_tabla)
+
+        if busqueda_texto_c:
+            mask_texto_c = df_c_tabla_vista.apply(
+                lambda row: row.astype(str).str.lower().str.contains(busqueda_texto_c, case=False, na=False).any(),
+                axis=1
+            )
+            df_c_tabla_vista = df_c_tabla_vista[mask_texto_c]
 
         col_config_dict_c = {}
         col_ev_vista_c = "ENLACE PARA CARGAR EVIDENCIAS" if "ENLACE PARA CARGAR EVIDENCIAS" in df_c_tabla_vista.columns else buscar_columna_por_patron(df_c_tabla_vista, ["enlace para cargar evidencias", "cargar evidencias"])

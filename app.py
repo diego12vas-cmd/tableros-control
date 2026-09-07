@@ -321,7 +321,7 @@ def enviar_correo_token(email_destino, token):
         return False
 
 # ---------------------------------------------------------
-# SISTEMA DE LOGIN Y RECUPERACIÓN DE CONTRASEÑA
+# SISTEMA DE LOGIN
 # ---------------------------------------------------------
 def validar_login():
     if "autenticado" not in st.session_state:
@@ -526,7 +526,7 @@ if not validar_login():
     st.stop()
 
 # ---------------------------------------------------------
-# ESTILOS CSS PRINCIPALES DEL TABLERO
+# ESTILOS CSS PRINCIPALES DEL TABLERO Y MENÚS FLOTANTES
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -560,13 +560,16 @@ st.markdown(
             z-index: 1000000 !important;
         }
 
+        /* PERMITIR LECTURA COMPLETA Y CAJA FLOTANTE EXPANDIDA EN FILTROS */
         div[role="listbox"] li,
         div[role="listbox"] li span,
-        [data-testid="stSidebar"] div[role="listbox"] li {
-            white-space: nowrap !important;
-            overflow: hidden !important;
-            text-overflow: ellipsis !important;
-            line-height: 1.3 !important;
+        [data-testid="stSidebar"] div[role="listbox"] li,
+        [data-testid="stSidebar"] div[role="listbox"] li span {
+            white-space: normal !important;
+            word-wrap: break-word !important;
+            text-overflow: unset !important;
+            line-height: 1.35 !important;
+            font-size: 0.85rem !important;
         }
 
         div[role="listbox"], 
@@ -574,9 +577,11 @@ st.markdown(
         div[data-baseweb="popover"],
         div[data-baseweb="menu"] {
             width: auto !important;
-            min-width: 320px !important;
-            max-width: 580px !important;
+            min-width: 380px !important;
+            max-width: 650px !important;
             z-index: 999999 !important;
+            box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.25) !important;
+            border-radius: 8px !important;
         }
 
         [data-testid="stSidebar"] {

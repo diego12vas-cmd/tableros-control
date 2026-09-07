@@ -78,16 +78,25 @@ def hash_password(password):
 def verificar_password(password, hashed):
     return hmac.compare_digest(hash_password(password), str(hashed).strip())
 
+def obtener_credenciales_github():
+    """
+    Busca flexiblemente el token, repositorio y rama en Secrets de Streamlit.
+    """
+    gh_sec = st.secrets.get("github", {})
+    token = st.secrets.get("GITHUB_TOKEN") or gh_sec.get("token") or gh_sec.get("GITHUB_TOKEN", "")
+    repo = st.secrets.get("GITHUB_REPO") or gh_sec.get("repo") or gh_sec.get("GITHUB_REPO", "")
+    branch = st.secrets.get("GITHUB_BRANCH") or gh_sec.get("branch") or gh_sec.get("GITHUB_BRANCH", "main")
+    
+    return str(token).strip(), str(repo).strip(), str(branch).strip()
+
 def commit_usuarios_a_github(data_list):
     """
     Sincroniza automáticamente la lista de usuarios con el repositorio de GitHub usando el Token.
     """
-    token = st.secrets.get("GITHUB_TOKEN", "").strip()
-    repo = st.secrets.get("GITHUB_REPO", "").strip()
-    branch = st.secrets.get("GITHUB_BRANCH", "main").strip()
+    token, repo, branch = obtener_credenciales_github()
     
     if not token or not repo:
-        st.warning("⚠️ No se encontraron las credenciales GITHUB_TOKEN o GITHUB_REPO en Secrets de Streamlit.")
+        st.warning("⚠️ No se encontraron las credenciales de GitHub en Secrets. Revisa el bloque [github] en la configuración de Streamlit.")
         return False
 
     url = f"https://api.github.com/repos/{repo}/contents/{JSON_USERS_FILE}"

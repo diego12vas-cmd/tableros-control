@@ -1435,13 +1435,14 @@ if entorno_activo == "Auditoría Interna":
 
                 df_tabla_vista = filtrar_solo_columnas_amarillas_ai(df_tabla)
 
-                # FILTRADO DINÁMICO POR TEXTO LIBRE
                 if busqueda_texto:
                     mask_texto = df_tabla_vista.apply(
                         lambda row: row.astype(str).str.lower().str.contains(busqueda_texto, case=False, na=False).any(),
                         axis=1
                     )
                     df_tabla_vista = df_tabla_vista[mask_texto]
+
+                df_tabla_vista.index = range(1, len(df_tabla_vista) + 1)
 
                 col_config_dict = {}
                 col_ev_vista = "Enlace para cargar evidencias" if "Enlace para cargar evidencias" in df_tabla_vista.columns else buscar_columna_por_patron(df_tabla_vista, ["enlace para cargar evidencias", "cargar evidencias"])
@@ -1459,7 +1460,7 @@ if entorno_activo == "Auditoría Interna":
                         display_text="📂 Cargar Evidencia"
                     )
 
-                st.dataframe(df_tabla_vista, use_container_width=True, column_config=col_config_dict, hide_index=True)
+                st.dataframe(df_tabla_vista, use_container_width=True, column_config=col_config_dict, hide_index=False)
 
                 st.download_button(
                     label="📥 Descargar Excel (.xlsx)",
@@ -1492,6 +1493,7 @@ if entorno_activo == "Auditoría Interna":
                         for i, vig in enumerate(vigencias_paa_unicas):
                             with subtabs_paa[i]:
                                 df_sub_paa = df_paa_vista[df_paa_vista[col_vig_paa] == vig].copy().reset_index(drop=True)
+                                df_sub_paa.index = range(1, len(df_sub_paa) + 1)
                                 
                                 tot_p = len(df_sub_paa)
                                 fin_p = df_sub_paa[col_est_paa].astype(str).str.contains("Finaliz", case=False, na=False).sum() if col_est_paa else 0
@@ -1512,7 +1514,7 @@ if entorno_activo == "Auditoría Interna":
                                         return ["background-color: #D9EAD3; color: #000000; font-weight: normal;"] * len(row)
                                     return [""] * len(row)
 
-                                st.dataframe(df_sub_paa.style.apply(resaltar_finalizadas, axis=1), use_container_width=True, hide_index=True)
+                                st.dataframe(df_sub_paa.style.apply(resaltar_finalizadas, axis=1), use_container_width=True, hide_index=False)
 
                         st.markdown("---")
                         st.download_button(
@@ -1648,8 +1650,9 @@ if entorno_activo == "Auditoría Interna":
 
                 if not df_criticos_30.empty:
                     df_criticos_30_vista = filtrar_solo_columnas_amarillas_ai(df_criticos_30)
+                    df_criticos_30_vista.index = range(1, len(df_criticos_30_vista) + 1)
                     st.subheader("📋 Tabla de Compromisos Críticos")
-                    st.dataframe(df_criticos_30_vista, use_container_width=True, hide_index=True)
+                    st.dataframe(df_criticos_30_vista, use_container_width=True, hide_index=False)
 
                     st.download_button(
                         label="📥 Descargar Acciones Críticas en Excel (.xlsx)",
@@ -1916,6 +1919,7 @@ if entorno_activo == "Auditoría Interna":
                             lista_final_oficios.append(datos)
 
                         df_oficios_vista = pd.DataFrame(lista_final_oficios)
+                        df_oficios_vista.index = range(1, len(df_oficios_vista) + 1)
                         
                         tot_oficios_unicos = len(df_oficios_vista)
                         aprobados_cnt = df_oficios_vista["Estado de la Solicitud"].astype(str).str.contains("Aprob", case=False, na=False).sum() if "Estado de la Solicitud" in df_oficios_vista.columns else tot_oficios_unicos
@@ -1929,7 +1933,7 @@ if entorno_activo == "Auditoría Interna":
                         st.dataframe(
                             df_oficios_vista,
                             use_container_width=True,
-                            hide_index=True,
+                            hide_index=False,
                             column_config={
                                 "Enlace PDF": st.column_config.LinkColumn(
                                     "Soporte PDF",
@@ -1970,7 +1974,8 @@ if entorno_activo == "Auditoría Interna":
 
                     if not df_finalizadas_tabla.empty:
                         df_finalizadas_vista = filtrar_solo_columnas_amarillas_ai(df_finalizadas_tabla)
-                        st.dataframe(df_finalizadas_vista, use_container_width=True, hide_index=True)
+                        df_finalizadas_vista.index = range(1, len(df_finalizadas_vista) + 1)
+                        st.dataframe(df_finalizadas_vista, use_container_width=True, hide_index=False)
 
                         st.download_button(
                             label="📥 Descargar Solo Finalizadas (.xlsx)",
@@ -2021,13 +2026,14 @@ if entorno_activo == "Auditoría Interna":
                         for i, vig in enumerate(vigencias_unicas):
                             with subtabs[i]:
                                 df_sub_vig = df_inf_vista[df_inf_vista[col_vig_inf] == vig].copy().reset_index(drop=True)
+                                df_sub_vig.index = range(1, len(df_sub_vig) + 1)
                                 
                                 st.markdown(f"**Listado de informes de la Vigencia {vig} ({len(df_sub_vig)} informe/s):**")
                                 
                                 st.dataframe(
                                     df_sub_vig,
                                     use_container_width=True,
-                                    hide_index=True,
+                                    hide_index=False,
                                     column_config={
                                         col_link_inf: st.column_config.LinkColumn(
                                             "Soporte PDF",
@@ -2506,6 +2512,8 @@ else:
             )
             df_c_tabla_vista = df_c_tabla_vista[mask_texto_c]
 
+        df_c_tabla_vista.index = range(1, len(df_c_tabla_vista) + 1)
+
         col_config_dict_c = {}
         col_ev_vista_c = "ENLACE PARA CARGAR EVIDENCIAS" if "ENLACE PARA CARGAR EVIDENCIAS" in df_c_tabla_vista.columns else buscar_columna_por_patron(df_c_tabla_vista, ["enlace para cargar evidencias", "cargar evidencias"])
         
@@ -2522,7 +2530,7 @@ else:
                 display_text="📂 Cargar Evidencia"
             )
 
-        st.dataframe(df_c_tabla_vista, use_container_width=True, column_config=col_config_dict_c, hide_index=True)
+        st.dataframe(df_c_tabla_vista, use_container_width=True, column_config=col_config_dict_c, hide_index=False)
 
         st.download_button(
             label="📥 Descargar Excel Contraloría (.xlsx)",
@@ -2574,7 +2582,8 @@ else:
             df_fin_c = df_filtrado_c[df_filtrado_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado_c else pd.DataFrame()
             if not df_fin_c.empty:
                 df_fin_c_vista = filtrar_solo_columnas_amarillas_c(df_fin_c)
-                st.dataframe(df_fin_c_vista, use_container_width=True, hide_index=True)
+                df_fin_c_vista.index = range(1, len(df_fin_c_vista) + 1)
+                st.dataframe(df_fin_c_vista, use_container_width=True, hide_index=False)
             else:
                 st.info("ℹ️ No hay acciones finalizadas en Contraloría.")
 
@@ -2593,11 +2602,12 @@ else:
                 return val
 
             df_inf_c[col_link_c] = df_inf_c[col_link_c].apply(asegurar_link)
+            df_inf_c.index = range(1, len(df_inf_c) + 1)
             
             st.dataframe(
                 df_inf_c,
                 use_container_width=True,
-                hide_index=True,
+                hide_index=False,
                 column_config={
                     col_link_c: st.column_config.LinkColumn(
                         "Enlace PDF",

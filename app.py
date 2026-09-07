@@ -138,7 +138,6 @@ def init_db():
     ''')
     conn.commit()
 
-    # Si la tabla ya existía sin la columna requiere_2fa, la agregamos dinámicamente
     try:
         c.execute("ALTER TABLE usuarios ADD COLUMN requiere_2fa INTEGER DEFAULT 1")
         conn.commit()
@@ -147,8 +146,8 @@ def init_db():
 
     pw_defecto = hash_password("123456")
 
-    # Definimos los usuarios amarillos que ingresan con contraseña (requiere_2fa = 0)
-    usuarios_amarillos = ['admin', 'manuel.gutierrez', 'omar.diaz']
+    # Usuarios marcados en amarillo en el respaldo Excel (ingresan directamente con contraseña)
+    usuarios_amarillos = ['admin', 'diego.vasquez@terminaldetransporte.gov.co', 'manuel.gutierrez', 'omar.diaz']
 
     usuarios_base_raw = [
         ('edgar.ortiz', 'edgar.ortiz@terminaldetransporte.gov'),
@@ -185,7 +184,7 @@ def init_db():
     ]
 
     usuarios_base = [
-        (u, email, pw_defecto, 1, 'TODOS', 'TODOS', 0 if u in usuarios_amarillos else 1)
+        (u, email, pw_defecto, 1, 'TODOS', 'TODOS', 0 if (u in usuarios_amarillos or email in usuarios_amarillos) else 1)
         for u, email in usuarios_base_raw
     ]
 
@@ -203,7 +202,7 @@ def init_db():
                             u.get("autorizado", 1), 
                             u.get("perm_pestañas", "TODOS"), 
                             u.get("perm_entornos", "TODOS"),
-                            u.get("requiere_2fa", 0 if u["usuario"] in usuarios_amarillos else 1)
+                            u.get("requiere_2fa", 0 if (u["usuario"] in usuarios_amarillos or u["email"] in usuarios_amarillos) else 1)
                         ) 
                         for u in usuarios_json
                     ]
@@ -266,7 +265,7 @@ def guardar_o_actualizar_usuario(usuario, email, password, permisos_list, entorn
     c = conn.cursor()
     pw_hash = hash_password(password)
     perm_str = ",".join(permisos_list) if permisos_list else "TODOS"
-    ent_str = ",".join(lista_entornos) if entornos_list else "TODOS"
+    ent_str = ",".join(entornos_list) if entornos_list else "TODOS"
     
     c.execute('''
         INSERT INTO usuarios (usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos, requiere_2fa)
@@ -294,7 +293,7 @@ def enviar_correo_token(email_destino, token):
         if not remitente or not password_remitente:
             return False
 
-        asunto = "Código de Acceso / Verificación - Tablero La Terminal"
+        asunto = "Código de Acceso de 6 Dígitos - Tablero La Terminal"
         cuerpo = f"Hola,\n\nTu código de verificación de 6 dígitos para ingresar al sistema es: {token}\n\nSi no intentaste iniciar sesión, ignora este mensaje."
 
         msg = MIMEText(cuerpo)
@@ -369,7 +368,7 @@ def validar_login():
                 
                 st.markdown("### 🔒 Acceso Restringido")
 
-                # PASO 1: Ingreso de Usuario o Correo Electronico
+                # PASO 1: Ingreso de Usuario o Correo
                 if st.session_state["paso_login"] == 1:
                     st.caption("Ingresa tu usuario o correo electrónico para continuar.")
                     
@@ -405,11 +404,11 @@ def validar_login():
                                 }
 
                                 if req_2fa == 0:
-                                    # Usuario Amarillo -> Ingresa directamente con Contraseña (123456)
+                                    # Usuario Amarillo (admin, manuel.gutierrez, omar.diaz) -> Ingresa con Contraseña
                                     st.session_state["paso_login"] = "password"
                                     st.rerun()
                                 else:
-                                    # Resto de Usuarios -> Envío de Código de 6 dígitos al Correo
+                                    # Resto de usuarios -> Envío de Código de 6 dígitos al correo
                                     token_6_digitos = "".join(random.choices(string.digits, k=6))
                                     conn = sqlite3.connect(DB_PATH)
                                     c = conn.cursor()
@@ -418,11 +417,13 @@ def validar_login():
                                     conn.close()
 
                                     enviado_ok = enviar_correo_token(email_db, token_6_digitos)
-                                    st.session_state["token_demo_login"] = token_6_digitos if not enviado_ok else None
-                                    st.session_state["paso_login"] = "otp"
-                                    st.rerun()
+                                    if enviado_ok:
+                                        st.session_state["paso_login"] = "otp"
+                                        st.rerun()
+                                    else:
+                                        st.error("❌ Error al enviar el correo. Verifica las credenciales SMTP en Secrets.")
 
-                # PASO 2A: Validación con Contraseña (Usuarios en Amarillo)
+                # PASO 2A: Validación con Contraseña (Usuarios Amarillos)
                 elif st.session_state["paso_login"] == "password":
                     u_data = st.session_state.get("login_temp_data", {})
                     st.info(f"👤 Usuario: **{u_data.get('usuario')}**")
@@ -462,9 +463,6 @@ def validar_login():
                     u_data = st.session_state.get("login_temp_data", {})
                     st.info(f"📧 Se ha enviado un código de verificación de 6 dígitos a: **{u_data.get('email')}**")
 
-                    if st.session_state.get("token_demo_login"):
-                        st.warning(f"🔑 **[Modo Pruebas / Sin SMTP] Tu código de verificación es:** `{st.session_state['token_demo_login']}`")
-
                     otp_ingresado = st.text_input("Ingresa el código de 6 dígitos recibido:", key="otp_code_input").strip()
 
                     if st.button("Verificar e Iniciar Sesión 🚀", type="primary", use_container_width=True):
@@ -495,7 +493,6 @@ def validar_login():
 
                             st.session_state["paso_login"] = 1
                             st.session_state["login_temp_data"] = {}
-                            st.session_state["token_demo_login"] = None
                             login_container.empty()
                             st.rerun()
                         else:
@@ -505,7 +502,6 @@ def validar_login():
                     if st.button("⬅️ Cambiar de Usuario"):
                         st.session_state["paso_login"] = 1
                         st.session_state["login_temp_data"] = {}
-                        st.session_state["token_demo_login"] = None
                         st.rerun()
 
                 st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
@@ -531,23 +527,19 @@ def validar_login():
                                     conn.commit()
                                     conn.close()
                                     
-                                    # Se intenta enviar por correo; si no está activo el SMTP se habilita la clave en pantalla
                                     enviado_ok = enviar_correo_token(email_req.strip().lower(), token)
-                                    
-                                    st.session_state["token_demo"] = token if not enviado_ok else None
-                                    st.session_state["email_recuperacion"] = email_req.strip().lower()
-                                    st.session_state["paso_recuperacion"] = 2
-                                    st.rerun()
+                                    if enviado_ok:
+                                        st.session_state["email_recuperacion"] = email_req.strip().lower()
+                                        st.session_state["paso_recuperacion"] = 2
+                                        st.rerun()
+                                    else:
+                                        st.error("❌ Error al enviar el correo. Verifica las credenciales SMTP.")
                             else:
                                 conn.close()
                                 st.error("❌ El correo no se encuentra registrado en el sistema.")
 
                     elif paso == 2:
                         st.info(f"Código enviado a: **{st.session_state.get('email_recuperacion')}**")
-                        
-                        # Si no hay servidor SMTP configurado, mostramos el código generado en pantalla para pruebas
-                        if st.session_state.get("token_demo"):
-                            st.warning(f"🔑 **[Modo Pruebas] Tu código de verificación es:** `{st.session_state['token_demo']}`")
 
                         token_ingresado = st.text_input("Ingresa el código de 6 dígitos recibido:")
                         nueva_pw = st.text_input("Nueva Contraseña:", type="password")
@@ -576,14 +568,12 @@ def validar_login():
                                     st.success("🎉 ¡Contraseña actualizada con éxito y guardada en GitHub! Ya puedes iniciar sesión.")
                                     st.session_state["paso_recuperacion"] = 1
                                     st.session_state["email_recuperacion"] = None
-                                    st.session_state["token_demo"] = None
                                 else:
                                     conn.close()
                                     st.error("❌ El código de verificación es incorrecto.")
 
                     if st.button("Volver a empezar"):
                         st.session_state["paso_recuperacion"] = 1
-                        st.session_state["token_demo"] = None
                         st.rerun()
         return False
     return True

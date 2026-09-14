@@ -1542,56 +1542,96 @@ if entorno_activo == "Auditoría Interna":
                     st.plotly_chart(fig_aud_horiz, use_container_width=True, key="fig_aud_horiz_key", config={'displayModeBar': False})
 
             elif nombre_tab_real == "Indicadores de Gestión":
-                st.header("📌 Indicadores de Gestión - Programación por Mes (Vigencia 2026)")
-                st.markdown("Relación de planes de acción con fecha programada de terminación en la columna **'Cierre'** para cada mes de la **Vigencia 2026**.")
+                st.header("📌 Indicadores de Gestión Auditoría Interna")
+                st.markdown("Selecciona una sub-pestaña para comparar la **programación mensual** contra la **ejecución de planes finalizados**.")
 
-                conteo_programados_2026 = {
-                    "ENE": 0, "FEB": 0, "MAR": 0, "ABR": 0, "MAYO": 0, "JUNIO": 0,
-                    "JULIO": 0, "AGO": 0, "SEP": 0, "OCT": 0, "NOV": 0, "DIC": 0
-                }
-                
-                col_fecha_prog = col_fecha_cierre if col_fecha_cierre in df_raw.columns else col_fecha_cierre_aud
+                subtab_ind1, subtab_ind2 = st.tabs([
+                    "📅 Planes Programados (Vigencia 2026)",
+                    "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)"
+                ])
 
-                if col_fecha_prog and col_fecha_prog in df_raw.columns:
-                    fechas_prog_dt = pd.to_datetime(df_raw[col_fecha_prog], errors="coerce", dayfirst=True)
-                    for f in fechas_prog_dt.dropna():
-                        if f.year == 2026:
-                            map_m = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
-                            if f.month in map_m:
-                                conteo_programados_2026[map_m[f.month]] += 1
+                with subtab_ind1:
+                    st.subheader("📅 Programación de Cierre por Mes (Vigencia 2026)")
+                    st.markdown("Relación de planes de acción con fecha de cierre en la columna **'Cierre'** programados para la **Vigencia 2026**.")
 
-                col_ind_1, col_ind_2 = st.columns([0.28, 1])
-
-                with col_ind_1:
-                    st.markdown('<div class="titulo-seccion-finaliz">📅 Programados 2026</div>', unsafe_allow_html=True)
-                    st.markdown('<div class="month-container">', unsafe_allow_html=True)
-                    for m_lbl, cant_prog in conteo_programados_2026.items():
-                        st.markdown(f'<div class="month-row"><span>{m_lbl}</span><div class="month-box" style="background-color:#C2E0C6;">{cant_prog}</div></div>', unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
-
-                with col_ind_2:
-                    st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Detalle de Planes de Acción Programados 2026</div>', unsafe_allow_html=True)
+                    conteo_programados_2026 = {
+                        "ENE": 0, "FEB": 0, "MAR": 0, "ABR": 0, "MAYO": 0, "JUNIO": 0,
+                        "JULIO": 0, "AGO": 0, "SEP": 0, "OCT": 0, "NOV": 0, "DIC": 0
+                    }
                     
-                    df_prog_2026 = df_raw.copy()
-                    if col_fecha_prog and col_fecha_prog in df_prog_2026.columns:
-                        fechas_prog_dt_col = pd.to_datetime(df_prog_2026[col_fecha_prog], errors="coerce", dayfirst=True)
-                        df_prog_2026 = df_prog_2026[fechas_prog_dt_col.dt.year == 2026].copy()
+                    col_fecha_prog = col_fecha_cierre if col_fecha_cierre in df_raw.columns else col_fecha_cierre_aud
 
-                    if not df_prog_2026.empty:
-                        df_prog_2026_vista = filtrar_solo_columnas_amarillas_ai(df_prog_2026)
-                        df_prog_2026_vista.index = range(1, len(df_prog_2026_vista) + 1)
-                        st.dataframe(df_prog_2026_vista, use_container_width=True, hide_index=False)
+                    if col_fecha_prog and col_fecha_prog in df_raw.columns:
+                        fechas_prog_dt = pd.to_datetime(df_raw[col_fecha_prog], errors="coerce", dayfirst=True)
+                        for f in fechas_prog_dt.dropna():
+                            if f.year == 2026:
+                                map_m = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
+                                if f.month in map_m:
+                                    conteo_programados_2026[map_m[f.month]] += 1
 
-                        st.download_button(
-                            label="📥 Descargar Programados 2026 (.xlsx)",
-                            data=generar_excel_formateado_ai(df_prog_2026),
-                            file_name=f"Planes_Programados_2026_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            key="btn_download_prog_2026_ai",
-                            use_container_width=False,
-                        )
-                    else:
-                        st.info("ℹ️ No hay planes de acción programados para la vigencia 2026 con los filtros aplicados.")
+                    col_ind_1, col_ind_2 = st.columns([0.28, 1])
+
+                    with col_ind_1:
+                        st.markdown('<div class="titulo-seccion-finaliz">📅 Programados 2026</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="month-container">', unsafe_allow_html=True)
+                        for m_lbl, cant_prog in conteo_programados_2026.items():
+                            st.markdown(f'<div class="month-row"><span>{m_lbl}</span><div class="month-box" style="background-color:#C2E0C6;">{cant_prog}</div></div>', unsafe_allow_html=True)
+                        st.markdown('</div>', unsafe_allow_html=True)
+
+                    with col_ind_2:
+                        st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Detalle de Planes Programados 2026</div>', unsafe_allow_html=True)
+                        
+                        df_prog_2026 = df_raw.copy()
+                        if col_fecha_prog and col_fecha_prog in df_prog_2026.columns:
+                            fechas_prog_dt_col = pd.to_datetime(df_prog_2026[col_fecha_prog], errors="coerce", dayfirst=True)
+                            df_prog_2026 = df_prog_2026[fechas_prog_dt_col.dt.year == 2026].copy()
+
+                        if not df_prog_2026.empty:
+                            df_prog_2026_vista = filtrar_solo_columnas_amarillas_ai(df_prog_2026)
+                            df_prog_2026_vista.index = range(1, len(df_prog_2026_vista) + 1)
+                            st.dataframe(df_prog_2026_vista, use_container_width=True, hide_index=False)
+
+                            st.download_button(
+                                label="📥 Descargar Programados 2026 (.xlsx)",
+                                data=generar_excel_formateado_ai(df_prog_2026),
+                                file_name=f"Planes_Programados_2026_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                key="btn_download_prog_2026_ai_ind",
+                                use_container_width=False,
+                            )
+                        else:
+                            st.info("ℹ️ No hay planes de acción programados para la vigencia 2026 con los filtros aplicados.")
+
+                with subtab_ind2:
+                    st.subheader("🎉 Avance Real de Cierre y Planes Finalizados")
+                    col_m1, col_m2 = st.columns([0.28, 1])
+
+                    with col_m1:
+                        st.markdown('<div class="titulo-seccion-finaliz">📅 Cierre Mensual 2026</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="month-container">', unsafe_allow_html=True)
+                        for m, cant in conteo_meses.items():
+                            st.markdown(f'<div class="month-row"><span>{m}</span><div class="month-box">{cant}</div></div>', unsafe_allow_html=True)
+                        st.markdown('</div>', unsafe_allow_html=True)
+
+                    with col_m2:
+                        st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Tabla Completa de Planes Finalizados</div>', unsafe_allow_html=True)
+                        df_finalizadas_tabla = df_filtrado[df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
+
+                        if not df_finalizadas_tabla.empty:
+                            df_finalizadas_vista = filtrar_solo_columnas_amarillas_ai(df_finalizadas_tabla)
+                            df_finalizadas_vista.index = range(1, len(df_finalizadas_vista) + 1)
+                            st.dataframe(df_finalizadas_vista, use_container_width=True, hide_index=False)
+
+                            st.download_button(
+                                label="📥 Descargar Solo Finalizadas (.xlsx)",
+                                data=generar_excel_formateado_ai(df_finalizadas_tabla),
+                                file_name=f"Acciones_Finalizadas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                key="btn_download_finalizadas_ind_subtab",
+                                use_container_width=False,
+                            )
+                        else:
+                            st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
 
             elif nombre_tab_real == "Histórico":
                 st.header("📊 Análisis Histórico e Interanual de Planes de Mejoramiento")
@@ -2616,54 +2656,84 @@ else:
                     st.info("No hay compromisos pendientes en las vigencias.")
 
             elif nombre_tab_real_c == "Indicadores de Gestión":
-                st.header("📌 Indicadores de Gestión Contraloría - Programación por Mes (Vigencia 2026)")
-                st.markdown("Relación de planes de acción con fecha programada de terminación en cada mes de la **Vigencia 2026**.")
+                st.header("📌 Indicadores de Gestión Contraloría")
+                st.markdown("Selecciona una sub-pestaña para comparar la **programación mensual** contra la **ejecución de planes finalizados**.")
 
-                conteo_programados_2026_c = {
-                    "ENE": 0, "FEB": 0, "MAR": 0, "ABR": 0, "MAY": 0, "JUN": 0,
-                    "JUL": 0, "AGO": 0, "SEP": 0, "OCT": 0, "NOV": 0, "DIC": 0
-                }
+                subtab_ind_c1, subtab_ind_c2 = st.tabs([
+                    "📅 Planes Programados (Vigencia 2026)",
+                    "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)"
+                ])
 
-                if col_fecha_cierre_c and col_fecha_cierre_c in df_raw_c.columns:
-                    fechas_prog_dt_c = pd.to_datetime(df_raw_c[col_fecha_cierre_c], errors="coerce", dayfirst=True)
-                    for f in fechas_prog_dt_c.dropna():
-                        if f.year == 2026:
-                            map_m_c = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAY", 6: "JUN", 7: "JUL", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
-                            if f.month in map_m_c:
-                                conteo_programados_2026_c[map_m_c[f.month]] += 1
+                with subtab_ind_c1:
+                    st.subheader("📅 Programación de Cierre por Mes (Vigencia 2026)")
+                    st.markdown("Relación de planes de acción con fecha de terminación en la columna **'FECHA DE TERMINACIÓN'** programados para la **Vigencia 2026**.")
 
-                col_ind_c1, col_ind_c2 = st.columns([0.28, 1])
+                    conteo_programados_2026_c = {
+                        "ENE": 0, "FEB": 0, "MAR": 0, "ABR": 0, "MAY": 0, "JUN": 0,
+                        "JUL": 0, "AGO": 0, "SEP": 0, "OCT": 0, "NOV": 0, "DIC": 0
+                    }
 
-                with col_ind_c1:
-                    st.markdown('<div class="titulo-seccion-finaliz">📅 Programados 2026</div>', unsafe_allow_html=True)
-                    st.markdown('<div class="month-container">', unsafe_allow_html=True)
-                    for m_lbl, cant_prog in conteo_programados_2026_c.items():
-                        st.markdown(f'<div class="month-row"><span>{m_lbl}</span><div class="month-box" style="background-color:#C2E0C6;">{cant_prog}</div></div>', unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
+                    if col_fecha_cierre_c and col_fecha_cierre_c in df_raw_c.columns:
+                        fechas_prog_dt_c = pd.to_datetime(df_raw_c[col_fecha_cierre_c], errors="coerce", dayfirst=True)
+                        for f in fechas_prog_dt_c.dropna():
+                            if f.year == 2026:
+                                map_m_c = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAY", 6: "JUN", 7: "JUL", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
+                                if f.month in map_m_c:
+                                    conteo_programados_2026_c[map_m_c[f.month]] += 1
 
-                with col_ind_c2:
-                    st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Detalle de Planes de Acción Programados 2026 Contraloría</div>', unsafe_allow_html=True)
-                    
-                    df_prog_2026_c = df_raw_c.copy()
-                    if col_fecha_cierre_c and col_fecha_cierre_c in df_prog_2026_c.columns:
-                        fechas_prog_dt_col_c = pd.to_datetime(df_prog_2026_c[col_fecha_cierre_c], errors="coerce", dayfirst=True)
-                        df_prog_2026_c = df_prog_2026_c[fechas_prog_dt_col_c.dt.year == 2026].copy()
+                    col_ind_c1, col_ind_c2 = st.columns([0.28, 1])
 
-                    if not df_prog_2026_c.empty:
-                        df_prog_2026_c_vista = filtrar_solo_columnas_amarillas_c(df_prog_2026_c)
-                        df_prog_2026_c_vista.index = range(1, len(df_prog_2026_c_vista) + 1)
-                        st.dataframe(df_prog_2026_c_vista, use_container_width=True, hide_index=False)
+                    with col_ind_c1:
+                        st.markdown('<div class="titulo-seccion-finaliz">📅 Programados 2026</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="month-container">', unsafe_allow_html=True)
+                        for m_lbl, cant_prog in conteo_programados_2026_c.items():
+                            st.markdown(f'<div class="month-row"><span>{m_lbl}</span><div class="month-box" style="background-color:#C2E0C6;">{cant_prog}</div></div>', unsafe_allow_html=True)
+                        st.markdown('</div>', unsafe_allow_html=True)
 
-                        st.download_button(
-                            label="📥 Descargar Programados 2026 Contraloría (.xlsx)",
-                            data=generar_excel_formateado_c(df_prog_2026_c),
-                            file_name=f"Planes_Programados_2026_Contraloria_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            key="btn_download_prog_2026_c",
-                            use_container_width=False,
-                        )
-                    else:
-                        st.info("ℹ️ No hay planes de acción programados en Contraloría para la vigencia 2026 con los filtros aplicados.")
+                    with col_ind_c2:
+                        st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Detalle de Planes Programados 2026 Contraloría</div>', unsafe_allow_html=True)
+                        
+                        df_prog_2026_c = df_raw_c.copy()
+                        if col_fecha_cierre_c and col_fecha_cierre_c in df_prog_2026_c.columns:
+                            fechas_prog_dt_col_c = pd.to_datetime(df_prog_2026_c[col_fecha_cierre_c], errors="coerce", dayfirst=True)
+                            df_prog_2026_c = df_prog_2026_c[fechas_prog_dt_col_c.dt.year == 2026].copy()
+
+                        if not df_prog_2026_c.empty:
+                            df_prog_2026_c_vista = filtrar_solo_columnas_amarillas_c(df_prog_2026_c)
+                            df_prog_2026_c_vista.index = range(1, len(df_prog_2026_c_vista) + 1)
+                            st.dataframe(df_prog_2026_c_vista, use_container_width=True, hide_index=False)
+
+                            st.download_button(
+                                label="📥 Descargar Programados 2026 Contraloría (.xlsx)",
+                                data=generar_excel_formateado_c(df_prog_2026_c),
+                                file_name=f"Planes_Programados_2026_Contraloria_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                key="btn_download_prog_2026_c_ind",
+                                use_container_width=False,
+                            )
+                        else:
+                            st.info("ℹ️ No hay planes de acción programados en Contraloría para la vigencia 2026 con los filtros aplicados.")
+
+                with subtab_ind_c2:
+                    st.subheader("🎉 Avance Real de Cierre y Planes Finalizados Contraloría")
+                    col_cm1, col_cm2 = st.columns([0.28, 1])
+
+                    with col_cm1:
+                        st.markdown('<div class="titulo-seccion-finaliz">📅 Cierre Mensual 2026</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="month-container">', unsafe_allow_html=True)
+                        for m, cant in conteo_meses_c.items():
+                            st.markdown(f'<div class="month-row"><span>{m}</span><div class="month-box">{cant}</div></div>', unsafe_allow_html=True)
+                        st.markdown('</div>', unsafe_allow_html=True)
+
+                    with col_cm2:
+                        st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Tabla Completa de Planes Finalizados Contraloría</div>', unsafe_allow_html=True)
+                        df_fin_c = df_filtrado_c[df_filtrado_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado_c else pd.DataFrame()
+                        if not df_fin_c.empty:
+                            df_fin_c_vista = filtrar_solo_columnas_amarillas_c(df_fin_c)
+                            df_fin_c_vista.index = range(1, len(df_fin_c_vista) + 1)
+                            st.dataframe(df_fin_c_vista, use_container_width=True, hide_index=False)
+                        else:
+                            st.info("ℹ️ No hay acciones finalizadas en Contraloría.")
 
             elif nombre_tab_real_c == "Finalizadas":
                 st.header("🎉 Acciones Finalizadas Contraloría")

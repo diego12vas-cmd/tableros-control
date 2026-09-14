@@ -1034,7 +1034,8 @@ if entorno_activo == "Auditoría Interna":
     col_nombre = "Titulo del Hallazgo" if "Titulo del Hallazgo" in df_raw.columns else buscar_columna_por_patron(df_raw, ["nombre", "nombre hallazgo", "titulo"])
     col_riesgo = "Nivel del Riesgo" if "Nivel del Riesgo" in df_raw.columns else buscar_columna_por_patron(df_raw, ["riesgo", "nivel de riesgo"])
     col_fecha_inicio = "Inicio" if "Inicio" in df_raw.columns else buscar_columna_por_patron(df_raw, ["inicio"])
-    col_fecha_cierre = "Cierre" if "Cierre" in df_raw.columns else buscar_columna_por_patron(df_raw, ["cierre", "fecha cierre", "fecha compromiso"])
+    
+    col_fecha_cierre = "Cierre" if "Cierre" in df_raw.columns else (buscar_columna_por_patron(df_raw, ["cierre dd/mm/a", "cierre"]) or buscar_columna_por_patron(df_raw, ["fecha cierre", "fecha compromiso"]))
     col_fecha_cierre_aud = "Fecha de cierre Auditoría" if "Fecha de cierre Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["fecha de cierre auditoria", "cierre auditoria"])
     col_obs_audit = buscar_columna_por_patron(df_raw, ["observacion auditoria"]) or "Observación Auditoría"
     
@@ -1542,14 +1543,14 @@ if entorno_activo == "Auditoría Interna":
 
             elif nombre_tab_real == "Indicadores de Gestión":
                 st.header("📌 Indicadores de Gestión - Programación por Mes (Vigencia 2026)")
-                st.markdown("Relación de planes de acción con fecha programada de terminación/cierre en cada mes de la **Vigencia 2026**.")
+                st.markdown("Relación de planes de acción con fecha programada de terminación en la columna **'Cierre'** para cada mes de la **Vigencia 2026**.")
 
                 conteo_programados_2026 = {
                     "ENE": 0, "FEB": 0, "MAR": 0, "ABR": 0, "MAYO": 0, "JUNIO": 0,
                     "JULIO": 0, "AGO": 0, "SEP": 0, "OCT": 0, "NOV": 0, "DIC": 0
                 }
                 
-                col_fecha_prog = col_fecha_cierre_aud if col_fecha_cierre_aud in df_raw.columns else col_fecha_cierre
+                col_fecha_prog = col_fecha_cierre if col_fecha_cierre in df_raw.columns else col_fecha_cierre_aud
 
                 if col_fecha_prog and col_fecha_prog in df_raw.columns:
                     fechas_prog_dt = pd.to_datetime(df_raw[col_fecha_prog], errors="coerce", dayfirst=True)

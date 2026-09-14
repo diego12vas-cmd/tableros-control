@@ -53,7 +53,6 @@ TODAS_LAS_PESTANIAS = [
     "Histórico", 
     "Alertas y Edición", 
     "Oficios", 
-    "Finalizadas", 
     "Informes"
 ]
 
@@ -1285,7 +1284,6 @@ if entorno_activo == "Auditoría Interna":
         "Histórico": "📊 Histórico",
         "Alertas y Edición": "🚨 Alertas y Edición",
         "Oficios": "📩 Oficios",
-        "Finalizadas": "🎉 Finalizadas",
         "Informes": "📑 Informes"
     }
 
@@ -2033,38 +2031,6 @@ if entorno_activo == "Auditoría Interna":
                 else:
                     st.warning("⚠️ No se detectó la columna 'Radicado' en la hoja Base de datos.")
 
-            elif nombre_tab_real == "Finalizadas":
-                st.header("🎉 Acciones Finalizadas")
-
-                col_m1, col_m2 = st.columns([0.24, 1])
-
-                with col_m1:
-                    st.markdown('<div class="titulo-seccion-finaliz">📅 Cierre Mensual 2026</div>', unsafe_allow_html=True)
-                    st.markdown('<div class="month-container">', unsafe_allow_html=True)
-                    for m, cant in conteo_meses.items():
-                        st.markdown(f'<div class="month-row"><span>{m}</span><div class="month-box">{cant}</div></div>', unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
-
-                with col_m2:
-                    st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Tabla de Planes Finalizados</div>', unsafe_allow_html=True)
-                    df_finalizadas_tabla = df_filtrado[df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
-
-                    if not df_finalizadas_tabla.empty:
-                        df_finalizadas_vista = filtrar_solo_columnas_amarillas_ai(df_finalizadas_tabla)
-                        df_finalizadas_vista.index = range(1, len(df_finalizadas_vista) + 1)
-                        st.dataframe(df_finalizadas_vista, use_container_width=True, hide_index=False)
-
-                        st.download_button(
-                            label="📥 Descargar Solo Finalizadas (.xlsx)",
-                            data=generar_excel_formateado_ai(df_finalizadas_tabla),
-                            file_name=f"Acciones_Finalizadas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            key="btn_download_finalizadas_only",
-                            use_container_width=False,
-                        )
-                    else:
-                        st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
-
             elif nombre_tab_real == "Informes":
                 st.header("📑 Informes de Auditoría Interna por Vigencia")
                 st.markdown("Haz clic en cualquier año para consultar únicamente los informes de esa vigencia específica.")
@@ -2537,7 +2503,6 @@ else:
         "Tablero": "📊 Tablero Principal",
         "Métricas": "📈 Métricas de Cumplimiento",
         "Indicadores de Gestión": "📌 Indicadores de Gestión",
-        "Finalizadas": "🎉 Finalizadas",
         "Informes": "📑 Informes de Auditoría"
     }
 
@@ -2734,27 +2699,6 @@ else:
                             st.dataframe(df_fin_c_vista, use_container_width=True, hide_index=False)
                         else:
                             st.info("ℹ️ No hay acciones finalizadas en Contraloría.")
-
-            elif nombre_tab_real_c == "Finalizadas":
-                st.header("🎉 Acciones Finalizadas Contraloría")
-                col_cm1, col_cm2 = st.columns([0.24, 1])
-
-                with col_cm1:
-                    st.markdown('<div class="titulo-seccion-finaliz">📅 Cierre Mensual 2026</div>', unsafe_allow_html=True)
-                    st.markdown('<div class="month-container">', unsafe_allow_html=True)
-                    for m, cant in conteo_meses_c.items():
-                        st.markdown(f'<div class="month-row"><span>{m}</span><div class="month-box">{cant}</div></div>', unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
-
-                with col_cm2:
-                    st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Tabla de Planes Finalizados Contraloría</div>', unsafe_allow_html=True)
-                    df_fin_c = df_filtrado_c[df_filtrado_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado_c else pd.DataFrame()
-                    if not df_fin_c.empty:
-                        df_fin_c_vista = filtrar_solo_columnas_amarillas_c(df_fin_c)
-                        df_fin_c_vista.index = range(1, len(df_fin_c_vista) + 1)
-                        st.dataframe(df_fin_c_vista, use_container_width=True, hide_index=False)
-                    else:
-                        st.info("ℹ️ No hay acciones finalizadas en Contraloría.")
 
             elif nombre_tab_real_c == "Informes":
                 st.header("📑 Informes de Auditoría de la Contraloría")

@@ -1550,7 +1550,7 @@ if entorno_activo == "Auditoría Interna":
 
                 with subtab_ind1:
                     st.subheader("📅 Programación de Cierre por Mes (Vigencia 2026)")
-                    st.markdown("Relación de planes de acción con fecha de cierre en la columna **'Cierre'** programados para la **Vigencia 2026**.")
+                    st.markdown("Relación de planes de acción programados para la **Vigencia 2026**.")
 
                     conteo_programados_2026 = {
                         "ENE": 0, "FEB": 0, "MAR": 0, "ABR": 0, "MAYO": 0, "JUNIO": 0,
@@ -1601,7 +1601,7 @@ if entorno_activo == "Auditoría Interna":
                             st.info("ℹ️ No hay planes de acción programados para la vigencia 2026 con los filtros aplicados.")
 
                 with subtab_ind2:
-                    st.subheader("🎉 Avance Real de Cierre y Planes Finalizados")
+                    st.subheader("🎉 Avance de Cierre y Planes Finalizados")
                     col_m1, col_m2 = st.columns([0.28, 1])
 
                     with col_m1:
@@ -2631,7 +2631,7 @@ else:
 
                 with subtab_ind_c1:
                     st.subheader("📅 Programación de Cierre por Mes (Vigencia 2026)")
-                    st.markdown("Relación de planes de acción con fecha de terminación en la columna **'FECHA DE TERMINACIÓN'** programados para la **Vigencia 2026**.")
+                    st.markdown("Relación de planes de acción programados para la **Vigencia 2026**.")
 
                     conteo_programados_2026_c = {
                         "ENE": 0, "FEB": 0, "MAR": 0, "ABR": 0, "MAY": 0, "JUN": 0,
@@ -2680,7 +2680,7 @@ else:
                             st.info("ℹ️ No hay planes de acción programados en Contraloría para la vigencia 2026 con los filtros aplicados.")
 
                 with subtab_ind_c2:
-                    st.subheader("🎉 Avance Real de Cierre y Planes Finalizados Contraloría")
+                    st.subheader("🎉 Avance de Cierre y Planes Finalizados Contraloría")
                     col_cm1, col_cm2 = st.columns([0.28, 1])
 
                     with col_cm1:

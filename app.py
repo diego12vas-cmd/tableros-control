@@ -1226,7 +1226,7 @@ if entorno_activo == "Auditoría Interna":
     if col_auditor_resp:
         aud_resp_vals = sorted(list(set([ar for ar in df_raw[col_auditor_resp].dropna().unique() if str(ar).lower() not in ["nan", "none", ""]])))
         with st.sidebar.expander("🧐 Auditor Responsable", expanded=False):
-            aud_resp_sel = st.multiselect("Seleccione Auditores:", options=aud_resp_sel, default=[], key="multi_auditor_resp")
+            aud_resp_sel = st.multiselect("Seleccione Auditores:", options=aud_resp_vals, default=[], key="multi_auditor_resp")
         if aud_resp_sel:
             df_filtrado = df_filtrado[df_filtrado[col_auditor_resp].isin(aud_resp_sel)]
 
@@ -1314,7 +1314,7 @@ if entorno_activo == "Auditoría Interna":
 
             for _, row in df_totales_aud.iterrows():
                 fig_aud_horiz.add_annotation(y=row[col_auditoria], x=row["Total_Pendientes"], text=f" <b>{row['Total_Pendientes']}</b>", showarrow=False, xanchor="left", yanchor="middle", font=dict(size=13, color="var(--text-color)"))
-            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True, tickfont=dict(color="var(--text-color)")), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
     dict_pestanias = {
         "Tablero": "📊 Tablero",
@@ -1588,6 +1588,8 @@ if entorno_activo == "Auditoría Interna":
                     "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)"
                 ])
 
+                # DICCIONARIO DE CONTEO REAL DE FINALIZADOS
+                # COLUMNA L (ÍNDICE 11) Y COLUMNA S (ÍNDICE 18)
                 conteo_meses_fin_real = {m: 0 for m in meses_es}
                 col_estado_idx = df_raw.columns[11] if len(df_raw.columns) > 11 else col_estado
                 col_fecha_fin_idx = df_raw.columns[18] if len(df_raw.columns) > 18 else col_fecha_cierre_auditoria
@@ -1608,6 +1610,8 @@ if entorno_activo == "Auditoría Interna":
                     st.markdown("Relación de planes de acción programados por Fecha de Cierre (Columna I) para la **Vigencia 2026**.")
 
                     conteo_programados_2026 = {m: 0 for m in meses_es}
+                    
+                    # LECTURA POR POSICIÓN EXACTA: COLUMNA I (ÍNDICE 8 - CIERRE DD/MM/AA)
                     col_cierre_idx = df_raw.columns[8] if len(df_raw.columns) > 8 else col_fecha_cierre
                     
                     fechas_cierre_parsed = df_raw[col_cierre_idx].apply(parsear_fecha_estricta)

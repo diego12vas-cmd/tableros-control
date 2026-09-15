@@ -689,7 +689,7 @@ st.markdown(
             font-weight: bold;
             font-size: 0.82rem;
             color: var(--text-color);
-            width: 120px !important;
+            width: 175px !important;
         }
         .month-box {
             background-color: #D9EAD3;
@@ -698,6 +698,16 @@ st.markdown(
             padding: 2px 0;
             border-radius: 4px;
             color: #000;
+        }
+        .month-box-fin {
+            background-color: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            width: 44px;
+            text-align: center;
+            padding: 2px 0;
+            border-radius: 4px;
+            color: var(--text-color);
+            font-weight: bold;
         }
         .alert-row-compact {
             display: flex;
@@ -1333,7 +1343,7 @@ if entorno_activo == "Auditoría Interna":
 
             for _, row in df_totales_aud.iterrows():
                 fig_aud_horiz.add_annotation(y=row[col_auditoria], x=row["Total_Pendientes"], text=f" <b>{row['Total_Pendientes']}</b>", showarrow=False, xanchor="left", yanchor="middle", font=dict(size=13, color="var(--text-color)"))
-            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, (df_totales_aud["Total_Pendientes"].max() if not df_totales_aud.empty else 10) * 1.25]), legend_title_text="Estado", margin=dict(l=280, r=60, t=60, b=40), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
     dict_pestanias = {
         "Tablero": "📊 Tablero",
@@ -1605,7 +1615,7 @@ if entorno_activo == "Auditoría Interna":
                 subtab_ind1, subtab_ind2, subtab_ind3 = st.tabs([
                     "📅 Planes Programados (Vigencia 2026)",
                     "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)",
-                    "🎯 Hallazgos Finalizados (Suma % Hallazgo 2026)"
+                    "🎯 Hallazgos Finalizados (% Hallazgo: Programados vs Finalizados 2026)"
                 ])
 
                 with subtab_ind1:
@@ -1692,51 +1702,71 @@ if entorno_activo == "Auditoría Interna":
                             st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
 
                 # ---------------------------------------------------------
-                # SUB-PESTAÑA 3: CÁLCULO DE SUMA DIRECTA VIGENCIA 2026
+                # SUB-PESTAÑA 3: COMPARACIÓN PROGRAMADOS VS FINALIZADOS (% HALLAZGO 2026)
                 # ---------------------------------------------------------
                 with subtab_ind3:
-                    st.subheader("🎯 Suma de Hallazgos Finalizados por Mes (Vigencia 2026)")
-                    st.markdown("Relación consolidada sumando la columna **`% Hallazgo`** para las acciones en estado **Finalizada/Cerrada** según su Fecha de Cierre de Auditoría en 2026.")
+                    st.subheader("🎯 Suma de Hallazgos (% Hallazgo): Programados vs Finalizados 2026")
+                    st.markdown("Comparativa mes a mes entre la suma del **% Hallazgo (Columna AB)** programado según la **Fecha de Cierre (Columna I)** y lo finalizado según la **Fecha de Cierre Auditoría (Columna S)**.")
 
-                    conteo_pct_hallazgos_2026 = {m: 0.0 for m in meses_es}
+                    conteo_pct_prog_2026 = {m: 0.0 for m in meses_es}
+                    conteo_pct_fin_2026 = {m: 0.0 for m in meses_es}
 
-                    # Búsqueda por posicionamiento directo en la Hoja 'Base de datos'
+                    col_cierre_prog_idx = df_raw.columns[8] if len(df_raw.columns) > 8 else col_fecha_cierre
                     col_estado_idx_pct = df_raw.columns[11] if len(df_raw.columns) > 11 else col_estado
                     col_fecha_fin_idx_pct = df_raw.columns[18] if len(df_raw.columns) > 18 else col_fecha_cierre_aud
                     col_pct_idx = df_raw.columns[27] if len(df_raw.columns) > 27 else df_raw.columns[-1]
 
+                    map_m_pct = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
+
+                    # 1. Suma de % Hallazgos Programados 2026 (Columna I)
+                    fechas_prog_parsed_pct = df_raw[col_cierre_prog_idx].apply(parsear_fecha_estricta)
+                    df_raw_prog_pct = df_raw.copy()
+                    df_raw_prog_pct["pct_val"] = pd.to_numeric(df_raw_prog_pct[col_pct_idx].astype(str).str.replace(",", ".", regex=False).str.strip(), errors="coerce").fillna(0.0)
+                    df_raw_prog_pct["f_dt"] = fechas_prog_parsed_pct
+
+                    for _, r_p in df_raw_prog_pct.iterrows():
+                        dt_val = r_p["f_dt"]
+                        if pd.notnull(dt_val) and dt_val.year == 2026 and dt_val.month in map_m_pct:
+                            conteo_pct_prog_2026[map_m_pct[dt_val.month]] += float(r_p["pct_val"])
+
+                    # 2. Suma de % Hallazgos Finalizados 2026 (Columna S + Estado Finalizada/Cerrada)
                     mask_fin_estricto_pct = df_raw[col_estado_idx_pct].astype(str).str.strip().str.lower().isin(["finalizada", "cerrada"])
                     df_fin_pct_raw = df_raw[mask_fin_estricto_pct].copy()
 
                     if not df_fin_pct_raw.empty:
-                        # Parsear fecha estricta mediante la función global del sistema
                         df_fin_pct_raw["fecha_fin_dt_pct"] = df_fin_pct_raw[col_fecha_fin_idx_pct].apply(parsear_fecha_estricta)
-
-                        # Conversión decimal garantizando compatibilidad con comas (0,5 -> 0.5)
-                        df_fin_pct_raw["pct_num_val"] = (
-                            df_fin_pct_raw[col_pct_idx]
-                            .astype(str)
-                            .str.replace(",", ".", regex=False)
-                            .str.strip()
-                        )
-                        df_fin_pct_raw["pct_num_val"] = pd.to_numeric(df_fin_pct_raw["pct_num_val"], errors="coerce").fillna(0.0)
-
-                        map_m_pct = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
+                        df_fin_pct_raw["pct_num_val"] = pd.to_numeric(df_fin_pct_raw[col_pct_idx].astype(str).str.replace(",", ".", regex=False).str.strip(), errors="coerce").fillna(0.0)
 
                         for _, r_pct in df_fin_pct_raw.iterrows():
                             dt_val = r_pct["fecha_fin_dt_pct"]
-                            if pd.notnull(dt_val) and dt_val.year == 2026:
-                                if dt_val.month in map_m_pct:
-                                    conteo_pct_hallazgos_2026[map_m_pct[dt_val.month]] += float(r_pct["pct_num_val"])
+                            if pd.notnull(dt_val) and dt_val.year == 2026 and dt_val.month in map_m_pct:
+                                conteo_pct_fin_2026[map_m_pct[dt_val.month]] += float(r_pct["pct_num_val"])
 
-                    col_h1, col_h2 = st.columns([0.28, 1])
+                    col_h1, col_h2 = st.columns([0.45, 1])
 
                     with col_h1:
-                        st.markdown('<div class="titulo-seccion-finaliz">🎯 Suma Hallazgos</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="titulo-seccion-finaliz">🎯 Programados vs Finalizados (% Hallazgo)</div>', unsafe_allow_html=True)
+                        st.markdown('<div style="font-size:0.75rem; color:#A0AEC0; margin-bottom:8px;">🟩 Programados (Col I) | 🔳 Finalizados (Col S)</div>', unsafe_allow_html=True)
                         st.markdown('<div class="month-container">', unsafe_allow_html=True)
-                        for m_lbl, suma_val in conteo_pct_hallazgos_2026.items():
-                            val_str = f"{suma_val:g}" if float(suma_val).is_integer() else f"{suma_val:.1f}".replace(".", ",")
-                            st.markdown(f'<div class="month-row"><span>{m_lbl}</span><div class="month-box" style="background-color:#B4C6E7;">{val_str}</div></div>', unsafe_allow_html=True)
+                        for m_lbl in meses_es:
+                            sum_p = conteo_pct_prog_2026[m_lbl]
+                            sum_f = conteo_pct_fin_2026[m_lbl]
+
+                            p_str = f"{sum_p:g}" if float(sum_p).is_integer() else f"{sum_p:.1f}".replace(".", ",")
+                            f_str = f"{sum_f:g}" if float(sum_f).is_integer() else f"{sum_f:.1f}".replace(".", ",")
+
+                            st.markdown(
+                                f'''
+                                <div class="month-row">
+                                    <span>{m_lbl}</span>
+                                    <div style="display:flex; gap:6px;">
+                                        <div class="month-box" style="background-color:#C2E0C6;" title="Programados Vigencia 2026 (Suma % Hallazgo)">{p_str}</div>
+                                        <div class="month-box-fin" style="background-color:#B4C6E7; color:#000;" title="Finalizados Real Vigencia 2026 (Suma % Hallazgo)">{f_str}</div>
+                                    </div>
+                                </div>
+                                ''',
+                                unsafe_allow_html=True
+                            )
                         st.markdown('</div>', unsafe_allow_html=True)
 
                     with col_h2:

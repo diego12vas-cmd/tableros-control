@@ -1523,10 +1523,10 @@ if entorno_activo == "Auditoría Interna":
                     st.info("ℹ️ No se encontró información en la hoja 'Programa Anual de Auditoría' del archivo Excel.")
 
             elif nombre_tab_real == "Métricas":
-                st.header("📌 Indicadores de Gestión Auditoría Interna")
-                st.markdown("Selecciona una sub-pestaña para comparar la programación mensual contra la ejecución de planes finalizados.")
+                st.header("📈 Resumen de Estado y Desempeño")
+                st.markdown("Vista general del avance de compromisos por área y auditoría.")
 
-                # Conteo de planes finalizados por mes para comparación
+                # Conteo de planes finalizados por mes para la comparación en tarjetas
                 conteo_meses_fin = {m: 0 for m in meses_es}
                 df_fin_calc = df_raw[df_raw[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
                 
@@ -1537,56 +1537,53 @@ if entorno_activo == "Auditoría Interna":
                         if 0 <= m_idx < 12:
                             conteo_meses_fin[meses_es[m_idx]] += 1
 
-                sub_ind_1, sub_ind_2 = st.tabs(["📊 Planes Programados vs Finalizados 2026", "📋 Detalle Completo de Ejecución"])
+                comp_vencidos_pendientes = df_activos[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
+                comp_criticos_pendientes = df_activos[col_riesgo].astype(str).str.contains("Alto", case=False, na=False).sum() if col_riesgo else 0
 
-                with sub_ind_1:
-                    col_m1, col_m2 = st.columns([0.45, 1])
+                m1, m2, m3, m4 = st.columns(4)
+                m1.metric("Planes de Acción Pendientes", total_planes_pendientes)
+                m2.metric("🔴 Compromisos Vencidos", comp_vencidos_pendientes, delta=f"{(comp_vencidos_pendientes/total_planes_pendientes*100):.1f}% de pendientes" if total_planes_pendientes > 0 else "0%", delta_color="inverse")
+                m3.metric("🔥 Hallazgos Riesgo Alto", comp_criticos_pendientes, delta=f"{(comp_criticos_pendientes/total_planes_pendientes*100):.1f}% de pendientes" if total_planes_pendientes > 0 else "0%", delta_color="inverse")
+                m4.metric("🎯 Tasa Global de Cierre", f"{pct_abiertos}%", delta="Objetivo: 85%")
 
-                    with col_m1:
-                        st.markdown('<div class="titulo-seccion-finaliz">📅 Programado vs Finalizado (2026)</div>', unsafe_allow_html=True)
-                        st.markdown('<div style="font-size:0.75rem; color:#A0AEC0; margin-bottom:8px;">🟩 Programados | 🔳 Finalizados Real</div>', unsafe_allow_html=True)
-                        st.markdown('<div class="month-container">', unsafe_allow_html=True)
-                        for m in meses_es:
-                            cant_prog = conteo_meses[m]
-                            cant_fin = conteo_meses_fin[m]
-                            st.markdown(
-                                f'''
-                                <div class="month-row">
-                                    <span>{m}</span>
-                                    <div style="display:flex; gap:6px;">
-                                        <div class="month-box" title="Programados">{cant_prog}</div>
-                                        <div class="month-box-fin" title="Finalizados">{cant_fin}</div>
-                                    </div>
+                st.markdown("---")
+                col_m1_met, col_m2_met = st.columns([0.45, 1])
+
+                with col_m1_met:
+                    st.markdown('<div class="titulo-seccion-finaliz">📅 Programado vs Finalizado (2026)</div>', unsafe_allow_html=True)
+                    st.markdown('<div style="font-size:0.75rem; color:#A0AEC0; margin-bottom:8px;">🟩 Programados | 🔳 Finalizados Real</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="month-container">', unsafe_allow_html=True)
+                    for m in meses_es:
+                        cant_prog = conteo_meses[m]
+                        cant_fin = conteo_meses_fin[m]
+                        st.markdown(
+                            f'''
+                            <div class="month-row">
+                                <span>{m}</span>
+                                <div style="display:flex; gap:6px;">
+                                    <div class="month-box" title="Programados">{cant_prog}</div>
+                                    <div class="month-box-fin" title="Finalizados">{cant_fin}</div>
                                 </div>
-                                ''',
-                                unsafe_allow_html=True
-                            )
-                        st.markdown('</div>', unsafe_allow_html=True)
+                            </div>
+                            ''',
+                            unsafe_allow_html=True
+                        )
+                    st.markdown('</div>', unsafe_allow_html=True)
 
-                    with col_m2:
-                        st.markdown('<div class="titulo-seccion-finaliz">📋 Detalle de Planes Programados 2026</div>', unsafe_allow_html=True)
-                        df_tabla_prog_vista = filtrar_solo_columnas_amarillas_ai(df_activos)
-                        df_tabla_prog_vista.index = range(1, len(df_tabla_prog_vista) + 1)
-                        st.dataframe(df_tabla_prog_vista, use_container_width=True, hide_index=False)
-
-                with sub_ind_2:
-                    st.subheader("📈 Métricas Globales de Cumplimiento")
-                    comp_vencidos_pendientes = df_activos[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
-                    comp_criticos_pendientes = df_activos[col_riesgo].astype(str).str.contains("Alto", case=False, na=False).sum() if col_riesgo else 0
-
-                    m1, m2, m3, m4 = st.columns(4)
-                    m1.metric("Planes de Acción Pendientes", total_planes_pendientes)
-                    m2.metric("🔴 Compromisos Vencidos", comp_vencidos_pendientes, delta=f"{(comp_vencidos_pendientes/total_planes_pendientes*100):.1f}% de pendientes" if total_planes_pendientes > 0 else "0%", delta_color="inverse")
-                    m3.metric("🔥 Hallazgos Riesgo Alto", comp_criticos_pendientes, delta=f"{(comp_criticos_pendientes/total_planes_pendientes*100):.1f}% de pendientes" if total_planes_pendientes > 0 else "0%", delta_color="inverse")
-                    m4.metric("🎯 Tasa Global de Cierre", f"{pct_abiertos}%", delta="Objetivo: 85%")
-
-                    st.markdown("---")
+                with col_m2_met:
                     st.subheader("👥 Distribución de Compromisos Pendientes por Área")
                     st.markdown('<div class="small-note"><b>ℹ️ Nota sobre Responsabilidad Compartida:</b> Los hallazgos con responsabilidad compartida se contabilizan en los compromisos de cada Área individualmente.</div>', unsafe_allow_html=True)
                     st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_area}</div>', unsafe_allow_html=True)
 
                     if fig_area_horiz is not None:
                         st.plotly_chart(fig_area_horiz, use_container_width=True, key="fig_area_horiz_key", config={'displayModeBar': False})
+
+                st.markdown("---")
+                st.subheader("🔬 Distribución de Compromisos Pendientes por Auditoría")
+                st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_aud}</div>', unsafe_allow_html=True)
+
+                if fig_aud_horiz is not None:
+                    st.plotly_chart(fig_aud_horiz, use_container_width=True, key="fig_aud_horiz_key", config={'displayModeBar': False})
 
             elif nombre_tab_real == "Histórico":
                 st.header("📊 Análisis Histórico e Interanual de Planes de Mejoramiento")

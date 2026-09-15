@@ -1046,7 +1046,7 @@ if entorno_activo == "Auditoría Interna":
     col_riesgo = "Nivel del Riesgo" if "Nivel del Riesgo" in df_raw.columns else buscar_columna_por_patron(df_raw, ["riesgo", "nivel de riesgo"])
     col_fecha_inicio = "Inicio" if "Inicio" in df_raw.columns else buscar_columna_por_patron(df_raw, ["inicio"])
     
-    # Búsqueda específica de la columna de Fecha de cierre de Auditoría (Columna S) o Cierre general
+    # Búsqueda de Columna S ("Fecha de cierre Auditoría")
     col_fecha_cierre_auditoria = buscar_columna_por_patron(df_raw, ["fecha de cierre auditoria", "cierre auditoria"])
     col_fecha_cierre = col_fecha_cierre_auditoria or ("Cierre" if "Cierre" in df_raw.columns else buscar_columna_por_patron(df_raw, ["cierre", "fecha cierre", "fecha compromiso"]))
     col_obs_audit = buscar_columna_por_patron(df_raw, ["observacion auditoria"]) or "Observación Auditoría"
@@ -1521,20 +1521,17 @@ if entorno_activo == "Auditoría Interna":
                 st.header("📌 Indicadores de Gestión Auditoría Interna")
                 st.markdown("Selecciona una sub-pestaña para comparar la programación mensual contra la ejecución de planes finalizados.")
 
-                # CONTEO EXACTO EVALUANDO LA COLUMNA "Fecha de cierre Auditoría" (COLUMNA S)
                 conteo_meses_prog = {m: 0 for m in meses_es}
                 conteo_meses_fin = {m: 0 for m in meses_es}
 
                 if col_fecha_cierre and col_fecha_cierre in df_raw.columns:
                     fechas_dt_todas = pd.to_datetime(df_raw[col_fecha_cierre], errors="coerce", dayfirst=True)
                     
-                    # 1. Programados tomados directamente de la Columna Fecha de Cierre Auditoría
                     for f in fechas_dt_todas.dropna():
                         m_idx = f.month - 1
                         if 0 <= m_idx < 12:
                             conteo_meses_prog[meses_es[m_idx]] += 1
 
-                    # 2. Finalizados tomados directamente de la Columna Fecha de Cierre Auditoría para aquellos en estado Finalizado
                     if not df_finalizados_completo.empty:
                         fechas_dt_fin = pd.to_datetime(df_finalizados_completo[col_fecha_cierre], errors="coerce", dayfirst=True)
                         for f in fechas_dt_fin.dropna():
@@ -1791,12 +1788,17 @@ if entorno_activo == "Auditoría Interna":
                         est_actual_val = str(registro[col_estado]) if registro is not None and col_estado and pd.notnull(registro[col_estado]) else "Abierta"
                         resp_actual_val = str(registro[col_responsable]) if registro is not None and col_responsable and pd.notnull(registro[col_responsable]) else ""
 
+                        # CONTROL DE FECHA SEGURO CONTRA VALUEERROR (PARSEO BLINDADO)
                         fecha_def_obj = date.today()
                         fecha_antigua_str = ""
                         if registro is not None and col_fecha_cierre and pd.notnull(registro[col_fecha_cierre]):
                             try:
-                                fecha_def_obj = pd.to_datetime(registro[col_fecha_cierre], dayfirst=True).date()
-                                fecha_antigua_str = fecha_def_obj.strftime("%d/%m/%Y")
+                                dt_parsed = pd.to_datetime(registro[col_fecha_cierre], dayfirst=True, errors="coerce")
+                                if pd.notnull(dt_parsed):
+                                    fecha_def_obj = dt_parsed.date()
+                                    fecha_antigua_str = fecha_def_obj.strftime("%d/%m/%Y")
+                                else:
+                                    fecha_antigua_str = str(registro[col_fecha_cierre])
                             except Exception:
                                 fecha_antigua_str = str(registro[col_fecha_cierre])
 

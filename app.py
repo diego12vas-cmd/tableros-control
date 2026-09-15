@@ -1075,9 +1075,6 @@ if entorno_activo == "Auditoría Interna":
     col_a20 = "Alerta 20 días" if "Alerta 20 días" in df_raw.columns else buscar_columna_por_patron(df_raw, ["alerta 20"])
     col_a30 = "Alerta 30 días" if "Alerta 30 días" in df_raw.columns else buscar_columna_por_patron(df_raw, ["alerta 30"])
 
-    # IDENTIFICACIÓN EXPRESA Y ESTÁTICA DE LA COLUMNA % HALLAZGO (COLUMNA AB)
-    col_pct_hallazgo = "% Hallazgo" if "% Hallazgo" in df_raw.columns else (df_raw.columns[27] if len(df_raw.columns) > 27 else buscar_columna_por_patron(df_raw, ["% hallazgo", "porcentaje hallazgo", "hallazgo"]))
-
     if col_estado:
         df_raw[col_estado] = df_raw[col_estado].astype(str).str.capitalize()
 
@@ -1090,7 +1087,7 @@ if entorno_activo == "Auditoría Interna":
                     return val.strftime("%d/%m/%Y")
                 val_str = str(val).strip()
                 try:
-                    dt = pd.to_datetime(val_str, errors="coerce", dayfirst=True)
+                    dt = pd.to_datetime(val_str, errors="coerce")
                     if pd.notnull(dt):
                         return dt.strftime("%d/%m/%Y")
                 except Exception:
@@ -1577,7 +1574,7 @@ if entorno_activo == "Auditoría Interna":
                 st.markdown("Selecciona una sub-pestaña para comparar la **programación mensual** contra la **ejecución de planes finalizados**.")
 
                 subtab_ind1, subtab_ind2, subtab_ind3 = st.tabs([
-                    "📊 Planes Programados (Vigencia 2026)",
+                    "📅 Planes Programados (Vigencia 2026)",
                     "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)",
                     "🎯 Hallazgos Finalizados (Suma % Hallazgo 2026)"
                 ])
@@ -1665,39 +1662,44 @@ if entorno_activo == "Auditoría Interna":
                         else:
                             st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
 
-                # SUB-PESTAÑA 3: CÁLCULO DE SUMA DE % HALLAZGO (DIRECTO Y SIN DESAJUSTAR TU LÓGICA)
+                # ---------------------------------------------------------
+                # SUB-PESTAÑA 3: SUMA REAL DE % HALLAZGO (COLUMNA AB DE EXCEL)
+                # ---------------------------------------------------------
                 with subtab_ind3:
                     st.subheader("🎯 Suma de Hallazgos Finalizados por Mes (Vigencia 2026)")
                     st.markdown("Relación consolidada sumando la columna **`% Hallazgo`** para las acciones en estado **Finalizada/Cerrada** según su Fecha de Cierre de Auditoría en 2026.")
 
                     conteo_pct_hallazgos_2026 = {m: 0.0 for m in meses_es}
-                    df_fin_pct = df_raw[df_raw[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
 
-                    col_fecha_eval = col_fecha_cierre_aud if (col_fecha_cierre_aud and col_fecha_cierre_aud in df_raw.columns) else col_fecha_cierre
+                    # Identificar la columna por índice exacto de Excel (Columna L = Índice 11) y (Columna S = Índice 18)
+                    col_estado_idx_pct = df_raw.columns[11] if len(df_raw.columns) > 11 else col_estado
+                    col_fecha_fin_idx_pct = df_raw.columns[18] if len(df_raw.columns) > 18 else col_fecha_cierre_aud
+                    col_pct_idx = df_raw.columns[27] if len(df_raw.columns) > 27 else df_raw.columns[-1]
 
-                    if not df_fin_pct.empty and col_fecha_eval in df_fin_pct.columns:
-                        col_pct_ref = col_pct_hallazgo if col_pct_hallazgo in df_fin_pct.columns else df_raw.columns[27]
+                    mask_fin_estricto_pct = df_raw[col_estado_idx_pct].astype(str).str.strip().str.lower().isin(["finalizada", "cerrada"])
+                    df_fin_pct_raw = df_raw[mask_fin_estricto_pct].copy()
 
-                        # Conversión robusta de % Hallazgo a float (maneja comas y decimales)
-                        df_fin_pct["pct_num"] = (
-                            df_fin_pct[col_pct_ref]
+                    if not df_fin_pct_raw.empty:
+                        # Extraer fecha mediante la función de lectura estricta
+                        fechas_parsed_pct = df_fin_pct_raw[col_fecha_fin_idx_pct].apply(parsear_fecha_estricta)
+                        df_fin_pct_raw["fecha_fin_dt_pct"] = fechas_parsed_pct
+
+                        # Limpiar valor numérico/decimal de la Columna AB (% Hallazgo)
+                        df_fin_pct_raw["pct_num_val"] = (
+                            df_fin_pct_raw[col_pct_idx]
                             .astype(str)
                             .str.replace(",", ".", regex=False)
                             .str.strip()
                         )
-                        df_fin_pct["pct_num"] = pd.to_numeric(df_fin_pct["pct_num"], errors="coerce").fillna(0.0)
-
-                        # Parseo directo de fechas sobre la columna de fecha de cierre de auditoría
-                        fechas_eval_series = pd.to_datetime(df_fin_pct[col_fecha_eval], errors="coerce", dayfirst=True)
-                        df_fin_pct["fecha_eval_parsed"] = fechas_eval_series
+                        df_fin_pct_raw["pct_num_val"] = pd.to_numeric(df_fin_pct_raw["pct_num_val"], errors="coerce").fillna(0.0)
 
                         map_m_pct = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
 
-                        for idx_p, row_p in df_fin_pct.iterrows():
-                            f_dt = row_p["fecha_eval_parsed"]
-                            if pd.notnull(f_dt) and f_dt.year == 2026:
-                                if f_dt.month in map_m_pct:
-                                    conteo_pct_hallazgos_2026[map_m_pct[f_dt.month]] += float(row_p["pct_num"])
+                        for _, r_pct in df_fin_pct_raw.iterrows():
+                            dt_val = r_pct["fecha_fin_dt_pct"]
+                            if pd.notnull(dt_val) and dt_val.year == 2026:
+                                if dt_val.month in map_m_pct:
+                                    conteo_pct_hallazgos_2026[map_m_pct[dt_val.month]] += float(r_pct["pct_num_val"])
 
                     col_h1, col_h2 = st.columns([0.28, 1])
 
@@ -1711,14 +1713,14 @@ if entorno_activo == "Auditoría Interna":
 
                     with col_h2:
                         st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Registros de Hallazgos Finalizados 2026</div>', unsafe_allow_html=True)
-                        if not df_fin_pct.empty:
-                            df_fin_pct_vista = filtrar_solo_columnas_amarillas_ai(df_fin_pct)
+                        if not df_fin_pct_raw.empty:
+                            df_fin_pct_vista = filtrar_solo_columnas_amarillas_ai(df_fin_pct_raw)
                             df_fin_pct_vista.index = range(1, len(df_fin_pct_vista) + 1)
                             st.dataframe(df_fin_pct_vista, use_container_width=True, hide_index=False)
 
                             st.download_button(
                                 label="📥 Descargar Detalle Hallazgos Finalizados (.xlsx)",
-                                data=generar_excel_formateado_ai(df_fin_pct),
+                                data=generar_excel_formateado_ai(df_fin_pct_raw),
                                 file_name=f"Hallazgos_Finalizados_Suma_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                 key="btn_download_hallazgos_pct_subtab",

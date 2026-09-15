@@ -76,6 +76,35 @@ def hash_password(password):
 def verificar_password(password, hashed):
     return hmac.compare_digest(hash_password(password), str(hashed).strip())
 
+def parsear_fecha_estricta(val):
+    if pd.isna(val):
+        return pd.NaT
+    if isinstance(val, (datetime, pd.Timestamp, date)):
+        return pd.to_datetime(val)
+        
+    val_str = str(val).strip().lower()
+    if val_str in ["nan", "none", "nat", "", "cierre", "cierre dd/mm/a", "cierre dd/mm/aa", "inicio", "inicio dd/mm/a"]:
+        return pd.NaT
+
+    try:
+        val_num = float(val_str)
+        if val_num > 30000:
+            return pd.to_datetime(val_num, unit='D', origin='1899-12-30')
+    except Exception:
+        pass
+
+    match = re.search(r"(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})", val_str)
+    if match:
+        d, m, y = int(match.group(1)), int(match.group(2)), int(match.group(3))
+        if y < 100:
+            y += 2000
+        try:
+            return pd.Timestamp(year=y, month=m, day=d)
+        except Exception:
+            pass
+
+    return pd.to_datetime(val_str, dayfirst=True, errors="coerce")
+
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -1304,7 +1333,7 @@ if entorno_activo == "Auditoría Interna":
 
             for _, row in df_totales_aud.iterrows():
                 fig_aud_horiz.add_annotation(y=row[col_auditoria], x=row["Total_Pendientes"], text=f" <b>{row['Total_Pendientes']}</b>", showarrow=False, xanchor="left", yanchor="middle", font=dict(size=13, color="var(--text-color)"))
-            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True, tickfont=dict(color="var(--text-color)")), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
     dict_pestanias = {
         "Tablero": "📊 Tablero",
@@ -1574,7 +1603,7 @@ if entorno_activo == "Auditoría Interna":
                 st.markdown("Selecciona una sub-pestaña para comparar la **programación mensual** contra la **ejecución de planes finalizados**.")
 
                 subtab_ind1, subtab_ind2, subtab_ind3 = st.tabs([
-                    "📅 Planes Programados (Vigencia 2026)",
+                    "📊 Planes Programados (Vigencia 2026)",
                     "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)",
                     "🎯 Hallazgos Finalizados (Suma % Hallazgo 2026)"
                 ])
@@ -1663,7 +1692,7 @@ if entorno_activo == "Auditoría Interna":
                             st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
 
                 # ---------------------------------------------------------
-                # SUB-PESTAÑA 3: SUMA REAL DE % HALLAZGO (COLUMNA AB DE EXCEL)
+                # SUB-PESTAÑA 3: SUMA REAL DE % HALLAZGO (COLUMNA AB)
                 # ---------------------------------------------------------
                 with subtab_ind3:
                     st.subheader("🎯 Suma de Hallazgos Finalizados por Mes (Vigencia 2026)")
@@ -1671,7 +1700,6 @@ if entorno_activo == "Auditoría Interna":
 
                     conteo_pct_hallazgos_2026 = {m: 0.0 for m in meses_es}
 
-                    # Identificar la columna por índice exacto de Excel (Columna L = Índice 11) y (Columna S = Índice 18)
                     col_estado_idx_pct = df_raw.columns[11] if len(df_raw.columns) > 11 else col_estado
                     col_fecha_fin_idx_pct = df_raw.columns[18] if len(df_raw.columns) > 18 else col_fecha_cierre_aud
                     col_pct_idx = df_raw.columns[27] if len(df_raw.columns) > 27 else df_raw.columns[-1]
@@ -1680,11 +1708,9 @@ if entorno_activo == "Auditoría Interna":
                     df_fin_pct_raw = df_raw[mask_fin_estricto_pct].copy()
 
                     if not df_fin_pct_raw.empty:
-                        # Extraer fecha mediante la función de lectura estricta
                         fechas_parsed_pct = df_fin_pct_raw[col_fecha_fin_idx_pct].apply(parsear_fecha_estricta)
                         df_fin_pct_raw["fecha_fin_dt_pct"] = fechas_parsed_pct
 
-                        # Limpiar valor numérico/decimal de la Columna AB (% Hallazgo)
                         df_fin_pct_raw["pct_num_val"] = (
                             df_fin_pct_raw[col_pct_idx]
                             .astype(str)

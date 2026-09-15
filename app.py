@@ -320,6 +320,35 @@ def limpiar_nombre_area(texto):
     txt = re.sub(r"\s+", " ", txt).strip()
     return txt
 
+def parsear_fecha_estricta(val):
+    if pd.isna(val):
+        return pd.NaT
+    if isinstance(val, (datetime, pd.Timestamp, date)):
+        return pd.to_datetime(val)
+        
+    val_str = str(val).strip().lower()
+    if val_str in ["nan", "none", "nat", "", "cierre", "cierre dd/mm/a", "cierre dd/mm/aa", "inicio", "inicio dd/mm/a"]:
+        return pd.NaT
+
+    try:
+        val_num = float(val_str)
+        if val_num > 30000:
+            return pd.to_datetime(val_num, unit='D', origin='1899-12-30')
+    except Exception:
+        pass
+
+    match = re.search(r"(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})", val_str)
+    if match:
+        d, m, y = int(match.group(1)), int(match.group(2)), int(match.group(3))
+        if y < 100:
+            y += 2000
+        try:
+            return pd.Timestamp(year=y, month=m, day=d)
+        except Exception:
+            pass
+
+    return pd.to_datetime(val_str, dayfirst=True, errors="coerce")
+
 # ---------------------------------------------------------
 # SISTEMA DE LOGIN
 # ---------------------------------------------------------
@@ -1075,6 +1104,9 @@ if entorno_activo == "Auditoría Interna":
     col_a20 = "Alerta 20 días" if "Alerta 20 días" in df_raw.columns else buscar_columna_por_patron(df_raw, ["alerta 20"])
     col_a30 = "Alerta 30 días" if "Alerta 30 días" in df_raw.columns else buscar_columna_por_patron(df_raw, ["alerta 30"])
 
+    # BÚSQUEDA EXPLICITA DE COLUMNA % HALLAZGO (COLUMNA AB / ÍNDICE 27)
+    col_pct_hallazgo = "% Hallazgo" if "% Hallazgo" in df_raw.columns else (df_raw.columns[27] if len(df_raw.columns) > 27 else buscar_columna_por_patron(df_raw, ["% hallazgo", "porcentaje hallazgo", "hallazgo"]))
+
     if col_estado:
         df_raw[col_estado] = df_raw[col_estado].astype(str).str.capitalize()
 
@@ -1304,7 +1336,7 @@ if entorno_activo == "Auditoría Interna":
 
             for _, row in df_totales_aud.iterrows():
                 fig_aud_horiz.add_annotation(y=row[col_auditoria], x=row["Total_Pendientes"], text=f" <b>{row['Total_Pendientes']}</b>", showarrow=False, xanchor="left", yanchor="middle", font=dict(size=13, color="var(--text-color)"))
-            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, (df_totales_aud["Total_Pendientes"].max() if not df_totales_aud.empty else 10) * 1.25]), legend_title_text="Estado", margin=dict(l=280, r=60, t=60, b=40), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True, tickfont=dict(color="var(--text-color)")), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, (df_totales_aud["Total_Pendientes"].max() if not df_totales_aud.empty else 10) * 1.25]), legend_title_text="Estado", margin=dict(l=280, r=60, t=60, b=40), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
     dict_pestanias = {
         "Tablero": "📊 Tablero",
@@ -1573,9 +1605,11 @@ if entorno_activo == "Auditoría Interna":
                 st.header("📌 Indicadores de Gestión Auditoría Interna")
                 st.markdown("Selecciona una sub-pestaña para comparar la **programación mensual** contra la **ejecución de planes finalizados**.")
 
-                subtab_ind1, subtab_ind2 = st.tabs([
-                    "📅 Planes Programados (Vigencia 2026)",
-                    "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)"
+                # TRES SUB-PESTAÑAS
+                subtab_ind1, subtab_ind2, subtab_ind3 = st.tabs([
+                    "📊 Planes Programados (Vigencia 2026)",
+                    "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)",
+                    "🎯 Hallazgos Finalizados (Suma % Hallazgo 2026)"
                 ])
 
                 with subtab_ind1:
@@ -1660,6 +1694,69 @@ if entorno_activo == "Auditoría Interna":
                             )
                         else:
                             st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
+
+                # NUEVA SUB-PESTAÑA SOLICITADA PARA SUMA DE % HALLAZGO
+                with subtab_ind3:
+                    st.subheader("🎯 Suma de Hallazgos Finalizados por Mes (Vigencia 2026)")
+                    st.markdown("Relación consolidada sumando la columna **`% Hallazgo`** para las acciones con estado **Finalizada/Cerrada** según su Fecha de Cierre de Auditoría en 2026.")
+
+                    conteo_pct_hallazgos_2026 = {m: 0.0 for m in meses_es}
+                    df_finalizados_hallazgos = df_raw[df_raw[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
+
+                    col_fecha_eval = col_fecha_cierre_aud if (col_fecha_cierre_aud and col_fecha_cierre_aud in df_raw.columns) else col_fecha_cierre
+
+                    if not df_finalizados_hallazgos.empty and col_fecha_eval in df_finalizados_hallazgos.columns:
+                        # Limpieza y conversión a float de la columna % Hallazgo (reemplazando coma decimal)
+                        if col_pct_hallazgo and col_pct_hallazgo in df_finalizados_hallazgos.columns:
+                            df_finalizados_hallazgos["pct_num"] = (
+                                df_finalizados_hallazgos[col_pct_hallazgo]
+                                .astype(str)
+                                .str.replace(",", ".", regex=False)
+                                .str.strip()
+                            )
+                            df_finalizados_hallazgos["pct_num"] = pd.to_numeric(df_finalizados_hallazgos["pct_num"], errors="coerce").fillna(0.0)
+                        else:
+                            df_finalizados_hallazgos["pct_num"] = 1.0
+
+                        fechas_eval_dt = pd.to_datetime(df_finalizados_hallazgos[col_fecha_eval], errors="coerce", dayfirst=True)
+                        df_finalizados_hallazgos["fecha_parsed_eval"] = fechas_eval_dt
+
+                        df_fin_2026_pct = df_finalizados_hallazgos[df_finalizados_hallazgos["fecha_parsed_eval"].dt.year == 2026].copy()
+
+                        map_m_pct = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
+
+                        for _, r_pct in df_fin_2026_pct.iterrows():
+                            f_dt = r_pct["fecha_parsed_eval"]
+                            if pd.notnull(f_dt) and f_dt.month in map_m_pct:
+                                conteo_pct_hallazgos_2026[map_m_pct[f_dt.month]] += float(r_pct["pct_num"])
+
+                    col_h1, col_h2 = st.columns([0.28, 1])
+
+                    with col_h1:
+                        st.markdown('<div class="titulo-seccion-finaliz">🎯 Suma Hallazgos</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="month-container">', unsafe_allow_html=True)
+                        for m_lbl, suma_val in conteo_pct_hallazgos_2026.items():
+                            val_str = f"{suma_val:g}" if float(suma_val).is_integer() else f"{suma_val:.1f}".replace(".", ",")
+                            st.markdown(f'<div class="month-row"><span>{m_lbl}</span><div class="month-box" style="background-color:#B4C6E7;">{val_str}</div></div>', unsafe_allow_html=True)
+                        st.markdown('</div>', unsafe_allow_html=True)
+
+                    with col_h2:
+                        st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Registros de Hallazgos Finalizados 2026</div>', unsafe_allow_html=True)
+                        if not df_finalizados_hallazgos.empty:
+                            df_fin_pct_vista = filtrar_solo_columnas_amarillas_ai(df_finalizados_hallazgos)
+                            df_fin_pct_vista.index = range(1, len(df_fin_pct_vista) + 1)
+                            st.dataframe(df_fin_pct_vista, use_container_width=True, hide_index=False)
+
+                            st.download_button(
+                                label="📥 Descargar Detalle Hallazgos Finalizados (.xlsx)",
+                                data=generar_excel_formateado_ai(df_finalizados_hallazgos),
+                                file_name=f"Hallazgos_Finalizados_Suma_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                key="btn_download_hallazgos_pct_subtab",
+                                use_container_width=False,
+                            )
+                        else:
+                            st.info("ℹ️ No hay hallazgos finalizados registrados para la vigencia 2026.")
 
             elif nombre_tab_real == "Histórico":
                 st.header("📊 Análisis Histórico e Interanual de Planes de Mejoramiento")
@@ -2133,8 +2230,6 @@ if entorno_activo == "Auditoría Interna":
                     key="btn_download_informes_pdf_ai_subtabs_exclusivas",
                     use_container_width=False,
                 )
-            else:
-                st.info("ℹ️ No hay vigencias válidas registradas en los informes.")
 
 # =========================================================
 # VISTA 2: CONTRALORÍA DE BOGOTÁ (ENTORNO 100% EXCLUSIVO)
@@ -2688,7 +2783,7 @@ else:
                         else:
                             st.info("ℹ️ No hay planes de acción programados en Contraloría para la vigencia 2026 con los filtros aplicados.")
 
-                with subtab_ind_c2:
+                with subtab_ind2:
                     st.subheader("🎉 Avance de Cierre y Planes Finalizados Contraloría")
                     col_cm1, col_cm2 = st.columns([0.28, 1])
 

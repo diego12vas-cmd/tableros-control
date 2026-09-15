@@ -1613,7 +1613,7 @@ if entorno_activo == "Auditoría Interna":
                 st.markdown("Selecciona una sub-pestaña para comparar la **programación mensual** contra la **ejecución de planes finalizados**.")
 
                 subtab_ind1, subtab_ind2, subtab_ind3 = st.tabs([
-                    "📅 Planes Programados (Vigencia 2026)",
+                    "📊 Planes Programados (Vigencia 2026)",
                     "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)",
                     "🎯 Hallazgos Finalizados (% Hallazgo: Programados vs Finalizados 2026)"
                 ])
@@ -1702,11 +1702,11 @@ if entorno_activo == "Auditoría Interna":
                             st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
 
                 # ---------------------------------------------------------
-                # SUB-PESTAÑA 3: COMPARACIÓN PROGRAMADOS VS FINALIZADOS (% HALLAZGO 2026)
+                # SUB-PESTAÑA 3: COMPARACIÓN PROGRAMADOS VS FINALIZADOS CON FORMATEO DECIMAL EXACTO
                 # ---------------------------------------------------------
                 with subtab_ind3:
                     st.subheader("🎯 Suma de Hallazgos (% Hallazgo): Programados vs Finalizados 2026")
-                    st.markdown("Comparativa mes a mes entre la suma del **% Hallazgo (Columna AB)** programado según la **Fecha de Cierre (Columna I)** y lo finalizado según la **Fecha de Cierre Auditoría (Columna S)**.")
+                    st.markdown("Comparativa mes a mes entre la suma del **`% Hallazgo` (Columna AB)** programado según la **Fecha de Cierre (Columna I)** y lo finalizado según la **Fecha de Cierre Auditoría (Columna S)**.")
 
                     conteo_pct_prog_2026 = {m: 0.0 for m in meses_es}
                     conteo_pct_fin_2026 = {m: 0.0 for m in meses_es}
@@ -1718,10 +1718,17 @@ if entorno_activo == "Auditoría Interna":
 
                     map_m_pct = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
 
+                    def limpiar_float_absoluto(v):
+                        s = str(v).strip().replace(",", ".")
+                        try:
+                            return float(s)
+                        except Exception:
+                            return 0.0
+
                     # 1. Suma de % Hallazgos Programados 2026 (Columna I)
                     fechas_prog_parsed_pct = df_raw[col_cierre_prog_idx].apply(parsear_fecha_estricta)
                     df_raw_prog_pct = df_raw.copy()
-                    df_raw_prog_pct["pct_val"] = pd.to_numeric(df_raw_prog_pct[col_pct_idx].astype(str).str.replace(",", ".", regex=False).str.strip(), errors="coerce").fillna(0.0)
+                    df_raw_prog_pct["pct_val"] = df_raw_prog_pct[col_pct_idx].apply(limpiar_float_absoluto)
                     df_raw_prog_pct["f_dt"] = fechas_prog_parsed_pct
 
                     for _, r_p in df_raw_prog_pct.iterrows():
@@ -1735,7 +1742,7 @@ if entorno_activo == "Auditoría Interna":
 
                     if not df_fin_pct_raw.empty:
                         df_fin_pct_raw["fecha_fin_dt_pct"] = df_fin_pct_raw[col_fecha_fin_idx_pct].apply(parsear_fecha_estricta)
-                        df_fin_pct_raw["pct_num_val"] = pd.to_numeric(df_fin_pct_raw[col_pct_idx].astype(str).str.replace(",", ".", regex=False).str.strip(), errors="coerce").fillna(0.0)
+                        df_fin_pct_raw["pct_num_val"] = df_fin_pct_raw[col_pct_idx].apply(limpiar_float_absoluto)
 
                         for _, r_pct in df_fin_pct_raw.iterrows():
                             dt_val = r_pct["fecha_fin_dt_pct"]
@@ -1752,8 +1759,9 @@ if entorno_activo == "Auditoría Interna":
                             sum_p = conteo_pct_prog_2026[m_lbl]
                             sum_f = conteo_pct_fin_2026[m_lbl]
 
-                            p_str = f"{sum_p:g}" if float(sum_p).is_integer() else f"{sum_p:.1f}".replace(".", ",")
-                            f_str = f"{sum_f:g}" if float(sum_f).is_integer() else f"{sum_f:.1f}".replace(".", ",")
+                            # Formateo a 2 decimales exactos con coma (ej. 10,67) si tiene decimales, o entero si es redondo
+                            p_str = f"{sum_p:g}".replace(".", ",") if float(sum_p).is_integer() else f"{sum_p:.2f}".replace(".", ",")
+                            f_str = f"{sum_f:g}".replace(".", ",") if float(sum_f).is_integer() else f"{sum_f:.2f}".replace(".", ",")
 
                             st.markdown(
                                 f'''
@@ -1933,7 +1941,7 @@ if entorno_activo == "Auditoría Interna":
                 if col_plan_filtro and col_plan_filtro in df_edicion_temp.columns:
                     opciones_plan_v += sorted([str(x) for x in df_edicion_temp[col_plan_filtro].dropna().unique() if str(x).strip()])
                 with col_f_plan:
-                    plan_v_seleccionado = st.selectbox("3. Filtrar por Plan / Vigencia:", options=opciones_plan_v, key="f_plan_edit")
+                    plan_v_seleccionado = st.selectbox("3. Filtrar por Plan / Vigencia:", options=plan_v_seleccionado, key="f_plan_edit")
 
                 if plan_v_seleccionado != "(Todos)":
                     df_edicion_temp = df_edicion_temp[df_edicion_temp[col_plan_filtro].astype(str).str.strip().str.lower() == plan_v_seleccionado.strip().lower()]

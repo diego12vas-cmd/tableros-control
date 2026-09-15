@@ -1046,7 +1046,6 @@ if entorno_activo == "Auditoría Interna":
     col_riesgo = "Nivel del Riesgo" if "Nivel del Riesgo" in df_raw.columns else buscar_columna_por_patron(df_raw, ["riesgo", "nivel de riesgo"])
     col_fecha_inicio = "Inicio" if "Inicio" in df_raw.columns else buscar_columna_por_patron(df_raw, ["inicio"])
     
-    # Búsqueda de Columna S ("Fecha de cierre Auditoría")
     col_fecha_cierre_auditoria = buscar_columna_por_patron(df_raw, ["fecha de cierre auditoria", "cierre auditoria"])
     col_fecha_cierre = col_fecha_cierre_auditoria or ("Cierre" if "Cierre" in df_raw.columns else buscar_columna_por_patron(df_raw, ["cierre", "fecha cierre", "fecha compromiso"]))
     col_obs_audit = buscar_columna_por_patron(df_raw, ["observacion auditoria"]) or "Observación Auditoría"
@@ -1070,7 +1069,7 @@ if entorno_activo == "Auditoría Interna":
                     return val.strftime("%d/%m/%Y")
                 val_str = str(val).strip()
                 try:
-                    dt = pd.to_datetime(val_str, errors="coerce")
+                    dt = pd.to_datetime(val_str, dayfirst=True, errors="coerce")
                     if pd.notnull(dt):
                         return dt.strftime("%d/%m/%Y")
                 except Exception:
@@ -1280,7 +1279,7 @@ if entorno_activo == "Auditoría Interna":
 
             for _, row in df_totales_aud.iterrows():
                 fig_aud_horiz.add_annotation(y=row[col_auditoria], x=row["Total_Pendientes"], text=f" <b>{row['Total_Pendientes']}</b>", showarrow=False, xanchor="left", yanchor="middle", font=dict(size=13, color="var(--text-color)"))
-            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, max_pend_aud * 1.25 if 'max_pend_aud' in locals() else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
     dict_pestanias = {
         "Tablero": "📊 Tablero",
@@ -1525,7 +1524,7 @@ if entorno_activo == "Auditoría Interna":
                 conteo_meses_fin = {m: 0 for m in meses_es}
 
                 if col_fecha_cierre and col_fecha_cierre in df_raw.columns:
-                    fechas_dt_todas = pd.to_datetime(df_raw[col_fecha_cierre], errors="coerce", dayfirst=True)
+                    fechas_dt_todas = pd.to_datetime(df_raw[col_fecha_cierre], dayfirst=True, errors="coerce")
                     
                     for f in fechas_dt_todas.dropna():
                         m_idx = f.month - 1
@@ -1533,7 +1532,7 @@ if entorno_activo == "Auditoría Interna":
                             conteo_meses_prog[meses_es[m_idx]] += 1
 
                     if not df_finalizados_completo.empty:
-                        fechas_dt_fin = pd.to_datetime(df_finalizados_completo[col_fecha_cierre], errors="coerce", dayfirst=True)
+                        fechas_dt_fin = pd.to_datetime(df_finalizados_completo[col_fecha_cierre], dayfirst=True, errors="coerce")
                         for f in fechas_dt_fin.dropna():
                             m_idx = f.month - 1
                             if 0 <= m_idx < 12:
@@ -1680,13 +1679,15 @@ if entorno_activo == "Auditoría Interna":
                 df_alertas = df_filtrado.copy()
                 hoy = pd.to_datetime(date.today())
 
+                # CÁLCULO DE MORA BLINDADO CONTRA FECHAS MAL FORMATEADAS
                 if col_fecha_cierre and col_fecha_cierre in df_alertas.columns:
-                    df_alertas["Fecha_DT"] = pd.to_datetime(df_alertas[col_fecha_cierre], errors="coerce", dayfirst=True)
+                    df_alertas["Fecha_DT"] = pd.to_datetime(df_alertas[col_fecha_cierre], dayfirst=True, errors="coerce")
                     df_alertas["Dias_Atraso"] = (hoy - df_alertas["Fecha_DT"]).dt.days
-                    df_alertas["Dias_Atraso"] = df_alertas["Dias_Atraso"].apply(lambda x: x if pd.notnull(x) and x > 0 else 0)
+                    df_alertas["Dias_Atraso"] = df_alertas["Dias_Atraso"].apply(lambda x: int(x) if pd.notnull(x) and x > 0 else 0)
                 else:
                     df_alertas["Dias_Atraso"] = 0
 
+                # FILTRAR ACCIONES EN MORA DE 30 DÍAS O MÁS QUE NO ESTÉN FINALIZADAS
                 df_criticos_30 = df_alertas[
                     (~df_alertas[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)) & 
                     (df_alertas["Dias_Atraso"] >= 30)
@@ -1788,7 +1789,7 @@ if entorno_activo == "Auditoría Interna":
                         est_actual_val = str(registro[col_estado]) if registro is not None and col_estado and pd.notnull(registro[col_estado]) else "Abierta"
                         resp_actual_val = str(registro[col_responsable]) if registro is not None and col_responsable and pd.notnull(registro[col_responsable]) else ""
 
-                        # CONTROL DE FECHA SEGURO CONTRA VALUEERROR (PARSEO BLINDADO)
+                        # CONTROL DE FECHA BLINDADO
                         fecha_def_obj = date.today()
                         fecha_antigua_str = ""
                         if registro is not None and col_fecha_cierre and pd.notnull(registro[col_fecha_cierre]):
@@ -1935,7 +1936,7 @@ if entorno_activo == "Auditoría Interna":
                                     fecha_val_str = f_val.strftime("%d/%m/%Y")
                                 else:
                                     try:
-                                        dt = pd.to_datetime(str(f_val).strip(), errors="coerce")
+                                        dt = pd.to_datetime(str(f_val).strip(), dayfirst=True, errors="coerce")
                                         if pd.notnull(dt):
                                             fecha_val_str = dt.strftime("%d/%m/%Y")
                                         else:
@@ -2170,7 +2171,7 @@ else:
                     return val.strftime("%d/%m/%Y")
                 val_str = str(val).strip()
                 try:
-                    dt = pd.to_datetime(val_str, errors="coerce")
+                    dt = pd.to_datetime(val_str, dayfirst=True, errors="coerce")
                     if pd.notnull(dt):
                         return dt.strftime("%d/%m/%Y")
                 except Exception:
@@ -2231,7 +2232,7 @@ else:
     if col_fecha_cierre_aud_c and col_fecha_cierre_aud_c in df_filtrado_c.columns:
         df_fin_c = df_filtrado_c[df_filtrado_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado_c else pd.DataFrame()
         if not df_fin_c.empty:
-            fechas_dt_c = pd.to_datetime(df_fin_c[col_fecha_cierre_aud_c], errors="coerce")
+            fechas_dt_c = pd.to_datetime(df_fin_c[col_fecha_cierre_aud_c], dayfirst=True, errors="coerce")
             for f in fechas_dt_c.dropna():
                 m_num = f.month
                 if m_num in meses_es_map_c:

@@ -1075,8 +1075,8 @@ if entorno_activo == "Auditoría Interna":
     col_a20 = "Alerta 20 días" if "Alerta 20 días" in df_raw.columns else buscar_columna_por_patron(df_raw, ["alerta 20"])
     col_a30 = "Alerta 30 días" if "Alerta 30 días" in df_raw.columns else buscar_columna_por_patron(df_raw, ["alerta 30"])
 
-    # MAPEADO EXACTO % HALLAZGO (COLUMNA AB)
-    col_pct_hallazgo = "% Hallazgo" if "% Hallazgo" in df_raw.columns else buscar_columna_por_patron(df_raw, ["% hallazgo", "porcentaje hallazgo", "hallazgo"])
+    # IDENTIFICACIÓN EXPRESA Y ESTÁTICA DE LA COLUMNA % HALLAZGO (COLUMNA AB)
+    col_pct_hallazgo = "% Hallazgo" if "% Hallazgo" in df_raw.columns else (df_raw.columns[27] if len(df_raw.columns) > 27 else buscar_columna_por_patron(df_raw, ["% hallazgo", "porcentaje hallazgo", "hallazgo"]))
 
     if col_estado:
         df_raw[col_estado] = df_raw[col_estado].astype(str).str.capitalize()
@@ -1090,7 +1090,7 @@ if entorno_activo == "Auditoría Interna":
                     return val.strftime("%d/%m/%Y")
                 val_str = str(val).strip()
                 try:
-                    dt = pd.to_datetime(val_str, dayfirst=True, errors="coerce")
+                    dt = pd.to_datetime(val_str, errors="coerce", dayfirst=True)
                     if pd.notnull(dt):
                         return dt.strftime("%d/%m/%Y")
                 except Exception:
@@ -1665,7 +1665,7 @@ if entorno_activo == "Auditoría Interna":
                         else:
                             st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
 
-                # TERCERA SUB-PESTAÑA CORREGIDA CON CONVERSIÓN DE FECHA EXPLICITA PD.TO_DATETIME
+                # SUB-PESTAÑA 3: CÁLCULO DE SUMA DE % HALLAZGO (DIRECTO Y SIN DESAJUSTAR TU LÓGICA)
                 with subtab_ind3:
                     st.subheader("🎯 Suma de Hallazgos Finalizados por Mes (Vigencia 2026)")
                     st.markdown("Relación consolidada sumando la columna **`% Hallazgo`** para las acciones en estado **Finalizada/Cerrada** según su Fecha de Cierre de Auditoría en 2026.")
@@ -1676,28 +1676,28 @@ if entorno_activo == "Auditoría Interna":
                     col_fecha_eval = col_fecha_cierre_aud if (col_fecha_cierre_aud and col_fecha_cierre_aud in df_raw.columns) else col_fecha_cierre
 
                     if not df_fin_pct.empty and col_fecha_eval in df_fin_pct.columns:
-                        # Extraer fecha mediante pd.to_datetime con dayfirst=True para evitar NaT
-                        df_fin_pct["fecha_eval_parsed"] = pd.to_datetime(df_fin_pct[col_fecha_eval], errors="coerce", dayfirst=True)
+                        col_pct_ref = col_pct_hallazgo if col_pct_hallazgo in df_fin_pct.columns else df_raw.columns[27]
 
-                        # Limpieza y conversión a float de la columna % Hallazgo
-                        if col_pct_hallazgo and col_pct_hallazgo in df_fin_pct.columns:
-                            df_fin_pct["pct_num"] = (
-                                df_fin_pct[col_pct_hallazgo]
-                                .astype(str)
-                                .str.replace(",", ".", regex=False)
-                                .str.strip()
-                            )
-                            df_fin_pct["pct_num"] = pd.to_numeric(df_fin_pct["pct_num"], errors="coerce").fillna(0.0)
-                        else:
-                            df_fin_pct["pct_num"] = 1.0
+                        # Conversión robusta de % Hallazgo a float (maneja comas y decimales)
+                        df_fin_pct["pct_num"] = (
+                            df_fin_pct[col_pct_ref]
+                            .astype(str)
+                            .str.replace(",", ".", regex=False)
+                            .str.strip()
+                        )
+                        df_fin_pct["pct_num"] = pd.to_numeric(df_fin_pct["pct_num"], errors="coerce").fillna(0.0)
+
+                        # Parseo directo de fechas sobre la columna de fecha de cierre de auditoría
+                        fechas_eval_series = pd.to_datetime(df_fin_pct[col_fecha_eval], errors="coerce", dayfirst=True)
+                        df_fin_pct["fecha_eval_parsed"] = fechas_eval_series
 
                         map_m_pct = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
 
-                        for _, r_pct in df_fin_pct.iterrows():
-                            f_dt = r_pct["fecha_eval_parsed"]
+                        for idx_p, row_p in df_fin_pct.iterrows():
+                            f_dt = row_p["fecha_eval_parsed"]
                             if pd.notnull(f_dt) and f_dt.year == 2026:
                                 if f_dt.month in map_m_pct:
-                                    conteo_pct_hallazgos_2026[map_m_pct[f_dt.month]] += float(r_pct["pct_num"])
+                                    conteo_pct_hallazgos_2026[map_m_pct[f_dt.month]] += float(row_p["pct_num"])
 
                     col_h1, col_h2 = st.columns([0.28, 1])
 
@@ -2728,7 +2728,7 @@ else:
                             st.markdown(f'<div class="month-row"><span>{m_lbl}</span><div class="month-box" style="background-color:#C2E0C6;">{cant_prog}</div></div>', unsafe_allow_html=True)
                         st.markdown('</div>', unsafe_allow_html=True)
 
-                    with col_ind_c2:
+                    with col_ind_2:
                         st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Detalle de Planes Programados 2026 Contraloría</div>', unsafe_allow_html=True)
                         
                         df_prog_2026_c = df_raw_c.copy()

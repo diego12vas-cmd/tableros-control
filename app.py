@@ -1343,7 +1343,7 @@ if entorno_activo == "Auditoría Interna":
 
             for _, row in df_totales_aud.iterrows():
                 fig_aud_horiz.add_annotation(y=row[col_auditoria], x=row["Total_Pendientes"], text=f" <b>{row['Total_Pendientes']}</b>", showarrow=False, xanchor="left", yanchor="middle", font=dict(size=13, color="var(--text-color)"))
-            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True, tickfont=dict(color="var(--text-color)")), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
     dict_pestanias = {
         "Tablero": "📊 Tablero",
@@ -1702,7 +1702,7 @@ if entorno_activo == "Auditoría Interna":
                             st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
 
                 # ---------------------------------------------------------
-                # SUB-PESTAÑA 3: COMPARACIÓN PROGRAMADOS VS FINALIZADOS (% HALLAZGO 2026) - LIMPIO
+                # SUB-PESTAÑA 3: COMPARACIÓN PROGRAMADOS VS FINALIZADOS (% HALLAZGO 2026) - AUDITORÍA INTERNA
                 # ---------------------------------------------------------
                 with subtab_ind3:
                     st.subheader("Programados vs Finalizados (% Hallazgo 2026)")
@@ -2764,9 +2764,10 @@ else:
                 st.header("📌 Indicadores de Gestión Contraloría")
                 st.markdown("Selecciona una sub-pestaña para comparar la **programación mensual** contra la **ejecución de planes finalizados**.")
 
-                subtab_ind_c1, subtab_ind_c2 = st.tabs([
+                subtab_ind_c1, subtab_ind_c2, subtab_ind_c3 = st.tabs([
                     "📅 Planes Programados (Vigencia 2026)",
-                    "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)"
+                    "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)",
+                    "🎯 Hallazgos Finalizados (% Hallazgo: Programados vs Finalizados 2026)"
                 ])
 
                 with subtab_ind_c1:
@@ -2839,6 +2840,100 @@ else:
                             st.dataframe(df_fin_c_vista, use_container_width=True, hide_index=False)
                         else:
                             st.info("ℹ️ No hay acciones finalizadas en Contraloría.")
+
+                # ---------------------------------------------------------
+                # SUB-PESTAÑA 3: COMPARACIÓN PROGRAMADOS VS FINALIZADOS (% HALLAZGO 2026) - CONTRALORÍA
+                # ---------------------------------------------------------
+                with subtab_ind_c3:
+                    st.subheader("Programados vs Finalizados (% Hallazgo 2026)")
+                    st.markdown("Comparativa mes a mes entre la suma del **`% Hallazgos` (Columna AJ)** programado según la **FECHA DE TERMINACIÓN (Columna W)** y lo finalizado según la **Fecha cierre x Auditoría (Columna AI)**.")
+
+                    meses_es_c = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"]
+                    conteo_pct_prog_2026_c = {m: 0.0 for m in meses_es_c}
+                    conteo_pct_fin_2026_c = {m: 0.0 for m in meses_es_c}
+
+                    col_cierre_prog_idx_c = df_raw_c.columns[22] if len(df_raw_c.columns) > 22 else col_fecha_cierre_c
+                    col_estado_idx_pct_c = df_raw_c.columns[26] if len(df_raw_c.columns) > 26 else col_estado_c
+                    col_fecha_fin_idx_pct_c = df_raw_c.columns[34] if len(df_raw_c.columns) > 34 else col_fecha_cierre_aud_c
+                    col_pct_idx_c = df_raw_c.columns[35] if len(df_raw_c.columns) > 35 else df_raw_c.columns[-1]
+
+                    map_m_pct_c = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAY", 6: "JUN", 7: "JUL", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
+
+                    def limpiar_float_absoluto_c(v):
+                        s = str(v).strip().replace(",", ".")
+                        try:
+                            return float(s)
+                        except Exception:
+                            return 0.0
+
+                    # 1. Suma de % Hallazgos Programados 2026 (Columna W / FECHA DE TERMINACIÓN)
+                    fechas_prog_parsed_c = df_raw_c[col_cierre_prog_idx_c].apply(parsear_fecha_estricta)
+                    df_raw_prog_pct_c = df_raw_c.copy()
+                    df_raw_prog_pct_c["pct_val"] = df_raw_prog_pct_c[col_pct_idx_c].apply(limpiar_float_absoluto_c)
+                    df_raw_prog_pct_c["f_dt"] = fechas_prog_parsed_c
+
+                    for _, r_p in df_raw_prog_pct_c.iterrows():
+                        dt_val = r_p["f_dt"]
+                        if pd.notnull(dt_val) and dt_val.year == 2026 and dt_val.month in map_m_pct_c:
+                            conteo_pct_prog_2026_c[map_m_pct_c[dt_val.month]] += float(r_p["pct_val"])
+
+                    # 2. Suma de % Hallazgos Finalizados 2026 (Columna AI / Fecha cierre x Auditoría + Estado Finalizada/Cerrada)
+                    mask_fin_estricto_c = df_raw_c[col_estado_idx_pct_c].astype(str).str.strip().str.lower().isin(["finalizada", "cerrada"])
+                    df_fin_pct_raw_c = df_raw_c[mask_fin_estricto_c].copy()
+
+                    if not df_fin_pct_raw_c.empty:
+                        df_fin_pct_raw_c["fecha_fin_dt_pct"] = df_fin_pct_raw_c[col_fecha_fin_idx_pct_c].apply(parsear_fecha_estricta)
+                        df_fin_pct_raw_c["pct_num_val"] = df_fin_pct_raw_c[col_pct_idx_c].apply(limpiar_float_absoluto_c)
+
+                        for _, r_pct in df_fin_pct_raw_c.iterrows():
+                            dt_val = r_pct["fecha_fin_dt_pct"]
+                            if pd.notnull(dt_val) and dt_val.year == 2026 and dt_val.month in map_m_pct_c:
+                                conteo_pct_fin_2026_c[map_m_pct_c[dt_val.month]] += float(r_pct["pct_num_val"])
+
+                    col_ch1, col_ch2 = st.columns([0.45, 1])
+
+                    with col_ch1:
+                        st.markdown('<div class="titulo-seccion-finaliz">🎯 Programados vs Finalizados Contraloría</div>', unsafe_allow_html=True)
+                        st.markdown('<div style="font-size:0.75rem; color:#A0AEC0; margin-bottom:8px;">🟩 Programados (Col W) | 🔳 Finalizados (Col AI)</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="month-container">', unsafe_allow_html=True)
+                        for m_lbl in meses_es_c:
+                            sum_p = conteo_pct_prog_2026_c[m_lbl]
+                            sum_f = conteo_pct_fin_2026_c[m_lbl]
+
+                            p_str = f"{sum_p:g}".replace(".", ",") if float(sum_p).is_integer() else f"{sum_p:.2f}".replace(".", ",")
+                            f_str = f"{sum_f:g}".replace(".", ",") if float(sum_f).is_integer() else f"{sum_f:.2f}".replace(".", ",")
+
+                            st.markdown(
+                                f'''
+                                <div class="month-row">
+                                    <span>{m_lbl}</span>
+                                    <div style="display:flex; gap:6px;">
+                                        <div class="month-box" style="background-color:#C2E0C6;" title="Programados Vigencia 2026 Contraloría (Suma % Hallazgos)">{p_str}</div>
+                                        <div class="month-box-fin" style="background-color:#B4C6E7; color:#000;" title="Finalizados Real Vigencia 2026 Contraloría (Suma % Hallazgos)">{f_str}</div>
+                                    </div>
+                                </div>
+                                ''',
+                                unsafe_allow_html=True
+                            )
+                        st.markdown('</div>', unsafe_allow_html=True)
+
+                    with col_ch2:
+                        st.markdown('<div class="titulo-seccion-finaliz">📋 Registros de Hallazgos Finalizados 2026 Contraloría</div>', unsafe_allow_html=True)
+                        if not df_fin_pct_raw_c.empty:
+                            df_fin_pct_vista_c = filtrar_solo_columnas_amarillas_c(df_fin_pct_raw_c)
+                            df_fin_pct_vista_c.index = range(1, len(df_fin_pct_vista_c) + 1)
+                            st.dataframe(df_fin_pct_vista_c, use_container_width=True, hide_index=False)
+
+                            st.download_button(
+                                label="📥 Descargar Detalle Hallazgos Finalizados Contraloría (.xlsx)",
+                                data=generar_excel_formateado_c(df_fin_pct_raw_c),
+                                file_name=f"Hallazgos_Finalizados_Contraloria_Suma_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                key="btn_download_hallazgos_pct_subtab_c",
+                                use_container_width=False,
+                            )
+                        else:
+                            st.info("ℹ️ No hay hallazgos finalizados registrados en Contraloría para la vigencia 2026.")
 
             elif nombre_tab_real_c == "Informes":
                 st.header("📑 Informes de Auditoría de la Contraloría")

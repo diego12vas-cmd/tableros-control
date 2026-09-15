@@ -1074,7 +1074,7 @@ if entorno_activo == "Auditoría Interna":
     col_riesgo = "Nivel del Riesgo" if "Nivel del Riesgo" in df_raw.columns else buscar_columna_por_patron(df_raw, ["riesgo", "nivel de riesgo"])
     col_fecha_inicio = "Inicio" if "Inicio" in df_raw.columns else buscar_columna_por_patron(df_raw, ["inicio"])
     
-    # BÚSQUEDA EXACTA DE COLUMNAS DE FECHAS SEGÚN EXCEL RECIENTE
+    # MAPEADO EXACTO SEGÚN EXCEL RECIENTE
     col_fecha_cierre = "Cierre" if "Cierre" in df_raw.columns else (buscar_columna_por_patron(df_raw, ["cierre dd/mm/a", "cierre"]) or buscar_columna_por_patron(df_raw, ["fecha cierre", "fecha compromiso"]))
     col_fecha_cierre_auditoria = "Fecha de cierre Auditoría" if "Fecha de cierre Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["fecha de cierre auditoria", "cierre auditoria"])
     col_obs_audit = buscar_columna_por_patron(df_raw, ["observacion auditoria"]) or "Observación Auditoría"
@@ -1610,16 +1610,23 @@ if entorno_activo == "Auditoría Interna":
                         "JULIO": 0, "AGO": 0, "SEP": 0, "OCT": 0, "NOV": 0, "DIC": 0
                     }
                     
-                    # LECTURA DE COLUMNA H ("Cierre DD/MM/A") PARA PROGRAMADOS
-                    col_fecha_prog = col_fecha_cierre if col_fecha_cierre in df_raw.columns else col_fecha_cierre_auditoria
+                    # FILTRADO EXCLUSIVO POR VIGENCIA 2026 + FECHA DE CIERRE REAL (COLUMNA H)
+                    df_v2026 = df_raw.copy()
+                    if col_fecha_cierre and col_fecha_cierre in df_v2026.columns:
+                        fechas_cierre_dt_all = pd.to_datetime(df_v2026[col_fecha_cierre], dayfirst=True, errors="coerce")
+                        
+                        # Filtro estricto: Fecha de cierre en año 2026 O Plan Auditoría de Vigencia 2026
+                        mask_v2026 = (fechas_cierre_dt_all.dt.year == 2026)
+                        if col_plan_filtro and col_plan_filtro in df_v2026.columns:
+                            mask_v2026 = mask_v2026 | df_v2026[col_plan_filtro].astype(str).str.contains("2026", case=False, na=False)
+                            
+                        df_v2026 = df_v2026[mask_v2026].copy()
 
-                    if col_fecha_prog and col_fecha_prog in df_raw.columns:
-                        fechas_prog_dt = pd.to_datetime(df_raw[col_fecha_prog], dayfirst=True, errors="coerce")
+                        fechas_prog_dt = pd.to_datetime(df_v2026[col_fecha_cierre], dayfirst=True, errors="coerce")
+                        map_m = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
                         for f in fechas_prog_dt.dropna():
-                            if f.year == 2026:
-                                map_m = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
-                                if f.month in map_m:
-                                    conteo_programados_2026[map_m[f.month]] += 1
+                            if f.year == 2026 and f.month in map_m:
+                                conteo_programados_2026[map_m[f.month]] += 1
 
                     col_ind_1, col_ind_2 = st.columns([0.45, 1])
 
@@ -1635,7 +1642,7 @@ if entorno_activo == "Auditoría Interna":
                                 <div class="month-row">
                                     <span>{m_lbl}</span>
                                     <div style="display:flex; gap:6px;">
-                                        <div class="month-box" title="Programados (Columna Cierre H)">{cant_prog}</div>
+                                        <div class="month-box" title="Programados Vigencia 2026">{cant_prog}</div>
                                         <div class="month-box-fin" title="Finalizados Real">{cant_fin}</div>
                                     </div>
                                 </div>
@@ -1647,19 +1654,14 @@ if entorno_activo == "Auditoría Interna":
                     with col_ind_2:
                         st.markdown('<div class="titulo-seccion-finaliz">📋 Detalle de Planes Programados 2026</div>', unsafe_allow_html=True)
                         
-                        df_prog_2026 = df_raw.copy()
-                        if col_fecha_prog and col_fecha_prog in df_prog_2026.columns:
-                            fechas_prog_dt_col = pd.to_datetime(df_prog_2026[col_fecha_prog], dayfirst=True, errors="coerce")
-                            df_prog_2026 = df_prog_2026[fechas_prog_dt_col.dt.year == 2026].copy()
-
-                        if not df_prog_2026.empty:
-                            df_prog_2026_vista = filtrar_solo_columnas_amarillas_ai(df_prog_2026)
+                        if not df_v2026.empty:
+                            df_prog_2026_vista = filtrar_solo_columnas_amarillas_ai(df_v2026)
                             df_prog_2026_vista.index = range(1, len(df_prog_2026_vista) + 1)
                             st.dataframe(df_prog_2026_vista, use_container_width=True, hide_index=False)
 
                             st.download_button(
                                 label="📥 Descargar Programados 2026 (.xlsx)",
-                                data=generar_excel_formateado_ai(df_prog_2026),
+                                data=generar_excel_formateado_ai(df_v2026),
                                 file_name=f"Planes_Programados_2026_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                 key="btn_download_prog_2026_ai_ind",
@@ -1780,7 +1782,7 @@ if entorno_activo == "Auditoría Interna":
                 df_alertas = df_filtrado.copy()
                 hoy = pd.to_datetime(date.today())
 
-                # CÁLCULO DE MORA REAL CORREGIDO EVALUANDO COLUMNA H ("Cierre")
+                # CÁLCULO DE MORA REAL EVALUANDO LA COLUMNA DE FECHA DE CIERRE (COLUMNA H)
                 if col_fecha_cierre and col_fecha_cierre in df_alertas.columns:
                     df_alertas["Fecha_DT"] = pd.to_datetime(df_alertas[col_fecha_cierre], dayfirst=True, errors="coerce")
                     df_alertas["Dias_Atraso"] = (hoy - df_alertas["Fecha_DT"]).dt.days
@@ -1788,7 +1790,7 @@ if entorno_activo == "Auditoría Interna":
                 else:
                     df_alertas["Dias_Atraso"] = 0
 
-                # MOSTRAR ACCIONES EN MORA DE 30 DÍAS O MÁS QUE NO ESTÉN FINALIZADAS
+                # MOSTRAR ACCIONES EN MORA DE 30 DÍAS O MÁS NO FINALIZADAS
                 df_criticos_30 = df_alertas[
                     (~df_alertas[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)) & 
                     (df_alertas["Dias_Atraso"] >= 30)

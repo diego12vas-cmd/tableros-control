@@ -1573,7 +1573,7 @@ if entorno_activo == "Auditoría Interna":
                     "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)"
                 ])
 
-                # DICCIONARIO DE CONTEO REAL DE FINALIZADOS (EVALUANDO LA COLUMNA S: Fecha de cierre Auditoría)
+                # DICCIONARIO DE CONTEO REAL DE FINALIZADOS (COLUMNA S: Fecha de cierre Auditoría + ESTADO FINALIZADA)
                 conteo_meses_fin_real = {m: 0 for m in meses_es}
                 df_fin_ind = df_raw[df_raw[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
                 
@@ -1582,7 +1582,7 @@ if entorno_activo == "Auditoría Interna":
                 if not df_fin_ind.empty and col_fecha_fin_aud and col_fecha_fin_aud in df_fin_ind.columns:
                     for val in df_fin_ind[col_fecha_fin_aud]:
                         dt = parsear_fecha_estricta(val)
-                        if pd.notnull(dt) and dt.year == 2026:
+                        if pd.notnull(dt):
                             m_num = dt.month
                             if 1 <= m_num <= 12:
                                 conteo_meses_fin_real[meses_es[m_num - 1]] += 1
@@ -1593,7 +1593,7 @@ if entorno_activo == "Auditoría Interna":
 
                     conteo_programados_2026 = {m: 0 for m in meses_es}
                     
-                    # FILTRADO EXACTO PARSEANDO DIA/MES/AÑO ESTRICTO
+                    # FILTRADO EXACTO PARSEANDO DÍA/MES/AÑO ESTRICTO
                     df_v2026 = pd.DataFrame()
                     if col_fecha_cierre and col_fecha_cierre in df_raw.columns:
                         fechas_parsed = df_raw[col_fecha_cierre].apply(parsear_fecha_estricta)
@@ -2686,7 +2686,7 @@ else:
                         else:
                             st.info("ℹ️ No hay planes de acción programados en Contraloría para la vigencia 2026 con los filtros aplicados.")
 
-                with subtab_ind2:
+                with subtab_ind_c2:
                     st.subheader("🎉 Avance de Cierre y Planes Finalizados Contraloría")
                     col_cm1, col_cm2 = st.columns([0.28, 1])
 

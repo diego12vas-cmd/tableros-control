@@ -1590,9 +1590,9 @@ if entorno_activo == "Auditoría Interna":
                     "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)"
                 ])
 
-                # DICCIONARIO DE CONTEO REAL DE FINALIZADOS (EVALUANDO COLUMNA S - Fecha de cierre Auditoría)
+                # DICCIONARIO DE CONTEO REAL DE FINALIZADOS (COLUMNA S: Fecha de cierre Auditoría + ESTADO FINALIZADA)
                 conteo_meses_fin_real = {m: 0 for m in meses_es}
-                df_fin_ind = df_filtrado[df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
+                df_fin_ind = df_raw[df_raw[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
                 
                 col_fecha_fin_aud = col_fecha_cierre_auditoria if (col_fecha_cierre_auditoria and col_fecha_cierre_auditoria in df_raw.columns) else col_fecha_cierre
 

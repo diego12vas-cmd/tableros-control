@@ -321,18 +321,36 @@ def limpiar_nombre_area(texto):
     return txt
 
 def parsear_fecha_estricta(val):
-    if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", "", "cierre", "cierre dd/mm/a", "cierre dd/mm/aa"]:
+    if pd.isna(val):
         return pd.NaT
+    val_str = str(val).strip().lower()
+    if val_str in ["nan", "none", "nat", "", "cierre", "cierre dd/mm/a", "cierre dd/mm/aa"]:
+        return pd.NaT
+    
     if isinstance(val, (datetime, pd.Timestamp, date)):
         return pd.to_datetime(val)
-    val_str = str(val).strip()
+        
+    try:
+        if isinstance(val, (int, float)):
+            return pd.to_datetime(val, unit='D', origin='1899-12-30')
+    except Exception:
+        pass
+        
     try:
         dt = pd.to_datetime(val_str, format="%d/%m/%Y", errors="coerce")
         if pd.notnull(dt):
             return dt
     except Exception:
         pass
-    return pd.to_datetime(val_str, dayfirst=True, errors="coerce")
+        
+    try:
+        dt = pd.to_datetime(val_str, dayfirst=True, errors="coerce")
+        if pd.notnull(dt):
+            return dt
+    except Exception:
+        pass
+        
+    return pd.NaT
 
 # ---------------------------------------------------------
 # SISTEMA DE LOGIN
@@ -1068,8 +1086,9 @@ if entorno_activo == "Auditoría Interna":
     col_riesgo = "Nivel del Riesgo" if "Nivel del Riesgo" in df_raw.columns else buscar_columna_por_patron(df_raw, ["riesgo", "nivel de riesgo"])
     col_fecha_inicio = "Inicio" if "Inicio" in df_raw.columns else buscar_columna_por_patron(df_raw, ["inicio"])
     
-    col_fecha_cierre = "Cierre" if "Cierre" in df_raw.columns else (buscar_columna_por_patron(df_raw, ["cierre dd/mm/a", "cierre"]) or buscar_columna_por_patron(df_raw, ["fecha cierre", "fecha compromiso"]))
-    col_fecha_cierre_auditoria = "Fecha de cierre Auditoría" if "Fecha de cierre Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["fecha de cierre auditoria", "cierre auditoria"])
+    # LECTURA EXACTA DE COLUMNA I ("Cierre DD/MM/AA") Y COLUMNA S ("Fecha de cierre Auditoría")
+    col_fecha_cierre = df_raw.columns[8] if len(df_raw.columns) > 8 else ("Cierre" if "Cierre" in df_raw.columns else buscar_columna_por_patron(df_raw, ["cierre dd/mm/a", "cierre"]))
+    col_fecha_cierre_auditoria = df_raw.columns[18] if len(df_raw.columns) > 18 else ("Fecha de cierre Auditoría" if "Fecha de cierre Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["fecha de cierre auditoria", "cierre auditoria"]))
     col_obs_audit = buscar_columna_por_patron(df_raw, ["observacion auditoria"]) or "Observación Auditoría"
     
     col_link_evidencia = "Enlace para cargar evidencias" if "Enlace para cargar evidencias" in df_raw.columns else buscar_columna_por_patron(df_raw, ["enlace para cargar evidencias", "cargar evidencias"])
@@ -1299,7 +1318,7 @@ if entorno_activo == "Auditoría Interna":
 
             for _, row in df_totales_aud.iterrows():
                 fig_aud_horiz.add_annotation(y=row[col_auditoria], x=row["Total_Pendientes"], text=f" <b>{row['Total_Pendientes']}</b>", showarrow=False, xanchor="left", yanchor="middle", font=dict(size=13, color="var(--text-color)"))
-            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True, tickfont=dict(color="var(--text-color)")), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
     dict_pestanias = {
         "Tablero": "📊 Tablero",
@@ -1574,7 +1593,7 @@ if entorno_activo == "Auditoría Interna":
                 ])
 
                 # DICCIONARIO DE CONTEO REAL DE FINALIZADOS
-                # LECTURA POR POSICIÓN EXACTA: COLUMNA L (ÍNDICE 11) Y COLUMNA S (ÍNDICE 18)
+                # COLUMNA L (ÍNDICE 11) Y COLUMNA S (ÍNDICE 18)
                 conteo_meses_fin_real = {m: 0 for m in meses_es}
                 col_estado_idx = df_raw.columns[11] if len(df_raw.columns) > 11 else col_estado
                 col_fecha_fin_idx = df_raw.columns[18] if len(df_raw.columns) > 18 else col_fecha_cierre_auditoria
@@ -1596,7 +1615,7 @@ if entorno_activo == "Auditoría Interna":
 
                     conteo_programados_2026 = {m: 0 for m in meses_es}
                     
-                    # LECTURA POR POSICIÓN EXACTA: COLUMNA I (ÍNDICE 8 - CIERRE DD/MM/AA)
+                    # LECTURA NATIVA FILA POR FILA SOBRE COLUMNA I (ÍNDICE 8)
                     col_cierre_idx = df_raw.columns[8] if len(df_raw.columns) > 8 else col_fecha_cierre
                     
                     fechas_cierre_parsed = df_raw[col_cierre_idx].apply(parsear_fecha_estricta)

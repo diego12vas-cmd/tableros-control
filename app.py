@@ -1074,9 +1074,9 @@ if entorno_activo == "Auditoría Interna":
     col_riesgo = "Nivel del Riesgo" if "Nivel del Riesgo" in df_raw.columns else buscar_columna_por_patron(df_raw, ["riesgo", "nivel de riesgo"])
     col_fecha_inicio = "Inicio" if "Inicio" in df_raw.columns else buscar_columna_por_patron(df_raw, ["inicio"])
     
-    # Búsqueda segura de la columna Cierre Auditoría (Columna S en Base de datos)
-    col_fecha_cierre_auditoria = buscar_columna_por_patron(df_raw, ["fecha de cierre auditoria", "cierre auditoria"])
-    col_fecha_cierre = col_fecha_cierre_auditoria or ("Cierre" if "Cierre" in df_raw.columns else buscar_columna_por_patron(df_raw, ["cierre", "fecha cierre", "fecha compromiso"]))
+    # BÚSQUEDA EXACTA DE COLUMNAS DE FECHAS SEGÚN EXCEL RECIENTE
+    col_fecha_cierre = "Cierre" if "Cierre" in df_raw.columns else (buscar_columna_por_patron(df_raw, ["cierre dd/mm/a", "cierre"]) or buscar_columna_por_patron(df_raw, ["fecha cierre", "fecha compromiso"]))
+    col_fecha_cierre_auditoria = "Fecha de cierre Auditoría" if "Fecha de cierre Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["fecha de cierre auditoria", "cierre auditoria"])
     col_obs_audit = buscar_columna_por_patron(df_raw, ["observacion auditoria"]) or "Observación Auditoría"
     
     col_link_evidencia = "Enlace para cargar evidencias" if "Enlace para cargar evidencias" in df_raw.columns else buscar_columna_por_patron(df_raw, ["enlace para cargar evidencias", "cargar evidencias"])
@@ -1089,7 +1089,7 @@ if entorno_activo == "Auditoría Interna":
     if col_estado:
         df_raw[col_estado] = df_raw[col_estado].astype(str).str.capitalize()
 
-    for col_f in [col_fecha_inicio, col_fecha_cierre]:
+    for col_f in [col_fecha_inicio, col_fecha_cierre, col_fecha_cierre_auditoria]:
         if col_f and col_f in df_raw.columns:
             def formatear_fecha_corta(val):
                 if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", ""]:
@@ -1603,14 +1603,15 @@ if entorno_activo == "Auditoría Interna":
 
                 with subtab_ind1:
                     st.subheader("📅 Programación de Cierre por Mes (Vigencia 2026)")
-                    st.markdown("Relación de planes de acción programados por Fecha de Cierre de Auditoría para la **Vigencia 2026**.")
+                    st.markdown("Relación de planes de acción programados por Fecha de Cierre (Columna H) para la **Vigencia 2026**.")
 
                     conteo_programados_2026 = {
                         "ENE": 0, "FEB": 0, "MAR": 0, "ABR": 0, "MAYO": 0, "JUNIO": 0,
                         "JULIO": 0, "AGO": 0, "SEP": 0, "OCT": 0, "NOV": 0, "DIC": 0
                     }
                     
-                    col_fecha_prog = col_fecha_cierre_auditoria or col_fecha_cierre
+                    # LECTURA DE COLUMNA H ("Cierre DD/MM/A") PARA PROGRAMADOS
+                    col_fecha_prog = col_fecha_cierre if col_fecha_cierre in df_raw.columns else col_fecha_cierre_auditoria
 
                     if col_fecha_prog and col_fecha_prog in df_raw.columns:
                         fechas_prog_dt = pd.to_datetime(df_raw[col_fecha_prog], dayfirst=True, errors="coerce")
@@ -1634,7 +1635,7 @@ if entorno_activo == "Auditoría Interna":
                                 <div class="month-row">
                                     <span>{m_lbl}</span>
                                     <div style="display:flex; gap:6px;">
-                                        <div class="month-box" title="Programados">{cant_prog}</div>
+                                        <div class="month-box" title="Programados (Columna Cierre H)">{cant_prog}</div>
                                         <div class="month-box-fin" title="Finalizados Real">{cant_fin}</div>
                                     </div>
                                 </div>
@@ -1779,6 +1780,7 @@ if entorno_activo == "Auditoría Interna":
                 df_alertas = df_filtrado.copy()
                 hoy = pd.to_datetime(date.today())
 
+                # CÁLCULO DE MORA REAL CORREGIDO EVALUANDO COLUMNA H ("Cierre")
                 if col_fecha_cierre and col_fecha_cierre in df_alertas.columns:
                     df_alertas["Fecha_DT"] = pd.to_datetime(df_alertas[col_fecha_cierre], dayfirst=True, errors="coerce")
                     df_alertas["Dias_Atraso"] = (hoy - df_alertas["Fecha_DT"]).dt.days
@@ -1786,6 +1788,7 @@ if entorno_activo == "Auditoría Interna":
                 else:
                     df_alertas["Dias_Atraso"] = 0
 
+                # MOSTRAR ACCIONES EN MORA DE 30 DÍAS O MÁS QUE NO ESTÉN FINALIZADAS
                 df_criticos_30 = df_alertas[
                     (~df_alertas[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)) & 
                     (df_alertas["Dias_Atraso"] >= 30)

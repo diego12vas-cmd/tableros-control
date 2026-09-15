@@ -320,6 +320,20 @@ def limpiar_nombre_area(texto):
     txt = re.sub(r"\s+", " ", txt).strip()
     return txt
 
+def parsear_fecha_estricta(val):
+    if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", "", "cierre", "cierre dd/mm/a", "cierre dd/mm/aa"]:
+        return pd.NaT
+    if isinstance(val, (datetime, pd.Timestamp, date)):
+        return pd.to_datetime(val)
+    val_str = str(val).strip()
+    try:
+        dt = pd.to_datetime(val_str, format="%d/%m/%Y", errors="coerce")
+        if pd.notnull(dt):
+            return dt
+    except Exception:
+        pass
+    return pd.to_datetime(val_str, dayfirst=True, errors="coerce")
+
 # ---------------------------------------------------------
 # SISTEMA DE LOGIN
 # ---------------------------------------------------------
@@ -948,18 +962,8 @@ def generar_excel_formateado_ai(df):
     for col in df_export.columns:
         if any(p in str(col).lower() for p in ["fecha", "terminacion", "cierre", "inicio", "vencimiento"]):
             def formatear_fecha_limpia(val):
-                if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", ""]:
-                    return ""
-                if isinstance(val, (datetime, pd.Timestamp, date)):
-                    return val.strftime("%d/%m/%Y")
-                val_str = str(val).strip()
-                try:
-                    dt = pd.to_datetime(val_str, dayfirst=True, errors="coerce")
-                    if pd.notnull(dt):
-                        return dt.strftime("%d/%m/%Y")
-                except Exception:
-                    pass
-                return val_str
+                dt = parsear_fecha_estricta(val)
+                return dt.strftime("%d/%m/%Y") if pd.notnull(dt) else ""
             df_export[col] = df_export[col].apply(formatear_fecha_limpia)
 
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
@@ -990,18 +994,8 @@ def generar_excel_formateado_c(df):
     for col in df_export.columns:
         if any(p in str(col).lower() for p in ["fecha", "terminacion", "cierre", "inicio", "vencimiento"]):
             def formatear_fecha_limpia(val):
-                if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", ""]:
-                    return ""
-                if isinstance(val, (datetime, pd.Timestamp, date)):
-                    return val.strftime("%d/%m/%Y")
-                val_str = str(val).strip()
-                try:
-                    dt = pd.to_datetime(val_str, dayfirst=True, errors="coerce")
-                    if pd.notnull(dt):
-                        return dt.strftime("%d/%m/%Y")
-                except Exception:
-                    pass
-                return val_str
+                dt = parsear_fecha_estricta(val)
+                return dt.strftime("%d/%m/%Y") if pd.notnull(dt) else ""
             df_export[col] = df_export[col].apply(formatear_fecha_limpia)
 
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
@@ -1091,18 +1085,8 @@ if entorno_activo == "Auditoría Interna":
     for col_f in [col_fecha_inicio, col_fecha_cierre, col_fecha_cierre_auditoria]:
         if col_f and col_f in df_raw.columns:
             def formatear_fecha_corta(val):
-                if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", ""]:
-                    return ""
-                if isinstance(val, (datetime, pd.Timestamp, date)):
-                    return val.strftime("%d/%m/%Y")
-                val_str = str(val).strip()
-                try:
-                    dt = pd.to_datetime(val_str, dayfirst=True, errors="coerce")
-                    if pd.notnull(dt):
-                        return dt.strftime("%d/%m/%Y")
-                except Exception:
-                    pass
-                return val_str
+                dt = parsear_fecha_estricta(val)
+                return dt.strftime("%d/%m/%Y") if pd.notnull(dt) else ""
             df_raw[col_f] = df_raw[col_f].apply(formatear_fecha_corta)
 
     meses_es = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
@@ -1589,49 +1573,38 @@ if entorno_activo == "Auditoría Interna":
                     "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)"
                 ])
 
-                # DICCIONARIO DE CONTEO REAL DE FINALIZADOS (COLUMNA S: Fecha de cierre Auditoría + ESTADO FINALIZADA)
+                # DICCIONARIO DE CONTEO REAL DE FINALIZADOS (EVALUANDO LA COLUMNA S: Fecha de cierre Auditoría)
                 conteo_meses_fin_real = {m: 0 for m in meses_es}
                 df_fin_ind = df_raw[df_raw[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
                 
                 col_fecha_fin_aud = col_fecha_cierre_auditoria if (col_fecha_cierre_auditoria and col_fecha_cierre_auditoria in df_raw.columns) else col_fecha_cierre
 
                 if not df_fin_ind.empty and col_fecha_fin_aud and col_fecha_fin_aud in df_fin_ind.columns:
-                    fechas_dt_fin_real = pd.to_datetime(df_fin_ind[col_fecha_fin_aud], dayfirst=True, errors="coerce")
-                    map_m = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
-                    for f in fechas_dt_fin_real.dropna():
-                        if f.month in map_m:
-                            conteo_meses_fin_real[map_m[f.month]] += 1
+                    for val in df_fin_ind[col_fecha_fin_aud]:
+                        dt = parsear_fecha_estricta(val)
+                        if pd.notnull(dt) and dt.year == 2026:
+                            m_num = dt.month
+                            if 1 <= m_num <= 12:
+                                conteo_meses_fin_real[meses_es[m_num - 1]] += 1
 
                 with subtab_ind1:
                     st.subheader("📅 Programación de Cierre por Mes (Vigencia 2026)")
                     st.markdown("Relación de planes de acción programados por Fecha de Cierre (Columna I) para la **Vigencia 2026**.")
 
-                    conteo_programados_2026 = {
-                        "ENE": 0, "FEB": 0, "MAR": 0, "ABR": 0, "MAYO": 0, "JUNIO": 0,
-                        "JULIO": 0, "AGO": 0, "SEP": 0, "OCT": 0, "NOV": 0, "DIC": 0
-                    }
+                    conteo_programados_2026 = {m: 0 for m in meses_es}
                     
-                    # FILTRADO EXACTO SIN INCLUIR ENCABEZADOS DE TEXTO NI FILAS VACÍAS
-                    df_v2026 = df_raw.copy()
-                    if col_fecha_cierre and col_fecha_cierre in df_v2026.columns:
-                        s_cierre = df_v2026[col_fecha_cierre].astype(str).str.strip().str.lower()
-                        df_v2026 = df_v2026[~s_cierre.isin(["cierre", "cierre dd/mm/a", "cierre dd/mm/aa", "nan", "none", "", "nat"])].copy()
-
-                        fechas_cierre_dt_all = pd.to_datetime(df_v2026[col_fecha_cierre], dayfirst=True, errors="coerce")
+                    # FILTRADO EXACTO PARSEANDO DIA/MES/AÑO ESTRICTO
+                    df_v2026 = pd.DataFrame()
+                    if col_fecha_cierre and col_fecha_cierre in df_raw.columns:
+                        fechas_parsed = df_raw[col_fecha_cierre].apply(parsear_fecha_estricta)
                         
-                        mask_v2026 = (fechas_cierre_dt_all.dt.year == 2026)
-                        df_v2026 = df_v2026[mask_v2026].copy()
+                        mask_2026 = (fechas_parsed.dt.year == 2026)
+                        df_v2026 = df_raw[mask_2026].copy()
 
-                        fechas_prog_dt = pd.to_datetime(df_v2026[col_fecha_cierre], dayfirst=True, errors="coerce")
-                        map_m = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
-                        
-                        for f in fechas_prog_dt.dropna():
-                            if f.month in map_m:
-                                conteo_programados_2026[map_m[f.month]] += 1
-
-                    # AJUSTE DIRECTO PARA GARANTIZAR EL CONTEO EXACTO DE 14 EN ENERO
-                    if conteo_programados_2026["ENE"] > 14:
-                        conteo_programados_2026["ENE"] = 14
+                        for dt in fechas_parsed[mask_2026].dropna():
+                            m_num = dt.month
+                            if 1 <= m_num <= 12:
+                                conteo_programados_2026[meses_es[m_num - 1]] += 1
 
                     col_ind_1, col_ind_2 = st.columns([0.45, 1])
 
@@ -1789,7 +1762,8 @@ if entorno_activo == "Auditoría Interna":
 
                 # CÁLCULO DE MORA REAL EVALUANDO LA COLUMNA DE FECHA DE CIERRE (COLUMNA I)
                 if col_fecha_cierre and col_fecha_cierre in df_alertas.columns:
-                    df_alertas["Fecha_DT"] = pd.to_datetime(df_alertas[col_fecha_cierre], dayfirst=True, errors="coerce")
+                    fechas_alertas = df_alertas[col_fecha_cierre].apply(parsear_fecha_estricta)
+                    df_alertas["Fecha_DT"] = fechas_alertas
                     df_alertas["Dias_Atraso"] = (hoy - df_alertas["Fecha_DT"]).dt.days
                     df_alertas["Dias_Atraso"] = df_alertas["Dias_Atraso"].apply(lambda x: int(x) if pd.notnull(x) and x > 0 else 0)
                 else:
@@ -1900,14 +1874,11 @@ if entorno_activo == "Auditoría Interna":
                         fecha_def_obj = date.today()
                         fecha_antigua_str = ""
                         if registro is not None and col_fecha_cierre and pd.notnull(registro[col_fecha_cierre]):
-                            try:
-                                dt_parsed = pd.to_datetime(registro[col_fecha_cierre], dayfirst=True, errors="coerce")
-                                if pd.notnull(dt_parsed):
-                                    fecha_def_obj = dt_parsed.date()
-                                    fecha_antigua_str = fecha_def_obj.strftime("%d/%m/%Y")
-                                else:
-                                    fecha_antigua_str = str(registro[col_fecha_cierre])
-                            except Exception:
+                            dt_parsed = parsear_fecha_estricta(registro[col_fecha_cierre])
+                            if pd.notnull(dt_parsed):
+                                fecha_def_obj = dt_parsed.date()
+                                fecha_antigua_str = fecha_def_obj.strftime("%d/%m/%Y")
+                            else:
                                 fecha_antigua_str = str(registro[col_fecha_cierre])
 
                         col_f1, col_f2 = st.columns(2)
@@ -2038,18 +2009,8 @@ if entorno_activo == "Auditoría Interna":
                             
                             fecha_val_str = ""
                             if col_fecha_target and col_fecha_target in row and pd.notnull(row[col_fecha_target]):
-                                f_val = row[col_fecha_target]
-                                if isinstance(f_val, (datetime, pd.Timestamp, date)):
-                                    fecha_val_str = f_val.strftime("%d/%m/%Y")
-                                else:
-                                    try:
-                                        dt = pd.to_datetime(str(f_val).strip(), dayfirst=True, errors="coerce")
-                                        if pd.notnull(dt):
-                                            fecha_val_str = dt.strftime("%d/%m/%Y")
-                                        else:
-                                            fecha_val_str = str(f_val).strip()
-                                    except Exception:
-                                        fecha_val_str = str(f_val).strip()
+                                dt = parsear_fecha_estricta(row[col_fecha_target])
+                                fecha_val_str = dt.strftime("%d/%m/%Y") if pd.notnull(dt) else str(row[col_fecha_target]).strip()
 
                             area_val = str(row[col_area_target]) if col_area_target and pd.notnull(row[col_area_target]) and str(row[col_area_target]).lower() != "none" else ""
                             asunto_val = str(row[col_asunto_target]) if col_asunto_target and pd.notnull(row[col_asunto_target]) and str(row[col_asunto_target]).lower() != "none" else ""
@@ -2243,18 +2204,8 @@ else:
     for col_f in [col_fecha_inicio_c, col_fecha_cierre_c]:
         if col_f and col_f in df_raw_c.columns:
             def formatear_fecha_corta(val):
-                if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", ""]:
-                    return ""
-                if isinstance(val, (datetime, pd.Timestamp, date)):
-                    return val.strftime("%d/%m/%Y")
-                val_str = str(val).strip()
-                try:
-                    dt = pd.to_datetime(val_str, dayfirst=True, errors="coerce")
-                    if pd.notnull(dt):
-                        return dt.strftime("%d/%m/%Y")
-                except Exception:
-                    pass
-                return val_str
+                dt = parsear_fecha_estricta(val)
+                return dt.strftime("%d/%m/%Y") if pd.notnull(dt) else ""
             df_raw_c[col_f] = df_raw_c[col_f].apply(formatear_fecha_corta)
 
     st.sidebar.title("🔍 Filtros Contraloría")
@@ -2310,7 +2261,7 @@ else:
     if col_fecha_cierre_aud_c and col_fecha_cierre_aud_c in df_filtrado_c.columns:
         df_fin_c = df_filtrado_c[df_filtrado_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado_c else pd.DataFrame()
         if not df_fin_c.empty:
-            fechas_dt_c = pd.to_datetime(df_fin_c[col_fecha_cierre_aud_c], dayfirst=True, errors="coerce")
+            fechas_dt_c = df_fin_c[col_fecha_cierre_aud_c].apply(parsear_fecha_estricta)
             for f in fechas_dt_c.dropna():
                 m_num = f.month
                 if m_num in meses_es_map_c:
@@ -2695,7 +2646,7 @@ else:
                     }
 
                     if col_fecha_cierre_c and col_fecha_cierre_c in df_raw_c.columns:
-                        fechas_prog_dt_c = pd.to_datetime(df_raw_c[col_fecha_cierre_c], dayfirst=True, errors="coerce")
+                        fechas_prog_dt_c = df_raw_c[col_fecha_cierre_c].apply(parsear_fecha_estricta)
                         for f in fechas_prog_dt_c.dropna():
                             if f.year == 2026:
                                 map_m_c = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAY", 6: "JUN", 7: "JUL", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
@@ -2716,7 +2667,7 @@ else:
                         
                         df_prog_2026_c = df_raw_c.copy()
                         if col_fecha_cierre_c and col_fecha_cierre_c in df_prog_2026_c.columns:
-                            fechas_prog_dt_col_c = pd.to_datetime(df_prog_2026_c[col_fecha_cierre_c], dayfirst=True, errors="coerce")
+                            fechas_prog_dt_col_c = df_prog_2026_c[col_fecha_cierre_c].apply(parsear_fecha_estricta)
                             df_prog_2026_c = df_prog_2026_c[fechas_prog_dt_col_c.dt.year == 2026].copy()
 
                         if not df_prog_2026_c.empty:
@@ -2735,7 +2686,7 @@ else:
                         else:
                             st.info("ℹ️ No hay planes de acción programados en Contraloría para la vigencia 2026 con los filtros aplicados.")
 
-                with subtab_ind_c2:
+                with subtab_ind2:
                     st.subheader("🎉 Avance de Cierre y Planes Finalizados Contraloría")
                     col_cm1, col_cm2 = st.columns([0.28, 1])
 

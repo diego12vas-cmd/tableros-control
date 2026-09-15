@@ -1343,7 +1343,7 @@ if entorno_activo == "Auditoría Interna":
 
             for _, row in df_totales_aud.iterrows():
                 fig_aud_horiz.add_annotation(y=row[col_auditoria], x=row["Total_Pendientes"], text=f" <b>{row['Total_Pendientes']}</b>", showarrow=False, xanchor="left", yanchor="middle", font=dict(size=13, color="var(--text-color)"))
-            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True, tickfont=dict(color="var(--text-color)")), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
     dict_pestanias = {
         "Tablero": "📊 Tablero",
@@ -2391,14 +2391,14 @@ else:
     meses_es_map_c = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAY", 6: "JUN", 7: "JUL", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
     conteo_meses_c = {m: 0 for m in meses_es_map_c.values()}
 
+    # Conteo mensual de cierre 2026 filtrado estrictamente por f.year == 2026
     if col_fecha_cierre_aud_c and col_fecha_cierre_aud_c in df_filtrado_c.columns:
         df_fin_c = df_filtrado_c[df_filtrado_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado_c else pd.DataFrame()
         if not df_fin_c.empty:
-            fechas_dt_c = pd.to_datetime(df_fin_c[col_fecha_cierre_aud_c], errors="coerce")
+            fechas_dt_c = df_fin_c[col_fecha_cierre_aud_c].apply(parsear_fecha_estricta)
             for f in fechas_dt_c.dropna():
-                m_num = f.month
-                if m_num in meses_es_map_c:
-                    conteo_meses_c[meses_es_map_c[m_num]] += 1
+                if f.year == 2026 and f.month in meses_es_map_c:
+                    conteo_meses_c[meses_es_map_c[f.month]] += 1
 
     df_activos_c = df_filtrado_c[~df_filtrado_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado_c else df_filtrado_c.copy()
 
@@ -2780,7 +2780,7 @@ else:
                     }
 
                     if col_fecha_cierre_c and col_fecha_cierre_c in df_raw_c.columns:
-                        fechas_prog_dt_c = pd.to_datetime(df_raw_c[col_fecha_cierre_c], errors="coerce", dayfirst=True)
+                        fechas_prog_dt_c = df_raw_c[col_fecha_cierre_c].apply(parsear_fecha_estricta)
                         for f in fechas_prog_dt_c.dropna():
                             if f.year == 2026:
                                 map_m_c = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAY", 6: "JUN", 7: "JUL", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
@@ -2801,7 +2801,7 @@ else:
                         
                         df_prog_2026_c = df_raw_c.copy()
                         if col_fecha_cierre_c and col_fecha_cierre_c in df_prog_2026_c.columns:
-                            fechas_prog_dt_col_c = pd.to_datetime(df_prog_2026_c[col_fecha_cierre_c], errors="coerce", dayfirst=True)
+                            fechas_prog_dt_col_c = df_prog_2026_c[col_fecha_cierre_c].apply(parsear_fecha_estricta)
                             df_prog_2026_c = df_prog_2026_c[fechas_prog_dt_col_c.dt.year == 2026].copy()
 
                         if not df_prog_2026_c.empty:
@@ -2842,7 +2842,7 @@ else:
                             st.info("ℹ️ No hay acciones finalizadas en Contraloría.")
 
                 # ---------------------------------------------------------
-                # SUB-PESTAÑA 3: COMPARACIÓN PROGRAMADOS VS FINALIZADOS (% HALLAZGO 2026) - CONTRALORÍA
+                # SUB-PESTAÑA 3: COMPARACIÓN PROGRAMADOS VS FINALIZADOS (% HALLAZGO 2026) - CONTRALORÍA (ESTRICTO AÑO 2026)
                 # ---------------------------------------------------------
                 with subtab_ind_c3:
                     st.subheader("Programados vs Finalizados (% Hallazgo 2026)")
@@ -2866,7 +2866,7 @@ else:
                         except Exception:
                             return 0.0
 
-                    # 1. Suma de % Hallazgos Programados 2026 (Columna W / FECHA DE TERMINACIÓN)
+                    # 1. Suma de % Hallazgos Programados 2026 (Columna W / FECHA DE TERMINACIÓN en 2026)
                     fechas_prog_parsed_c = df_raw_c[col_cierre_prog_idx_c].apply(parsear_fecha_estricta)
                     df_raw_prog_pct_c = df_raw_c.copy()
                     df_raw_prog_pct_c["pct_val"] = df_raw_prog_pct_c[col_pct_idx_c].apply(limpiar_float_absoluto_c)
@@ -2877,7 +2877,7 @@ else:
                         if pd.notnull(dt_val) and dt_val.year == 2026 and dt_val.month in map_m_pct_c:
                             conteo_pct_prog_2026_c[map_m_pct_c[dt_val.month]] += float(r_p["pct_val"])
 
-                    # 2. Suma de % Hallazgos Finalizados 2026 (Columna AI / Fecha cierre x Auditoría + Estado Finalizada/Cerrada)
+                    # 2. Suma de % Hallazgos Finalizados 2026 (Columna AI / Fecha cierre x Auditoría en 2026 + Estado Finalizada/Cerrada)
                     mask_fin_estricto_c = df_raw_c[col_estado_idx_pct_c].astype(str).str.strip().str.lower().isin(["finalizada", "cerrada"])
                     df_fin_pct_raw_c = df_raw_c[mask_fin_estricto_c].copy()
 

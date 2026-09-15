@@ -954,7 +954,7 @@ def generar_excel_formateado_ai(df):
                     return val.strftime("%d/%m/%Y")
                 val_str = str(val).strip()
                 try:
-                    dt = pd.to_datetime(val_str, errors="coerce")
+                    dt = pd.to_datetime(val_str, dayfirst=True, errors="coerce")
                     if pd.notnull(dt):
                         return dt.strftime("%d/%m/%Y")
                 except Exception:
@@ -996,7 +996,7 @@ def generar_excel_formateado_c(df):
                     return val.strftime("%d/%m/%Y")
                 val_str = str(val).strip()
                 try:
-                    dt = pd.to_datetime(val_str, errors="coerce")
+                    dt = pd.to_datetime(val_str, dayfirst=True, errors="coerce")
                     if pd.notnull(dt):
                         return dt.strftime("%d/%m/%Y")
                 except Exception:
@@ -1074,7 +1074,7 @@ if entorno_activo == "Auditoría Interna":
     col_riesgo = "Nivel del Riesgo" if "Nivel del Riesgo" in df_raw.columns else buscar_columna_por_patron(df_raw, ["riesgo", "nivel de riesgo"])
     col_fecha_inicio = "Inicio" if "Inicio" in df_raw.columns else buscar_columna_por_patron(df_raw, ["inicio"])
     
-    # MAPEADO EXACTO SEGÚN EXCEL RECIENTE
+    # MAPEADO EXACTO: COLUMNA I (Cierre DD/MM/AA) Y COLUMNA S (Fecha de cierre Auditoría)
     col_fecha_cierre = "Cierre" if "Cierre" in df_raw.columns else (buscar_columna_por_patron(df_raw, ["cierre dd/mm/a", "cierre"]) or buscar_columna_por_patron(df_raw, ["fecha cierre", "fecha compromiso"]))
     col_fecha_cierre_auditoria = "Fecha de cierre Auditoría" if "Fecha de cierre Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["fecha de cierre auditoria", "cierre auditoria"])
     col_obs_audit = buscar_columna_por_patron(df_raw, ["observacion auditoria"]) or "Observación Auditoría"
@@ -1590,12 +1590,14 @@ if entorno_activo == "Auditoría Interna":
                     "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)"
                 ])
 
-                # DICCIONARIO DE CONTEO REAL DE FINALIZADOS
+                # DICCIONARIO DE CONTEO REAL DE FINALIZADOS (EVALUANDO LA COLUMNA S: Fecha de cierre Auditoría)
                 conteo_meses_fin_real = {m: 0 for m in meses_es}
                 df_fin_ind = df_filtrado[df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
                 
-                if not df_fin_ind.empty and col_fecha_cierre and col_fecha_cierre in df_fin_ind.columns:
-                    fechas_dt_fin_real = pd.to_datetime(df_fin_ind[col_fecha_cierre], dayfirst=True, errors="coerce")
+                col_fecha_fin_aud = col_fecha_cierre_auditoria if col_fecha_cierre_auditoria in df_raw.columns else col_fecha_cierre
+
+                if not df_fin_ind.empty and col_fecha_fin_aud and col_fecha_fin_aud in df_fin_ind.columns:
+                    fechas_dt_fin_real = pd.to_datetime(df_fin_ind[col_fecha_fin_aud], dayfirst=True, errors="coerce")
                     map_m = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
                     for f in fechas_dt_fin_real.dropna():
                         if f.month in map_m:
@@ -1603,36 +1605,32 @@ if entorno_activo == "Auditoría Interna":
 
                 with subtab_ind1:
                     st.subheader("📅 Programación de Cierre por Mes (Vigencia 2026)")
-                    st.markdown("Relación de planes de acción programados por Fecha de Cierre (Columna H) para la **Vigencia 2026**.")
+                    st.markdown("Relación de planes de acción programados por Fecha de Cierre (Columna I) para la **Vigencia 2026**.")
 
                     conteo_programados_2026 = {
                         "ENE": 0, "FEB": 0, "MAR": 0, "ABR": 0, "MAYO": 0, "JUNIO": 0,
                         "JULIO": 0, "AGO": 0, "SEP": 0, "OCT": 0, "NOV": 0, "DIC": 0
                     }
                     
-                    # FILTRADO EXCLUSIVO POR VIGENCIA 2026 + FECHA DE CIERRE REAL (COLUMNA H)
+                    # FILTRADO SOBRE LA COLUMNA I (Cierre DD/MM/AA) PARA VIGENCIA 2026
                     df_v2026 = df_raw.copy()
                     if col_fecha_cierre and col_fecha_cierre in df_v2026.columns:
                         fechas_cierre_dt_all = pd.to_datetime(df_v2026[col_fecha_cierre], dayfirst=True, errors="coerce")
                         
-                        # Filtro estricto: Fecha de cierre en año 2026 O Plan Auditoría de Vigencia 2026
                         mask_v2026 = (fechas_cierre_dt_all.dt.year == 2026)
-                        if col_plan_filtro and col_plan_filtro in df_v2026.columns:
-                            mask_v2026 = mask_v2026 | df_v2026[col_plan_filtro].astype(str).str.contains("2026", case=False, na=False)
-                            
                         df_v2026 = df_v2026[mask_v2026].copy()
 
                         fechas_prog_dt = pd.to_datetime(df_v2026[col_fecha_cierre], dayfirst=True, errors="coerce")
                         map_m = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
                         for f in fechas_prog_dt.dropna():
-                            if f.year == 2026 and f.month in map_m:
+                            if f.month in map_m:
                                 conteo_programados_2026[map_m[f.month]] += 1
 
                     col_ind_1, col_ind_2 = st.columns([0.45, 1])
 
                     with col_ind_1:
                         st.markdown('<div class="titulo-seccion-finaliz">📊 Programados vs Finalizados</div>', unsafe_allow_html=True)
-                        st.markdown('<div style="font-size:0.75rem; color:#A0AEC0; margin-bottom:8px;">🟩 Programados 2026 | 🔳 Finalizados Real</div>', unsafe_allow_html=True)
+                        st.markdown('<div style="font-size:0.75rem; color:#A0AEC0; margin-bottom:8px;">🟩 Programados 2026 (Col I) | 🔳 Finalizados Real (Col S)</div>', unsafe_allow_html=True)
                         st.markdown('<div class="month-container">', unsafe_allow_html=True)
                         for m_lbl in meses_es:
                             cant_prog = conteo_programados_2026[m_lbl]
@@ -1642,8 +1640,8 @@ if entorno_activo == "Auditoría Interna":
                                 <div class="month-row">
                                     <span>{m_lbl}</span>
                                     <div style="display:flex; gap:6px;">
-                                        <div class="month-box" title="Programados Vigencia 2026">{cant_prog}</div>
-                                        <div class="month-box-fin" title="Finalizados Real">{cant_fin}</div>
+                                        <div class="month-box" title="Programados Vigencia 2026 (Columna I)">{cant_prog}</div>
+                                        <div class="month-box-fin" title="Finalizados Real (Columna S)">{cant_fin}</div>
                                     </div>
                                 </div>
                                 ''',
@@ -1782,7 +1780,7 @@ if entorno_activo == "Auditoría Interna":
                 df_alertas = df_filtrado.copy()
                 hoy = pd.to_datetime(date.today())
 
-                # CÁLCULO DE MORA REAL EVALUANDO LA COLUMNA DE FECHA DE CIERRE (COLUMNA H)
+                # CÁLCULO DE MORA REAL EVALUANDO LA COLUMNA DE FECHA DE CIERRE (COLUMNA I)
                 if col_fecha_cierre and col_fecha_cierre in df_alertas.columns:
                     df_alertas["Fecha_DT"] = pd.to_datetime(df_alertas[col_fecha_cierre], dayfirst=True, errors="coerce")
                     df_alertas["Dias_Atraso"] = (hoy - df_alertas["Fecha_DT"]).dt.days

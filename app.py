@@ -1299,7 +1299,7 @@ if entorno_activo == "Auditoría Interna":
 
             for _, row in df_totales_aud.iterrows():
                 fig_aud_horiz.add_annotation(y=row[col_auditoria], x=row["Total_Pendientes"], text=f" <b>{row['Total_Pendientes']}</b>", showarrow=False, xanchor="left", yanchor="middle", font=dict(size=13, color="var(--text-color)"))
-            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True, tickfont=dict(color="var(--text-color)")), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
     dict_pestanias = {
         "Tablero": "📊 Tablero",
@@ -1573,16 +1573,19 @@ if entorno_activo == "Auditoría Interna":
                     "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)"
                 ])
 
-                # DICCIONARIO DE CONTEO REAL DE FINALIZADOS (COLUMNA S: Fecha de cierre Auditoría + ESTADO FINALIZADA)
+                # DICCIONARIO DE CONTEO REAL DE FINALIZADOS
+                # LECTURA POR POSICIÓN EXACTA: COLUMNA L (ÍNDICE 11) Y COLUMNA S (ÍNDICE 18)
                 conteo_meses_fin_real = {m: 0 for m in meses_es}
-                df_fin_ind = df_raw[df_raw[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
-                
-                col_fecha_fin_aud = col_fecha_cierre_auditoria if (col_fecha_cierre_auditoria and col_fecha_cierre_auditoria in df_raw.columns) else col_fecha_cierre
+                col_estado_idx = df_raw.columns[11] if len(df_raw.columns) > 11 else col_estado
+                col_fecha_fin_idx = df_raw.columns[18] if len(df_raw.columns) > 18 else col_fecha_cierre_auditoria
 
-                if not df_fin_ind.empty and col_fecha_fin_aud and col_fecha_fin_aud in df_fin_ind.columns:
-                    for val in df_fin_ind[col_fecha_fin_aud]:
+                mask_fin_estricto = df_raw[col_estado_idx].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)
+                df_fin_ind = df_raw[mask_fin_estricto].copy()
+
+                if not df_fin_ind.empty and col_fecha_fin_idx in df_fin_ind.columns:
+                    for val in df_fin_ind[col_fecha_fin_idx]:
                         dt = parsear_fecha_estricta(val)
-                        if pd.notnull(dt):
+                        if pd.notnull(dt) and dt.year == 2026:
                             m_num = dt.month
                             if 1 <= m_num <= 12:
                                 conteo_meses_fin_real[meses_es[m_num - 1]] += 1
@@ -1593,18 +1596,18 @@ if entorno_activo == "Auditoría Interna":
 
                     conteo_programados_2026 = {m: 0 for m in meses_es}
                     
-                    # FILTRADO EXACTO PARSEANDO DÍA/MES/AÑO ESTRICTO
-                    df_v2026 = pd.DataFrame()
-                    if col_fecha_cierre and col_fecha_cierre in df_raw.columns:
-                        fechas_parsed = df_raw[col_fecha_cierre].apply(parsear_fecha_estricta)
-                        
-                        mask_2026 = (fechas_parsed.dt.year == 2026)
-                        df_v2026 = df_raw[mask_2026].copy()
+                    # LECTURA POR POSICIÓN EXACTA: COLUMNA I (ÍNDICE 8 - CIERRE DD/MM/AA)
+                    col_cierre_idx = df_raw.columns[8] if len(df_raw.columns) > 8 else col_fecha_cierre
+                    
+                    fechas_cierre_parsed = df_raw[col_cierre_idx].apply(parsear_fecha_estricta)
+                    mask_2026_estricto = (fechas_cierre_parsed.dt.year == 2026)
+                    
+                    df_v2026 = df_raw[mask_2026_estricto].copy()
 
-                        for dt in fechas_parsed[mask_2026].dropna():
-                            m_num = dt.month
-                            if 1 <= m_num <= 12:
-                                conteo_programados_2026[meses_es[m_num - 1]] += 1
+                    for dt in fechas_cierre_parsed[mask_2026_estricto].dropna():
+                        m_num = dt.month
+                        if 1 <= m_num <= 12:
+                            conteo_programados_2026[meses_es[m_num - 1]] += 1
 
                     col_ind_1, col_ind_2 = st.columns([0.45, 1])
 
@@ -1760,9 +1763,10 @@ if entorno_activo == "Auditoría Interna":
                 df_alertas = df_filtrado.copy()
                 hoy = pd.to_datetime(date.today())
 
-                # CÁLCULO DE MORA REAL EVALUANDO LA COLUMNA DE FECHA DE CIERRE (COLUMNA I)
-                if col_fecha_cierre and col_fecha_cierre in df_alertas.columns:
-                    fechas_alertas = df_alertas[col_fecha_cierre].apply(parsear_fecha_estricta)
+                # CÁLCULO DE MORA REAL EVALUANDO LA COLUMNA I (ÍNDICE 8)
+                col_cierre_idx = df_alertas.columns[8] if len(df_alertas.columns) > 8 else col_fecha_cierre
+                if col_cierre_idx and col_cierre_idx in df_alertas.columns:
+                    fechas_alertas = df_alertas[col_cierre_idx].apply(parsear_fecha_estricta)
                     df_alertas["Fecha_DT"] = fechas_alertas
                     df_alertas["Dias_Atraso"] = (hoy - df_alertas["Fecha_DT"]).dt.days
                     df_alertas["Dias_Atraso"] = df_alertas["Dias_Atraso"].apply(lambda x: int(x) if pd.notnull(x) and x > 0 else 0)
@@ -2686,7 +2690,7 @@ else:
                         else:
                             st.info("ℹ️ No hay planes de acción programados en Contraloría para la vigencia 2026 con los filtros aplicados.")
 
-                with subtab_ind_c2:
+                with subtab_ind2:
                     st.subheader("🎉 Avance de Cierre y Planes Finalizados Contraloría")
                     col_cm1, col_cm2 = st.columns([0.28, 1])
 

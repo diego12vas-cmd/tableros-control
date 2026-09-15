@@ -1333,7 +1333,7 @@ if entorno_activo == "Auditoría Interna":
 
             for _, row in df_totales_aud.iterrows():
                 fig_aud_horiz.add_annotation(y=row[col_auditoria], x=row["Total_Pendientes"], text=f" <b>{row['Total_Pendientes']}</b>", showarrow=False, xanchor="left", yanchor="middle", font=dict(size=13, color="var(--text-color)"))
-            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, (df_totales_aud["Total_Pendientes"].max() if not df_totales_aud.empty else 10) * 1.25]), legend_title_text="Estado", margin=dict(l=280, r=60, t=60, b=40), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
     dict_pestanias = {
         "Tablero": "📊 Tablero",
@@ -1603,7 +1603,7 @@ if entorno_activo == "Auditoría Interna":
                 st.markdown("Selecciona una sub-pestaña para comparar la **programación mensual** contra la **ejecución de planes finalizados**.")
 
                 subtab_ind1, subtab_ind2, subtab_ind3 = st.tabs([
-                    "📊 Planes Programados (Vigencia 2026)",
+                    "📅 Planes Programados (Vigencia 2026)",
                     "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)",
                     "🎯 Hallazgos Finalizados (Suma % Hallazgo 2026)"
                 ])
@@ -1692,7 +1692,7 @@ if entorno_activo == "Auditoría Interna":
                             st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
 
                 # ---------------------------------------------------------
-                # SUB-PESTAÑA 3: SUMA REAL DE % HALLAZGO (COLUMNA AB)
+                # SUB-PESTAÑA 3: CÁLCULO DE SUMA DIRECTA VIGENCIA 2026
                 # ---------------------------------------------------------
                 with subtab_ind3:
                     st.subheader("🎯 Suma de Hallazgos Finalizados por Mes (Vigencia 2026)")
@@ -1700,6 +1700,7 @@ if entorno_activo == "Auditoría Interna":
 
                     conteo_pct_hallazgos_2026 = {m: 0.0 for m in meses_es}
 
+                    # Búsqueda por posicionamiento directo en la Hoja 'Base de datos'
                     col_estado_idx_pct = df_raw.columns[11] if len(df_raw.columns) > 11 else col_estado
                     col_fecha_fin_idx_pct = df_raw.columns[18] if len(df_raw.columns) > 18 else col_fecha_cierre_aud
                     col_pct_idx = df_raw.columns[27] if len(df_raw.columns) > 27 else df_raw.columns[-1]
@@ -1708,9 +1709,10 @@ if entorno_activo == "Auditoría Interna":
                     df_fin_pct_raw = df_raw[mask_fin_estricto_pct].copy()
 
                     if not df_fin_pct_raw.empty:
-                        fechas_parsed_pct = df_fin_pct_raw[col_fecha_fin_idx_pct].apply(parsear_fecha_estricta)
-                        df_fin_pct_raw["fecha_fin_dt_pct"] = fechas_parsed_pct
+                        # Parsear fecha estricta mediante la función global del sistema
+                        df_fin_pct_raw["fecha_fin_dt_pct"] = df_fin_pct_raw[col_fecha_fin_idx_pct].apply(parsear_fecha_estricta)
 
+                        # Conversión decimal garantizando compatibilidad con comas (0,5 -> 0.5)
                         df_fin_pct_raw["pct_num_val"] = (
                             df_fin_pct_raw[col_pct_idx]
                             .astype(str)
@@ -2272,7 +2274,7 @@ else:
     col_hallazgo_c = "DESCRIPCIÓN HALLAZGO" if "DESCRIPCIÓN HALLAZGO" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["descripcion hallazgo", "titulo del hallazgo", "hallazgo", "id"])
     col_fecha_inicio_c = "FECHA DE INICIO" if "FECHA DE INICIO" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["fecha de inicio"])
     col_fecha_cierre_c = "FECHA DE TERMINACIÓN" if "FECHA DE TERMINACIÓN" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["fecha de terminacion", "vencimiento", "cierre", "fecha cierre"])
-    col_fecha_cierre_aud_c = "Fecha cierre x Auditoría" if "Fecha cierre x Auditoría" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["fecha cierre x auditoria", "cierre x auditoria"])
+    col_fecha_cierre_aud_c = "Fecha cierre x Auditoría" if "Fecha cierre x Auditoría" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["fecha cierre x auditoria", "cierre auditoria"])
     col_obs_audit_c = "OBSERVACIÓN" if "OBSERVACIÓN" in df_raw_c.columns else (buscar_columna_por_patron(df_raw_c, ["observacion"]) or "OBSERVACIÓN")
     
     col_link_evidencia_c = "ENLACE PARA CARGAR EVIDENCIAS" if "ENLACE PARA CARGAR EVIDENCIAS" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["enlace para cargar evidencias", "evidencias"])

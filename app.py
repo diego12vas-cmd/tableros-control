@@ -1702,10 +1702,10 @@ if entorno_activo == "Auditoría Interna":
                             st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
 
                 # ---------------------------------------------------------
-                # SUB-PESTAÑA 3: COMPARACIÓN PROGRAMADOS VS FINALIZADOS (% HALLAZGO 2026)
+                # SUB-PESTAÑA 3: COMPARACIÓN PROGRAMADOS VS FINALIZADOS (% HALLAZGO 2026) - LIMPIO
                 # ---------------------------------------------------------
                 with subtab_ind3:
-                    st.subheader("🎯 Suma de Hallazgos (% Hallazgo): Programados vs Finalizados 2026")
+                    st.subheader("Programados vs Finalizados (% Hallazgo 2026)")
                     st.markdown("Comparativa mes a mes entre la suma del **`% Hallazgo` (Columna AB)** programado según la **Fecha de Cierre (Columna I)** y lo finalizado según la **Fecha de Cierre Auditoría (Columna S)**.")
 
                     conteo_pct_prog_2026 = {m: 0.0 for m in meses_es}
@@ -1752,7 +1752,7 @@ if entorno_activo == "Auditoría Interna":
                     col_h1, col_h2 = st.columns([0.45, 1])
 
                     with col_h1:
-                        st.markdown('<div class="titulo-seccion-finaliz">🎯 Programados vs Finalizados (% Hallazgo)</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="titulo-seccion-finaliz">🎯 Programados vs Finalizados</div>', unsafe_allow_html=True)
                         st.markdown('<div style="font-size:0.75rem; color:#A0AEC0; margin-bottom:8px;">🟩 Programados (Col I) | 🔳 Finalizados (Col S)</div>', unsafe_allow_html=True)
                         st.markdown('<div class="month-container">', unsafe_allow_html=True)
                         for m_lbl in meses_es:
@@ -1777,7 +1777,7 @@ if entorno_activo == "Auditoría Interna":
                         st.markdown('</div>', unsafe_allow_html=True)
 
                     with col_h2:
-                        st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 0px !important;">📋 Registros de Hallazgos Finalizados 2026</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="titulo-seccion-finaliz">📋 Registros de Hallazgos Finalizados 2026</div>', unsafe_allow_html=True)
                         if not df_fin_pct_raw.empty:
                             df_fin_pct_vista = filtrar_solo_columnas_amarillas_ai(df_fin_pct_raw)
                             df_fin_pct_vista.index = range(1, len(df_fin_pct_vista) + 1)
@@ -2795,7 +2795,7 @@ else:
                             st.markdown(f'<div class="month-row"><span>{m_lbl}</span><div class="month-box" style="background-color:#C2E0C6;">{cant_prog}</div></div>', unsafe_allow_html=True)
                         st.markdown('</div>', unsafe_allow_html=True)
 
-                    with col_ind_2:
+                    with col_ind_c2:
                         st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Detalle de Planes Programados 2026 Contraloría</div>', unsafe_allow_html=True)
                         
                         df_prog_2026_c = df_raw_c.copy()
@@ -2819,7 +2819,7 @@ else:
                         else:
                             st.info("ℹ️ No hay planes de acción programados en Contraloría para la vigencia 2026 con los filtros aplicados.")
 
-                with subtab_ind2:
+                with subtab_ind_c2:
                     st.subheader("🎉 Avance de Cierre y Planes Finalizados Contraloría")
                     col_cm1, col_cm2 = st.columns([0.28, 1])
 

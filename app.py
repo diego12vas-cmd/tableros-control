@@ -1343,7 +1343,7 @@ if entorno_activo == "Auditoría Interna":
 
             for _, row in df_totales_aud.iterrows():
                 fig_aud_horiz.add_annotation(y=row[col_auditoria], x=row["Total_Pendientes"], text=f" <b>{row['Total_Pendientes']}</b>", showarrow=False, xanchor="left", yanchor="middle", font=dict(size=13, color="var(--text-color)"))
-            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True, tickfont=dict(color="var(--text-color)")), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
     dict_pestanias = {
         "Tablero": "📊 Tablero",
@@ -1613,7 +1613,7 @@ if entorno_activo == "Auditoría Interna":
                 st.markdown("Selecciona una sub-pestaña para comparar la **programación mensual** contra la **ejecución de planes finalizados**.")
 
                 subtab_ind1, subtab_ind2, subtab_ind3 = st.tabs([
-                    "📊 Planes Programados (Vigencia 2026)",
+                    "📅 Planes Programados (Vigencia 2026)",
                     "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)",
                     "🎯 Hallazgos Finalizados (% Hallazgo: Programados vs Finalizados 2026)"
                 ])
@@ -1702,7 +1702,7 @@ if entorno_activo == "Auditoría Interna":
                             st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
 
                 # ---------------------------------------------------------
-                # SUB-PESTAÑA 3: COMPARACIÓN PROGRAMADOS VS FINALIZADOS CON FORMATEO DECIMAL EXACTO
+                # SUB-PESTAÑA 3: COMPARACIÓN PROGRAMADOS VS FINALIZADOS (% HALLAZGO 2026)
                 # ---------------------------------------------------------
                 with subtab_ind3:
                     st.subheader("🎯 Suma de Hallazgos (% Hallazgo): Programados vs Finalizados 2026")
@@ -1759,7 +1759,6 @@ if entorno_activo == "Auditoría Interna":
                             sum_p = conteo_pct_prog_2026[m_lbl]
                             sum_f = conteo_pct_fin_2026[m_lbl]
 
-                            # Formateo a 2 decimales exactos con coma (ej. 10,67) si tiene decimales, o entero si es redondo
                             p_str = f"{sum_p:g}".replace(".", ",") if float(sum_p).is_integer() else f"{sum_p:.2f}".replace(".", ",")
                             f_str = f"{sum_f:g}".replace(".", ",") if float(sum_f).is_integer() else f"{sum_f:.2f}".replace(".", ",")
 
@@ -1778,7 +1777,7 @@ if entorno_activo == "Auditoría Interna":
                         st.markdown('</div>', unsafe_allow_html=True)
 
                     with col_h2:
-                        st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Registros de Hallazgos Finalizados 2026</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 0px !important;">📋 Registros de Hallazgos Finalizados 2026</div>', unsafe_allow_html=True)
                         if not df_fin_pct_raw.empty:
                             df_fin_pct_vista = filtrar_solo_columnas_amarillas_ai(df_fin_pct_raw)
                             df_fin_pct_vista.index = range(1, len(df_fin_pct_vista) + 1)
@@ -1941,7 +1940,7 @@ if entorno_activo == "Auditoría Interna":
                 if col_plan_filtro and col_plan_filtro in df_edicion_temp.columns:
                     opciones_plan_v += sorted([str(x) for x in df_edicion_temp[col_plan_filtro].dropna().unique() if str(x).strip()])
                 with col_f_plan:
-                    plan_v_seleccionado = st.selectbox("3. Filtrar por Plan / Vigencia:", options=plan_v_seleccionado, key="f_plan_edit")
+                    plan_v_seleccionado = st.selectbox("3. Filtrar por Plan / Vigencia:", options=opciones_plan_v, key="f_plan_edit")
 
                 if plan_v_seleccionado != "(Todos)":
                     df_edicion_temp = df_edicion_temp[df_edicion_temp[col_plan_filtro].astype(str).str.strip().str.lower() == plan_v_seleccionado.strip().lower()]

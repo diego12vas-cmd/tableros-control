@@ -1077,14 +1077,6 @@ if entorno_activo == "Auditoría Interna":
             df_raw[col_f] = df_raw[col_f].apply(formatear_fecha_corta)
 
     meses_es = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
-    conteo_meses = {m: 0 for m in meses_es}
-
-    if not df_calc.empty:
-        for idx, row in df_calc.iterrows():
-            val_m = str(row[0]).strip().lower()
-            for idx_m, m_nombre in enumerate(["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]):
-                if m_nombre in val_m:
-                    conteo_meses[meses_es[idx_m]] = int(row[1]) if pd.notnull(row[1]) and str(row[1]).isdigit() else 0
 
     st.sidebar.title("🔍 Filtros Auditoría")
     fecha_excel = obtener_fecha_excel(EXCEL_PATH_AI)
@@ -1140,7 +1132,7 @@ if entorno_activo == "Auditoría Interna":
                     st.markdown("**Modificar Pestañas Permitidas:**")
                     nuevos_perms = []
                     for p in TODAS_LAS_PESTANIAS:
-                        chk_p = st.checkbox(f"Acceso a {p}", value=(p in p_actuales), key=f"edit_perm_{user_sel}_{p}")
+                        chk_p = st.checkbox(f"Acceso a {p}", value=(p in p_actuales or (p == "Indicadores de Gestión" and "Métricas" in p_actuales)), key=f"edit_perm_{user_sel}_{p}")
                         if chk_p:
                             nuevos_perms.append(p)
                             
@@ -1291,6 +1283,7 @@ if entorno_activo == "Auditoría Interna":
         "Tablero": "📊 Tablero",
         "Programa Anual": "🗓️ Programa Anual",
         "Indicadores de Gestión": "📌 Indicadores de Gestión",
+        "Métricas": "📌 Indicadores de Gestión",
         "Histórico": "📊 Histórico",
         "Alertas y Edición": "🚨 Alertas y Edición",
         "Oficios": "📩 Oficios",
@@ -1298,7 +1291,7 @@ if entorno_activo == "Auditoría Interna":
         "Informes": "📑 Informes"
     }
 
-    pestañas_permitidas = [p for p in TODAS_LAS_PESTANIAS if p in st.session_state.get("permisos_usuario", []) or p == "Indicadores de Gestión"]
+    pestañas_permitidas = [p for p in TODAS_LAS_PESTANIAS if p in st.session_state.get("permisos_usuario", []) or (p == "Indicadores de Gestión" and "Métricas" in st.session_state.get("permisos_usuario", []))]
 
     if not pestañas_permitidas:
         st.warning("⚠️ No tienes permisos asignados para ver ninguna sección. Contacta al administrador.")
@@ -1526,38 +1519,50 @@ if entorno_activo == "Auditoría Interna":
                 st.header("📌 Indicadores de Gestión Auditoría Interna")
                 st.markdown("Selecciona una sub-pestaña para comparar la programación mensual contra la ejecución de planes finalizados.")
 
+                # CALCULO DINÁMICO DESDE FECHA DE CIERRE PARA AMBOS (PROGRAMADOS Y FINALIZADOS)
+                conteo_meses_prog = {m: 0 for m in meses_es}
                 conteo_meses_fin = {m: 0 for m in meses_es}
-                df_fin_calc = df_raw[df_raw[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
-                
-                if not df_fin_calc.empty and col_fecha_cierre and col_fecha_cierre in df_fin_calc.columns:
-                    fechas_dt_fin = pd.to_datetime(df_fin_calc[col_fecha_cierre], errors="coerce", dayfirst=True)
-                    for f in fechas_dt_fin.dropna():
+
+                if col_fecha_cierre and col_fecha_cierre in df_raw.columns:
+                    fechas_dt_todas = pd.to_datetime(df_raw[col_fecha_cierre], errors="coerce", dayfirst=True)
+                    
+                    # 1. Programados por Fecha de Cierre
+                    for f in fechas_dt_todas.dropna():
                         m_idx = f.month - 1
                         if 0 <= m_idx < 12:
-                            conteo_meses_fin[meses_es[m_idx]] += 1
+                            conteo_meses_prog[meses_es[m_idx]] += 1
+
+                    # 2. Finalizados por Fecha de Cierre
+                    df_fin_calc = df_raw[df_raw[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
+                    if not df_fin_calc.empty:
+                        fechas_dt_fin = pd.to_datetime(df_fin_calc[col_fecha_cierre], errors="coerce", dayfirst=True)
+                        for f in fechas_dt_fin.dropna():
+                            m_idx = f.month - 1
+                            if 0 <= m_idx < 12:
+                                conteo_meses_fin[meses_es[m_idx]] += 1
 
                 sub_ind_1, sub_ind_2 = st.tabs(["📊 Planes Programados (Vigencia 2026)", "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)"])
 
                 with sub_ind_1:
                     st.subheader("🗓️ Programación de Cierre por Mes (Vigencia 2026)")
-                    st.markdown("Relación de planes de acción programados para la Vigencia 2026.")
+                    st.markdown("Relación de planes de acción programados por Fecha de Cierre para la Vigencia 2026.")
 
                     col_m1, col_m2 = st.columns([0.45, 1])
 
                     with col_m1:
                         st.markdown('<div class="titulo-seccion-finaliz">📊 Programados vs Finalizados</div>', unsafe_allow_html=True)
-                        st.markdown('<div style="font-size:0.75rem; color:#A0AEC0; margin-bottom:8px;">🟩 Programados | 🔳 Finalizados Real</div>', unsafe_allow_html=True)
+                        st.markdown('<div style="font-size:0.75rem; color:#A0AEC0; margin-bottom:8px;">🟩 Programados (Fecha Cierre) | 🔳 Finalizados Real</div>', unsafe_allow_html=True)
                         st.markdown('<div class="month-container">', unsafe_allow_html=True)
                         for m in meses_es:
-                            cant_prog = conteo_meses[m]
+                            cant_prog = conteo_meses_prog[m]
                             cant_fin = conteo_meses_fin[m]
                             st.markdown(
                                 f'''
                                 <div class="month-row">
                                     <span>{m}</span>
                                     <div style="display:flex; gap:6px;">
-                                        <div class="month-box" title="Programados">{cant_prog}</div>
-                                        <div class="month-box-fin" title="Finalizados">{cant_fin}</div>
+                                        <div class="month-box" title="Programados por Fecha de Cierre">{cant_prog}</div>
+                                        <div class="month-box-fin" title="Finalizados Real">{cant_fin}</div>
                                     </div>
                                 </div>
                                 ''',

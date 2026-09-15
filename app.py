@@ -48,7 +48,8 @@ JSON_USERS_FILE = "usuarios.json"
 TODAS_LAS_PESTANIAS = [
     "Tablero", 
     "Programa Anual", 
-    "Indicadores de Gestión", 
+    "Métricas", 
+    "Indicadores de Gestión",
     "Histórico", 
     "Alertas y Edición", 
     "Oficios", 
@@ -74,9 +75,6 @@ def hash_password(password):
 
 def verificar_password(password, hashed):
     return hmac.compare_digest(hash_password(password), str(hashed).strip())
-
-def commit_usuarios_a_github(data_list):
-    return True
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -291,6 +289,36 @@ def enviar_correo_token(email_destino, token):
         return True
     except Exception:
         return False
+
+def limpiar_nombre_area(texto):
+    if not texto or pd.isna(texto):
+        return ""
+    txt = str(texto).upper().strip()
+
+    reemplazos = [
+        (r"DIRECCIÓNDE", "DIRECCIÓN DE "),
+        (r"DIRECCIONDE", "DIRECCIÓN DE "),
+        (r"DEGESTIÓN", "DE GESTIÓN "),
+        (r"DEGESTION", "DE GESTIÓN "),
+        (r"DERECURSOS", "DE RECURSOS "),
+        (r"FÍSICOSY", "FÍSICOS Y "),
+        (r"FISICOSY", "FÍSICOS Y "),
+        (r"FÍSICOSNEGOCIOS", "FÍSICOS Y NEGOCIOS "),
+        (r"FISICOSNEGOCIOS", "FÍSICOS Y NEGOCIOS "),
+        (r"TECNOLÓGICOS", "TECNOLÓGICOS"),
+        (r"TECNOLOGICOS", "TECNOLÓGICOS"),
+        (r"SUBGERENCIAJURÍDICA", "SUBGERENCIA JURÍDICA"),
+        (r"SUBGERENCIACORPORATIVA", "SUBGERENCIA CORPORATIVA"),
+        (r"SUBGERENCIADESERVICIOS", "SUBGERENCIA DE SERVICIOS "),
+        (r"OPERACIONALESEINFRAESTRUCTURA", "OPERACIONALES E INFRAESTRUCTURA"),
+        (r"SUB GERENCIA", "SUBGERENCIA"),
+    ]
+
+    for pat, rep in reemplazos:
+        txt = re.sub(pat, rep, txt)
+
+    txt = re.sub(r"\s+", " ", txt).strip()
+    return txt
 
 # ---------------------------------------------------------
 # SISTEMA DE LOGIN
@@ -632,7 +660,7 @@ st.markdown(
             font-weight: bold;
             font-size: 0.82rem;
             color: var(--text-color);
-            width: 175px !important;
+            width: 120px !important;
         }
         .month-box {
             background-color: #D9EAD3;
@@ -641,16 +669,6 @@ st.markdown(
             padding: 2px 0;
             border-radius: 4px;
             color: #000;
-        }
-        .month-box-fin {
-            background-color: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            width: 44px;
-            text-align: center;
-            padding: 2px 0;
-            border-radius: 4px;
-            color: var(--text-color);
-            font-weight: bold;
         }
         .alert-row-compact {
             display: flex;
@@ -926,7 +944,7 @@ def generar_excel_formateado_ai(df):
                     return val.strftime("%d/%m/%Y")
                 val_str = str(val).strip()
                 try:
-                    dt = pd.to_datetime(val_str, errors="coerce")
+                    dt = pd.to_datetime(val_str, dayfirst=True, errors="coerce")
                     if pd.notnull(dt):
                         return dt.strftime("%d/%m/%Y")
                 except Exception:
@@ -968,7 +986,7 @@ def generar_excel_formateado_c(df):
                     return val.strftime("%d/%m/%Y")
                 val_str = str(val).strip()
                 try:
-                    dt = pd.to_datetime(val_str, errors="coerce")
+                    dt = pd.to_datetime(val_str, dayfirst=True, errors="coerce")
                     if pd.notnull(dt):
                         return dt.strftime("%d/%m/%Y")
                 except Exception:
@@ -1248,7 +1266,7 @@ if entorno_activo == "Auditoría Interna":
         if not df_pend.empty:
             df_pend[col_responsable] = df_pend[col_responsable].astype(str).str.replace("\n", ",").str.split(",")
             df_pend_exploded = df_pend.explode(col_responsable)
-            df_pend_exploded[col_responsable] = df_pend_exploded[col_responsable].astype(str).str.strip()
+            df_pend_exploded[col_responsable] = df_pend_exploded[col_responsable].astype(str).apply(limpiar_nombre_area)
             df_pend_exploded = df_pend_exploded[~df_pend_exploded[col_responsable].isin(["", "nan", "None", "None."])]
 
             total_acciones_area = len(df_pend_exploded)
@@ -1284,15 +1302,15 @@ if entorno_activo == "Auditoría Interna":
     dict_pestanias = {
         "Tablero": "📊 Tablero",
         "Programa Anual": "🗓️ Programa Anual",
+        "Métricas": "📈 Métricas",
         "Indicadores de Gestión": "📌 Indicadores de Gestión",
-        "Métricas": "📌 Indicadores de Gestión",
         "Histórico": "📊 Histórico",
         "Alertas y Edición": "🚨 Alertas y Edición",
         "Oficios": "📩 Oficios",
         "Informes": "📑 Informes"
     }
 
-    pestañas_permitidas = [p for p in TODAS_LAS_PESTANIAS if p in st.session_state.get("permisos_usuario", []) or (p == "Indicadores de Gestión" and "Métricas" in st.session_state.get("permisos_usuario", []))]
+    pestañas_permitidas = [p for p in TODAS_LAS_PESTANIAS if p in st.session_state.get("permisos_usuario", [])]
 
     if not pestañas_permitidas:
         st.warning("⚠️ No tienes permisos asignados para ver ninguna sección. Contacta al administrador.")
@@ -1516,93 +1534,134 @@ if entorno_activo == "Auditoría Interna":
                 else:
                     st.info("ℹ️ No se encontró información en la hoja 'Programa Anual de Auditoría' del archivo Excel.")
 
-            elif nombre_tab_real in ["Indicadores de Gestión", "Métricas"]:
+            elif nombre_tab_real == "Métricas":
+                st.header("📈 Resumen de Estado y Desempeño")
+                st.markdown("Vista general del avance de compromisos por área y auditoría.")
+
+                comp_vencidos_pendientes = df_activos[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
+                comp_criticos_pendientes = df_activos[col_riesgo].astype(str).str.contains("Alto", case=False, na=False).sum() if col_riesgo else 0
+
+                m1, m2, m3, m4 = st.columns(4)
+                m1.metric("Planes de Acción Pendientes", total_planes_pendientes)
+                m2.metric("🔴 Compromisos Vencidos", comp_vencidos_pendientes, delta=f"{(comp_vencidos_pendientes/total_planes_pendientes*100):.1f}% de pendientes" if total_planes_pendientes > 0 else "0%", delta_color="inverse")
+                m3.metric("🔥 Hallazgos Riesgo Alto", comp_criticos_pendientes, delta=f"{(comp_criticos_pendientes/total_planes_pendientes*100):.1f}% de pendientes" if total_planes_pendientes > 0 else "0%", delta_color="inverse")
+                m4.metric("🎯 Tasa Global de Cierre", f"{pct_abiertos}%", delta="Objetivo: 85%")
+
+                st.markdown("---")
+                st.subheader("👥 Distribución de Compromisos Pendientes por Área")
+                st.markdown('<div class="small-note"><b>ℹ️ Nota sobre Responsabilidad Compartida:</b> Los hallazgos con responsabilidad compartida se contabilizan en los compromisos de cada Área individualmente.</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_area}</div>', unsafe_allow_html=True)
+
+                if fig_area_horiz is not None:
+                    st.plotly_chart(fig_area_horiz, use_container_width=True, key="fig_area_horiz_key", config={'displayModeBar': False})
+
+                st.markdown("---")
+                st.subheader("🔬 Distribución de Compromisos Pendientes por Auditoría")
+                st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_aud}</div>', unsafe_allow_html=True)
+
+                if fig_aud_horiz is not None:
+                    st.plotly_chart(fig_aud_horiz, use_container_width=True, key="fig_aud_horiz_key", config={'displayModeBar': False})
+
+            elif nombre_tab_real == "Indicadores de Gestión":
                 st.header("📌 Indicadores de Gestión Auditoría Interna")
-                st.markdown("Selecciona una sub-pestaña para comparar la programación mensual contra la ejecución de planes finalizados.")
+                st.markdown("Selecciona una sub-pestaña para comparar la **programación mensual** contra la **ejecución de planes finalizados**.")
 
-                conteo_meses_prog = {m: 0 for m in meses_es}
-                conteo_meses_fin = {m: 0 for m in meses_es}
+                subtab_ind1, subtab_ind2 = st.tabs([
+                    "📊 Planes Programados (Vigencia 2026)",
+                    "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)"
+                ])
 
-                if col_fecha_cierre and col_fecha_cierre in df_raw.columns:
-                    fechas_dt_todas = pd.to_datetime(df_raw[col_fecha_cierre], dayfirst=True, errors="coerce")
+                with subtab_ind1:
+                    st.subheader("📅 Programación de Cierre por Mes (Vigencia 2026)")
+                    st.markdown("Relación de planes de acción programados por Fecha de Cierre de Auditoría para la **Vigencia 2026**.")
+
+                    conteo_programados_2026 = {
+                        "ENE": 0, "FEB": 0, "MAR": 0, "ABR": 0, "MAYO": 0, "JUNIO": 0,
+                        "JULIO": 0, "AGO": 0, "SEP": 0, "OCT": 0, "NOV": 0, "DIC": 0
+                    }
                     
-                    for f in fechas_dt_todas.dropna():
-                        m_idx = f.month - 1
-                        if 0 <= m_idx < 12:
-                            conteo_meses_prog[meses_es[m_idx]] += 1
+                    col_fecha_prog = col_fecha_cierre_aud if (col_fecha_cierre_aud and col_fecha_cierre_aud in df_raw.columns) else col_fecha_cierre
 
-                    if not df_finalizados_completo.empty:
-                        fechas_dt_fin = pd.to_datetime(df_finalizados_completo[col_fecha_cierre], dayfirst=True, errors="coerce")
-                        for f in fechas_dt_fin.dropna():
-                            m_idx = f.month - 1
-                            if 0 <= m_idx < 12:
-                                conteo_meses_fin[meses_es[m_idx]] += 1
+                    if col_fecha_prog and col_fecha_prog in df_raw.columns:
+                        fechas_prog_dt = pd.to_datetime(df_raw[col_fecha_prog], dayfirst=True, errors="coerce")
+                        for f in fechas_prog_dt.dropna():
+                            if f.year == 2026:
+                                map_m = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
+                                if f.month in map_m:
+                                    conteo_programados_2026[map_m[f.month]] += 1
 
-                sub_ind_1, sub_ind_2 = st.tabs(["📊 Planes Programados vs Finalizados 2026", "📈 Métricas Globales de Cumplimiento"])
+                    col_ind_1, col_ind_2 = st.columns([0.28, 1])
 
-                with sub_ind_1:
-                    st.subheader("🗓️ Programación de Cierre por Mes (Vigencia 2026)")
-                    st.markdown("Relación de planes de acción programados por Fecha de Cierre de Auditoría para la Vigencia 2026.")
-
-                    col_m1, col_m2 = st.columns([0.45, 1])
-
-                    with col_m1:
-                        st.markdown('<div class="titulo-seccion-finaliz">📊 Programados vs Finalizados</div>', unsafe_allow_html=True)
-                        st.markdown('<div style="font-size:0.75rem; color:#A0AEC0; margin-bottom:8px;">🟩 Programados (Fecha Cierre) | 🔳 Finalizados Real</div>', unsafe_allow_html=True)
+                    with col_ind_1:
+                        st.markdown('<div class="titulo-seccion-finaliz">📅 Programados 2026</div>', unsafe_allow_html=True)
                         st.markdown('<div class="month-container">', unsafe_allow_html=True)
-                        for m in meses_es:
-                            cant_prog = conteo_meses_prog[m]
-                            cant_fin = conteo_meses_fin[m]
-                            st.markdown(
-                                f'''
-                                <div class="month-row">
-                                    <span>{m}</span>
-                                    <div style="display:flex; gap:6px;">
-                                        <div class="month-box" title="Programados por Fecha Cierre Auditoría">{cant_prog}</div>
-                                        <div class="month-box-fin" title="Finalizados Real">{cant_fin}</div>
-                                    </div>
-                                </div>
-                                ''',
-                                unsafe_allow_html=True
-                            )
+                        for m_lbl, cant_prog in conteo_programados_2026.items():
+                            st.markdown(f'<div class="month-row"><span>{m_lbl}</span><div class="month-box" style="background-color:#C2E0C6;">{cant_prog}</div></div>', unsafe_allow_html=True)
                         st.markdown('</div>', unsafe_allow_html=True)
 
-                    with col_m2:
-                        st.markdown('<div class="titulo-seccion-finaliz">📋 Detalle de Planes Finalizados</div>', unsafe_allow_html=True)
-                        if not df_finalizados_completo.empty:
-                            df_tabla_fin_vista = filtrar_solo_columnas_amarillas_ai(df_finalizados_completo)
-                            df_tabla_fin_vista.index = range(1, len(df_tabla_fin_vista) + 1)
-                            st.dataframe(df_tabla_fin_vista, use_container_width=True, hide_index=False)
-                            
+                    with col_ind_2:
+                        st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Detalle de Planes Programados 2026</div>', unsafe_allow_html=True)
+                        
+                        df_prog_2026 = df_raw.copy()
+                        if col_fecha_prog and col_fecha_prog in df_prog_2026.columns:
+                            fechas_prog_dt_col = pd.to_datetime(df_prog_2026[col_fecha_prog], dayfirst=True, errors="coerce")
+                            df_prog_2026 = df_prog_2026[fechas_prog_dt_col.dt.year == 2026].copy()
+
+                        if not df_prog_2026.empty:
+                            df_prog_2026_vista = filtrar_solo_columnas_amarillas_ai(df_prog_2026)
+                            df_prog_2026_vista.index = range(1, len(df_prog_2026_vista) + 1)
+                            st.dataframe(df_prog_2026_vista, use_container_width=True, hide_index=False)
+
                             st.download_button(
-                                label="📥 Descargar Solo Finalizadas (.xlsx)",
-                                data=generar_excel_formateado_ai(df_finalizados_completo),
-                                file_name=f"Acciones_Finalizadas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                                label="📥 Descargar Programados 2026 (.xlsx)",
+                                data=generar_excel_formateado_ai(df_prog_2026),
+                                file_name=f"Planes_Programados_2026_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                key="btn_download_finalizadas_tab_ind",
+                                key="btn_download_prog_2026_ai_ind",
                                 use_container_width=False,
                             )
                         else:
-                            st.info("ℹ️ No hay planes de acción finalizados registrados.")
+                            st.info("ℹ️ No hay planes de acción programados para la vigencia 2026 con los filtros aplicados.")
 
-                with sub_ind_2:
-                    st.subheader("📈 Métricas Globales de Cumplimiento")
-                    comp_vencidos_pendientes = df_activos[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
-                    comp_criticos_pendientes = df_activos[col_riesgo].astype(str).str.contains("Alto", case=False, na=False).sum() if col_riesgo else 0
+                with subtab_ind2:
+                    st.subheader("🎉 Avance de Cierre y Planes Finalizados")
+                    col_m1, col_m2 = st.columns([0.28, 1])
 
-                    m1, m2, m3, m4 = st.columns(4)
-                    m1.metric("Planes de Acción Pendientes", total_planes_pendientes)
-                    m2.metric("🔴 Compromisos Vencidos", comp_vencidos_pendientes, delta=f"{(comp_vencidos_pendientes/total_planes_pendientes*100):.1f}% de pendientes" if total_planes_pendientes > 0 else "0%", delta_color="inverse")
-                    m3.metric("🔥 Hallazgos Riesgo Alto", comp_criticos_pendientes, delta=f"{(comp_criticos_pendientes/total_planes_pendientes*100):.1f}% de pendientes" if total_planes_pendientes > 0 else "0%", delta_color="inverse")
-                    m4.metric("🎯 Tasa Global de Cierre", f"{pct_abiertos}%", delta="Objetivo: 85%")
+                    # CONTEO EXACTO DE FINALIZADOS POR MES
+                    conteo_meses_fin_real = {m: 0 for m in meses_es}
+                    df_fin_ind = df_filtrado[df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
+                    
+                    if not df_fin_ind.empty and col_fecha_cierre and col_fecha_cierre in df_fin_ind.columns:
+                        fechas_dt_fin_real = pd.to_datetime(df_fin_ind[col_fecha_cierre], dayfirst=True, errors="coerce")
+                        map_m = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
+                        for f in fechas_dt_fin_real.dropna():
+                            if f.month in map_m:
+                                conteo_meses_fin_real[map_m[f.month]] += 1
 
-                    st.markdown("---")
-                    st.subheader("👥 Distribución de Compromisos Pendientes por Área")
-                    st.markdown('<div class="small-note"><b>ℹ️ Nota sobre Responsabilidad Compartida:</b> Los hallazgos con responsabilidad compartida se contabilizan en los compromisos de cada Área individualmente.</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_area}</div>', unsafe_allow_html=True)
+                    with col_m1:
+                        st.markdown('<div class="titulo-seccion-finaliz">📅 Cierre Mensual 2026</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="month-container">', unsafe_allow_html=True)
+                        for m, cant in conteo_meses_fin_real.items():
+                            st.markdown(f'<div class="month-row"><span>{m}</span><div class="month-box">{cant}</div></div>', unsafe_allow_html=True)
+                        st.markdown('</div>', unsafe_allow_html=True)
 
-                    if fig_area_horiz is not None:
-                        st.plotly_chart(fig_area_horiz, use_container_width=True, key="fig_area_horiz_key", config={'displayModeBar': False})
+                    with col_m2:
+                        st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Tabla Completa de Planes Finalizados</div>', unsafe_allow_html=True)
+                        if not df_fin_ind.empty:
+                            df_finalizadas_vista = filtrar_solo_columnas_amarillas_ai(df_fin_ind)
+                            df_finalizadas_vista.index = range(1, len(df_finalizadas_vista) + 1)
+                            st.dataframe(df_finalizadas_vista, use_container_width=True, hide_index=False)
+
+                            st.download_button(
+                                label="📥 Descargar Solo Finalizadas (.xlsx)",
+                                data=generar_excel_formateado_ai(df_fin_ind),
+                                file_name=f"Acciones_Finalizadas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                key="btn_download_finalizadas_ind_subtab",
+                                use_container_width=False,
+                            )
+                        else:
+                            st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
 
             elif nombre_tab_real == "Histórico":
                 st.header("📊 Análisis Histórico e Interanual de Planes de Mejoramiento")
@@ -1610,7 +1669,15 @@ if entorno_activo == "Auditoría Interna":
 
                 if col_plan_filtro and col_plan_filtro in df_raw.columns:
                     df_hist_calc = df_raw.copy()
-                    df_hist_calc["Vigencia_Limpia"] = df_hist_calc[col_plan_filtro].astype(str).str.strip()
+                    
+                    def limpiar_vigencia_str(v_val):
+                        s = str(v_val).upper().strip()
+                        m = re.search(r"\b(20\d{2})\b", s)
+                        if m:
+                            return f"PLAN DE MEJORAMIENTO VIGENCIA {m.group(1)}"
+                        return s
+
+                    df_hist_calc["Vigencia_Limpia"] = df_hist_calc[col_plan_filtro].apply(limpiar_vigencia_str)
                     
                     c_h1, c_h2 = st.columns(2)
 
@@ -1665,8 +1732,8 @@ if entorno_activo == "Auditoría Interna":
                         df_area_hist = df_hist_calc.copy()
                         df_area_hist[col_responsable] = df_area_hist[col_responsable].astype(str).str.replace("\n", ",").str.split(",")
                         df_area_hist_exploded = df_area_hist.explode(col_responsable)
-                        df_area_hist_exploded[col_responsable] = df_area_hist_exploded[col_responsable].astype(str).str.strip()
-                        df_area_hist_exploded = df_area_hist_exploded[~df_area_hist_exploded[col_responsable].isin(["", "nan", "None", "None."])]
+                        df_area_hist_exploded[col_responsable] = df_area_hist_exploded[col_responsable].astype(str).apply(limpiar_nombre_area)
+                        df_area_hist_exploded = df_area_hist_exploded[~df_area_hist_exploded[col_responsable].isin(["", "NAN", "NONE", "NONE."])]
 
                         df_pivot_area = pd.pivot_table(df_area_hist_exploded, index=col_responsable, columns="Vigencia_Limpia", aggfunc="size", fill_value=0)
                         df_pivot_area["Total Histórico"] = df_pivot_area.sum(axis=1)
@@ -1679,7 +1746,7 @@ if entorno_activo == "Auditoría Interna":
                 df_alertas = df_filtrado.copy()
                 hoy = pd.to_datetime(date.today())
 
-                # CÁLCULO DE MORA BLINDADO CONTRA FECHAS MAL FORMATEADAS
+                # CÁLCULO DE MORA BLINDADO
                 if col_fecha_cierre and col_fecha_cierre in df_alertas.columns:
                     df_alertas["Fecha_DT"] = pd.to_datetime(df_alertas[col_fecha_cierre], dayfirst=True, errors="coerce")
                     df_alertas["Dias_Atraso"] = (hoy - df_alertas["Fecha_DT"]).dt.days
@@ -1687,7 +1754,7 @@ if entorno_activo == "Auditoría Interna":
                 else:
                     df_alertas["Dias_Atraso"] = 0
 
-                # FILTRAR ACCIONES EN MORA DE 30 DÍAS O MÁS QUE NO ESTÉN FINALIZADAS
+                # MOSTRAR ACCIONES EN MORA DE 30 DÍAS O MÁS QUE NO ESTÉN FINALIZADAS
                 df_criticos_30 = df_alertas[
                     (~df_alertas[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)) & 
                     (df_alertas["Dias_Atraso"] >= 30)
@@ -1789,7 +1856,7 @@ if entorno_activo == "Auditoría Interna":
                         est_actual_val = str(registro[col_estado]) if registro is not None and col_estado and pd.notnull(registro[col_estado]) else "Abierta"
                         resp_actual_val = str(registro[col_responsable]) if registro is not None and col_responsable and pd.notnull(registro[col_responsable]) else ""
 
-                        # CONTROL DE FECHA BLINDADO
+                        # CONTROL DE FECHA ROBUSTO ANTI VALUEERROR
                         fecha_def_obj = date.today()
                         fecha_antigua_str = ""
                         if registro is not None and col_fecha_cierre and pd.notnull(registro[col_fecha_cierre]):
@@ -2080,35 +2147,6 @@ if entorno_activo == "Auditoría Interna":
 # VISTA 2: CONTRALORÍA DE BOGOTÁ (ENTORNO 100% EXCLUSIVO)
 # =========================================================
 else:
-    def limpiar_nombre_area(texto):
-        if not texto or pd.isna(texto):
-            return ""
-        txt = str(texto).upper().strip()
-
-        reemplazos = [
-            (r"DIRECCIÓNDE", "DIRECCIÓN DE "),
-            (r"DIRECCIONDE", "DIRECCIÓN DE "),
-            (r"DEGESTIÓN", "DE GESTIÓN "),
-            (r"DEGESTION", "DE GESTIÓN "),
-            (r"DERECURSOS", "DE RECURSOS "),
-            (r"FÍSICOSY", "FÍSICOS Y "),
-            (r"FISICOSY", "FÍSICOS Y "),
-            (r"FÍSICOSNEGOCIOS", "FÍSICOS Y NEGOCIOS "),
-            (r"FISICOSNEGOCIOS", "FÍSICOS Y NEGOCIOS "),
-            (r"TECNOLÓGICOS", "TECNOLÓGICOS"),
-            (r"TECNOLOGICOS", "TECNOLÓGICOS"),
-            (r"SUBGERENCIAJURÍDICA", "SUBGERENCIA JURÍDICA"),
-            (r"SUBGERENCIACORPORATIVA", "SUBGERENCIA CORPORATIVA"),
-            (r"SUBGERENCIADESERVICIOS", "SUBGERENCIA DE SERVICIOS "),
-            (r"OPERACIONALESEINFRAESTRUCTURA", "OPERACIONALES E INFRAESTRUCTURA"),
-        ]
-
-        for pat, rep in reemplazos:
-            txt = re.sub(pat, rep, txt)
-
-        txt = re.sub(r"\s+", " ", txt).strip()
-        return txt
-
     def cargar_datos_c():
         if not os.path.exists(EXCEL_PATH_C):
             st.error(f"No se encontró el archivo Excel de Contraloría en la ruta: `{EXCEL_PATH_C}`")
@@ -2477,143 +2515,235 @@ else:
                 plot_bgcolor="rgba(0,0,0,0)"
             )
 
-    tab_c1, tab_c2, tab_c5 = st.tabs([
-        "📊 Tablero Principal",
-        "📈 Métricas de Cumplimiento",
-        "📑 Informes de Auditoría",
-    ])
+    dict_pestanias_c = {
+        "Tablero": "📊 Tablero Principal",
+        "Métricas": "📈 Métricas de Cumplimiento",
+        "Indicadores de Gestión": "📌 Indicadores de Gestión",
+        "Informes": "📑 Informes de Auditoría"
+    }
 
-    with tab_c1:
-        cc2, cc3, cc4 = st.columns([2.5, 2.5, 2.0])
+    pestañas_permitidas_c = [p for p in TODAS_LAS_PESTANIAS if p in st.session_state.get("permisos_usuario", []) and p in dict_pestanias_c]
 
-        with cc2:
-            st.markdown('<div class="block-header">TOTAL HALLAZGOS PENDIENTES CONTRALORÍA</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="card-box" style="background-color:#4B92DB; font-size:1.3rem; height:34px; line-height:26px;">{total_hallazgos_unicos_c}</div>', unsafe_allow_html=True)
+    if not pestañas_permitidas_c:
+        st.warning("⚠️ No tienes permisos asignados para ver ninguna sección en Contraloría. Contacta al administrador.")
+        st.stop()
 
-            st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
-            st.markdown('<div class="block-header" style="font-size:0.78rem;">PLANES DE ACCIÓN PENDIENTES</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="card-box" style="background-color:#00B050; height:36px; line-height:26px; font-size:1.4rem; margin-bottom:8px;">{total_planes_c}</div>', unsafe_allow_html=True)
+    titulos_tabs_c = [dict_pestanias_c[p] for p in pestañas_permitidas_c]
+    tabs_objetos_c = st.tabs(titulos_tabs_c)
 
-            st.markdown('<div class="block-header" style="font-size:0.78rem;">DETALLE DE ESTADOS PENDIENTES</div>', unsafe_allow_html=True)
-            ce1, ce2 = st.columns(2)
-            with ce1:
-                st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none;">Abiertos</div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="card-box" style="background-color:#58C57A; font-size:1.1rem; padding:6px;">{abiertos_c}</div>', unsafe_allow_html=True)
-            with ce2:
-                st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none;">Vencidos</div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="card-box" style="background-color:#FF5252; color:#FFFFFF; font-size:1.1rem; padding:6px;">{vencidos_c}</div>', unsafe_allow_html=True)
+    for nombre_tab_real_c, tab_obj_c in zip(pestañas_permitidas_c, tabs_objetos_c):
+        with tab_obj_c:
+            if nombre_tab_real_c == "Tablero":
+                cc2, cc3, cc4 = st.columns([2.5, 2.5, 2.0])
 
-        with cc3:
-            st.markdown('<div class="block-header">DISTRIBUCIÓN DE PLANES PENDIENTES</div>', unsafe_allow_html=True)
-            st.plotly_chart(fig_bar_c, use_container_width=True, key="fig_bar_contraloria_view", config={'displayModeBar': False})
+                with cc2:
+                    st.markdown('<div class="block-header">TOTAL HALLAZGOS PENDIENTES CONTRALORÍA</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="card-box" style="background-color:#4B92DB; font-size:1.3rem; height:34px; line-height:26px;">{total_hallazgos_unicos_c}</div>', unsafe_allow_html=True)
 
-        with cc4:
-            st.markdown('<div class="block-header">PORCENTAJE EN TIEMPO</div>', unsafe_allow_html=True)
-            st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#00B050;">🟢 En tiempo (Abiertos)</div>', unsafe_allow_html=True)
-            st.plotly_chart(fig_dona_abiertos_c, use_container_width=True, key="fig_dona_abiertos_c_view", config={'displayModeBar': False})
-            st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#FF5252;">🔴 Vencidos</div>', unsafe_allow_html=True)
-            st.plotly_chart(fig_dona_vencidos_c, use_container_width=True, key="fig_dona_vencidos_c_view", config={'displayModeBar': False})
+                    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+                    st.markdown('<div class="block-header" style="font-size:0.78rem;">PLANES DE ACCIÓN PENDIENTES</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="card-box" style="background-color:#00B050; height:36px; line-height:26px; font-size:1.4rem; margin-bottom:8px;">{total_planes_c}</div>', unsafe_allow_html=True)
 
-        st.markdown("---")
-        
-        col_c_sub, col_c_search = st.columns([2.2, 1.8])
-        with col_c_sub:
-            st.subheader("📋 Detalle de Compromisos Contraloría")
-        with col_c_search:
-            busqueda_texto_c = st.text_input("🔍 Buscar texto en Contraloría:", placeholder="Escribe para filtrar...", key="search_tabla_contraloria").strip().lower()
+                    st.markdown('<div class="block-header" style="font-size:0.78rem;">DETALLE DE ESTADOS PENDIENTES</div>', unsafe_allow_html=True)
+                    ce1, ce2 = st.columns(2)
+                    with ce1:
+                        st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none;">Abiertos</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="card-box" style="background-color:#58C57A; font-size:1.1rem; padding:6px;">{abiertos_c}</div>', unsafe_allow_html=True)
+                    with ce2:
+                        st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none;">Vencidos</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="card-box" style="background-color:#FF5252; color:#FFFFFF; font-size:1.1rem; padding:6px;">{vencidos_c}</div>', unsafe_allow_html=True)
 
-        df_c_tabla = df_activos_c.copy()
-        df_c_tabla_vista = filtrar_solo_columnas_amarillas_c(df_c_tabla)
+                with cc3:
+                    st.markdown('<div class="block-header">DISTRIBUCIÓN DE PLANES PENDIENTES</div>', unsafe_allow_html=True)
+                    st.plotly_chart(fig_bar_c, use_container_width=True, key="fig_bar_contraloria_view", config={'displayModeBar': False})
 
-        if busqueda_texto_c:
-            mask_texto_c = df_c_tabla_vista.apply(
-                lambda row: row.astype(str).str.lower().str.contains(busqueda_texto_c, case=False, na=False).any(),
-                axis=1
-            )
-            df_c_tabla_vista = df_c_tabla_vista[mask_texto_c]
+                with cc4:
+                    st.markdown('<div class="block-header">PORCENTAJE EN TIEMPO</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#00B050;">🟢 En tiempo (Abiertos)</div>', unsafe_allow_html=True)
+                    st.plotly_chart(fig_dona_abiertos_c, use_container_width=True, key="fig_dona_abiertos_c_view", config={'displayModeBar': False})
+                    st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#FF5252;">🔴 Vencidos</div>', unsafe_allow_html=True)
+                    st.plotly_chart(fig_dona_vencidos_c, use_container_width=True, key="fig_dona_vencidos_c_view", config={'displayModeBar': False})
 
-        df_c_tabla_vista.index = range(1, len(df_c_tabla_vista) + 1)
+                st.markdown("---")
+                
+                col_c_sub, col_c_search = st.columns([2.2, 1.8])
+                with col_c_sub:
+                    st.subheader("📋 Detalle de Compromisos Contraloría")
+                with col_c_search:
+                    busqueda_texto_c = st.text_input("🔍 Buscar texto en Contraloría:", placeholder="Escribe para filtrar...", key="search_tabla_contraloria").strip().lower()
 
-        col_config_dict_c = {}
-        col_ev_vista_c = "ENLACE PARA CARGAR EVIDENCIAS" if "ENLACE PARA CARGAR EVIDENCIAS" in df_c_tabla_vista.columns else buscar_columna_por_patron(df_c_tabla_vista, ["enlace para cargar evidencias", "evidencias"])
-        
-        if col_ev_vista_c and col_ev_vista_c in df_c_tabla_vista.columns:
-            def normalizar_url_c(val):
-                val_str = str(val).strip()
-                if val_str and val_str.lower() not in ["nan", "none", ""] and not val_str.startswith("http"):
-                    return f"https://{val_str}"
-                return val_str
-            df_c_tabla_vista[col_ev_vista_c] = df_c_tabla_vista[col_ev_vista_c].apply(normalizar_url_c)
-            col_config_dict_c[col_ev_vista_c] = st.column_config.LinkColumn(
-                col_ev_vista_c,
-                help="Haz clic para abrir o cargar la evidencia en Google Drive",
-                display_text="📂 Cargar Evidencia"
-            )
+                df_c_tabla = df_activos_c.copy()
+                df_c_tabla_vista = filtrar_solo_columnas_amarillas_c(df_c_tabla)
 
-        st.dataframe(df_c_tabla_vista, use_container_width=True, column_config=col_config_dict_c, hide_index=False)
-
-        st.download_button(
-            label="📥 Descargar Excel Contraloría (.xlsx)",
-            data=generar_excel_formateado_c(df_c_tabla),
-            file_name=f"Detalle_Contraloria_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=False,
-        )
-
-    with tab_c2:
-        st.header("📈 Resumen de Estado y Desempeño - Contraloría")
-        st.markdown("Planes de Acción Pendientes")
-        st.markdown(f"## {total_planes_c}")
-        
-        st.markdown("---")
-        st.subheader("👥 Distribución de Compromisos Pendientes por Área / Dependencia")
-        st.caption("Distribución por estado de los compromisos no finalizados asignados a cada área responsable.")
-        st.markdown('<div class="small-note"><b>ℹ️ Nota sobre Responsabilidad Compartida:</b> Los hallazgos con responsabilidad compartida se contabilizan en los compromisos de cada Área individualmente.</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_area_c}</div>', unsafe_allow_html=True)
-
-        if fig_area_horiz_c is not None:
-            st.plotly_chart(fig_area_horiz_c, use_container_width=True, key="fig_area_contraloria_view", config={'displayModeBar': False})
-        else:
-            st.success("🎉 ¡Excelente! No hay compromisos pendientes en ninguna área.")
-
-        st.markdown("---")
-        st.subheader("🔬 Distribución de Compromisos Pendientes por Vigencia de Auditoría")
-        st.caption("Distribución por estado del 100% de los compromisos pendientes agrupados por vigencia.")
-        st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_aud_c}</div>', unsafe_allow_html=True)
-
-        if fig_aud_horiz_c is not None:
-            st.plotly_chart(fig_aud_horiz_c, use_container_width=True, key="fig_aud_contraloria_view", config={'displayModeBar': False})
-        else:
-            st.info("No hay compromisos pendientes en las vigencias.")
-
-    with tab_c5:
-        st.header("📑 Informes de Auditoría de la Contraloría")
-        st.markdown("Relación consolidada de los informes de auditoría dejados por la Contraloría de Bogotá agrupados por vigencia.")
-
-        if not df_informes_raw_c.empty:
-            df_inf_c = df_informes_raw_c.copy()
-            col_link_c = buscar_columna_por_patron(df_inf_c, ["enlace", "pdf", "link", "drive"]) or df_inf_c.columns[-1]
-            
-            def asegurar_link(u):
-                val = str(u).strip()
-                if val and val.lower() not in ["nan", "none", ""] and not val.startswith("http"):
-                    return f"https://{val}"
-                return val
-
-            df_inf_c[col_link_c] = df_inf_c[col_link_c].apply(asegurar_link)
-            df_inf_c.index = range(1, len(df_inf_c) + 1)
-            
-            st.dataframe(
-                df_inf_c,
-                use_container_width=True,
-                hide_index=False,
-                column_config={
-                    col_link_c: st.column_config.LinkColumn(
-                        "Enlace PDF",
-                        help="Haz clic para abrir el informe en PDF",
-                        display_text="📄 Ver PDF"
+                if busqueda_texto_c:
+                    mask_texto_c = df_c_tabla_vista.apply(
+                        lambda row: row.astype(str).str.lower().str.contains(busqueda_texto_c, case=False, na=False).any(),
+                        axis=1
                     )
-                }
-            )
-        else:
-            st.info("No hay informes registrados en la hoja 'Enlace PDF'.")
+                    df_c_tabla_vista = df_c_tabla_vista[mask_texto_c]
+
+                df_c_tabla_vista.index = range(1, len(df_c_tabla_vista) + 1)
+
+                col_config_dict_c = {}
+                col_ev_vista_c = "ENLACE PARA CARGAR EVIDENCIAS" if "ENLACE PARA CARGAR EVIDENCIAS" in df_c_tabla_vista.columns else buscar_columna_por_patron(df_c_tabla_vista, ["enlace para cargar evidencias", "evidencias"])
+                
+                if col_ev_vista_c and col_ev_vista_c in df_c_tabla_vista.columns:
+                    def normalizar_url_c(val):
+                        val_str = str(val).strip()
+                        if val_str and val_str.lower() not in ["nan", "none", ""] and not val_str.startswith("http"):
+                            return f"https://{val_str}"
+                        return val_str
+                    df_c_tabla_vista[col_ev_vista_c] = df_c_tabla_vista[col_ev_vista_c].apply(normalizar_url_c)
+                    col_config_dict_c[col_ev_vista_c] = st.column_config.LinkColumn(
+                        col_ev_vista_c,
+                        help="Haz clic para abrir o cargar la evidencia en Google Drive",
+                        display_text="📂 Cargar Evidencia"
+                    )
+
+                st.dataframe(df_c_tabla_vista, use_container_width=True, column_config=col_config_dict_c, hide_index=False)
+
+                st.download_button(
+                    label="📥 Descargar Excel Contraloría (.xlsx)",
+                    data=generar_excel_formateado_c(df_c_tabla),
+                    file_name=f"Detalle_Contraloria_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=False,
+                )
+
+            elif nombre_tab_real_c == "Métricas":
+                st.header("📈 Resumen de Estado y Desempeño - Contraloría")
+                st.markdown("Planes de Acción Pendientes")
+                st.markdown(f"## {total_planes_c}")
+                
+                st.markdown("---")
+                st.subheader("👥 Distribución de Compromisos Pendientes por Área / Dependencia")
+                st.caption("Distribución por estado de los compromisos no finalizados asignados a cada área responsable.")
+                st.markdown('<div class="small-note"><b>ℹ️ Nota sobre Responsabilidad Compartida:</b> Los hallazgos con responsabilidad compartida se contabilizan en los compromisos de cada Área individualmente.</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_area_c}</div>', unsafe_allow_html=True)
+
+                if fig_area_horiz_c is not None:
+                    st.plotly_chart(fig_area_horiz_c, use_container_width=True, key="fig_area_contraloria_view", config={'displayModeBar': False})
+                else:
+                    st.success("🎉 ¡Excelente! No hay compromisos pendientes en ninguna área.")
+
+                st.markdown("---")
+                st.subheader("🔬 Distribución de Compromisos Pendientes por Vigencia de Auditoría")
+                st.caption("Distribución por estado del 100% de los compromisos pendientes agrupados por vigencia.")
+                st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_aud_c}</div>', unsafe_allow_html=True)
+
+                if fig_aud_horiz_c is not None:
+                    st.plotly_chart(fig_aud_horiz_c, use_container_width=True, key="fig_aud_contraloria_view", config={'displayModeBar': False})
+                else:
+                    st.info("No hay compromisos pendientes en las vigencias.")
+
+            elif nombre_tab_real_c == "Indicadores de Gestión":
+                st.header("📌 Indicadores de Gestión Contraloría")
+                st.markdown("Selecciona una sub-pestaña para comparar la **programación mensual** contra la **ejecución de planes finalizados**.")
+
+                subtab_ind_c1, subtab_ind_c2 = st.tabs([
+                    "📅 Planes Programados (Vigencia 2026)",
+                    "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)"
+                ])
+
+                with subtab_ind_c1:
+                    st.subheader("📅 Programación de Cierre por Mes (Vigencia 2026)")
+                    st.markdown("Relación de planes de acción programados para la **Vigencia 2026**.")
+
+                    conteo_programados_2026_c = {
+                        "ENE": 0, "FEB": 0, "MAR": 0, "ABR": 0, "MAY": 0, "JUN": 0,
+                        "JUL": 0, "AGO": 0, "SEP": 0, "OCT": 0, "NOV": 0, "DIC": 0
+                    }
+
+                    if col_fecha_cierre_c and col_fecha_cierre_c in df_raw_c.columns:
+                        fechas_prog_dt_c = pd.to_datetime(df_raw_c[col_fecha_cierre_c], dayfirst=True, errors="coerce")
+                        for f in fechas_prog_dt_c.dropna():
+                            if f.year == 2026:
+                                map_m_c = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAY", 6: "JUN", 7: "JUL", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
+                                if f.month in map_m_c:
+                                    conteo_programados_2026_c[map_m_c[f.month]] += 1
+
+                    col_ind_c1, col_ind_c2 = st.columns([0.28, 1])
+
+                    with col_ind_c1:
+                        st.markdown('<div class="titulo-seccion-finaliz">📅 Programados 2026</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="month-container">', unsafe_allow_html=True)
+                        for m_lbl, cant_prog in conteo_programados_2026_c.items():
+                            st.markdown(f'<div class="month-row"><span>{m_lbl}</span><div class="month-box" style="background-color:#C2E0C6;">{cant_prog}</div></div>', unsafe_allow_html=True)
+                        st.markdown('</div>', unsafe_allow_html=True)
+
+                    with col_ind_c2:
+                        st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Detalle de Planes Programados 2026 Contraloría</div>', unsafe_allow_html=True)
+                        
+                        df_prog_2026_c = df_raw_c.copy()
+                        if col_fecha_cierre_c and col_fecha_cierre_c in df_prog_2026_c.columns:
+                            fechas_prog_dt_col_c = pd.to_datetime(df_prog_2026_c[col_fecha_cierre_c], dayfirst=True, errors="coerce")
+                            df_prog_2026_c = df_prog_2026_c[fechas_prog_dt_col_c.dt.year == 2026].copy()
+
+                        if not df_prog_2026_c.empty:
+                            df_prog_2026_c_vista = filtrar_solo_columnas_amarillas_c(df_prog_2026_c)
+                            df_prog_2026_c_vista.index = range(1, len(df_prog_2026_c_vista) + 1)
+                            st.dataframe(df_prog_2026_c_vista, use_container_width=True, hide_index=False)
+
+                            st.download_button(
+                                label="📥 Descargar Programados 2026 Contraloría (.xlsx)",
+                                data=generar_excel_formateado_c(df_prog_2026_c),
+                                file_name=f"Planes_Programados_2026_Contraloria_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                key="btn_download_prog_2026_c_ind",
+                                use_container_width=False,
+                            )
+                        else:
+                            st.info("ℹ️ No hay planes de acción programados en Contraloría para la vigencia 2026 con los filtros aplicados.")
+
+                with subtab_ind_c2:
+                    st.subheader("🎉 Avance de Cierre y Planes Finalizados Contraloría")
+                    col_cm1, col_cm2 = st.columns([0.28, 1])
+
+                    with col_cm1:
+                        st.markdown('<div class="titulo-seccion-finaliz">📅 Cierre Mensual 2026</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="month-container">', unsafe_allow_html=True)
+                        for m, cant in conteo_meses_c.items():
+                            st.markdown(f'<div class="month-row"><span>{m}</span><div class="month-box">{cant}</div></div>', unsafe_allow_html=True)
+                        st.markdown('</div>', unsafe_allow_html=True)
+
+                    with col_cm2:
+                        st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Tabla Completa de Planes Finalizados Contraloría</div>', unsafe_allow_html=True)
+                        df_fin_c = df_filtrado_c[df_filtrado_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado_c else pd.DataFrame()
+                        if not df_fin_c.empty:
+                            df_fin_c_vista = filtrar_solo_columnas_amarillas_c(df_fin_c)
+                            df_fin_c_vista.index = range(1, len(df_fin_c_vista) + 1)
+                            st.dataframe(df_fin_c_vista, use_container_width=True, hide_index=False)
+                        else:
+                            st.info("ℹ️ No hay acciones finalizadas en Contraloría.")
+
+            elif nombre_tab_real_c == "Informes":
+                st.header("📑 Informes de Auditoría de la Contraloría")
+                st.markdown("Relación consolidada de los informes de auditoría dejados por la Contraloría de Bogotá agrupados por vigencia.")
+
+                if not df_informes_raw_c.empty:
+                    df_inf_c = df_informes_raw_c.copy()
+                    col_link_c = buscar_columna_por_patron(df_inf_c, ["enlace", "pdf", "link", "drive"]) or df_inf_c.columns[-1]
+                    
+                    def asegurar_link(u):
+                        val = str(u).strip()
+                        if val and val.lower() not in ["nan", "none", ""] and not val.startswith("http"):
+                            return f"https://{val}"
+                        return val
+
+                    df_inf_c[col_link_c] = df_inf_c[col_link_c].apply(asegurar_link)
+                    df_inf_c.index = range(1, len(df_inf_c) + 1)
+                    
+                    st.dataframe(
+                        df_inf_c,
+                        use_container_width=True,
+                        hide_index=False,
+                        column_config={
+                            col_link_c: st.column_config.LinkColumn(
+                                "Enlace PDF",
+                                help="Haz clic para abrir el informe en PDF",
+                                display_text="📄 Ver PDF"
+                            )
+                        }
+                    )
+                else:
+                    st.info("No hay informes registrados en la hoja 'Enlace PDF'.")

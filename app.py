@@ -1074,7 +1074,6 @@ if entorno_activo == "Auditoría Interna":
     col_riesgo = "Nivel del Riesgo" if "Nivel del Riesgo" in df_raw.columns else buscar_columna_por_patron(df_raw, ["riesgo", "nivel de riesgo"])
     col_fecha_inicio = "Inicio" if "Inicio" in df_raw.columns else buscar_columna_por_patron(df_raw, ["inicio"])
     
-    # MAPEADO EXACTO: COLUMNA I (Cierre) Y COLUMNA S (Fecha de cierre Auditoría)
     col_fecha_cierre = "Cierre" if "Cierre" in df_raw.columns else (buscar_columna_por_patron(df_raw, ["cierre dd/mm/a", "cierre"]) or buscar_columna_por_patron(df_raw, ["fecha cierre", "fecha compromiso"]))
     col_fecha_cierre_auditoria = "Fecha de cierre Auditoría" if "Fecha de cierre Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["fecha de cierre auditoria", "cierre auditoria"])
     col_obs_audit = buscar_columna_por_patron(df_raw, ["observacion auditoria"]) or "Observación Auditoría"
@@ -1612,9 +1611,12 @@ if entorno_activo == "Auditoría Interna":
                         "JULIO": 0, "AGO": 0, "SEP": 0, "OCT": 0, "NOV": 0, "DIC": 0
                     }
                     
-                    # FILTRADO EXACTO PARSEADO CON DAYFIRST SOBRE LA COLUMNA I (Cierre DD/MM/AA)
+                    # FILTRADO ESTRICTO EXCLUYENDO NULOS Y FILAS RESIDUALES/ENCABEZADOS
                     df_v2026 = df_raw.copy()
                     if col_fecha_cierre and col_fecha_cierre in df_v2026.columns:
+                        s_cierre = df_v2026[col_fecha_cierre].astype(str).str.strip().str.lower()
+                        df_v2026 = df_v2026[~s_cierre.isin(["cierre", "cierre dd/mm/a", "nan", "none", "", "nat"])].copy()
+
                         fechas_cierre_dt_all = pd.to_datetime(df_v2026[col_fecha_cierre], dayfirst=True, errors="coerce")
                         
                         mask_v2026 = (fechas_cierre_dt_all.dt.year == 2026)

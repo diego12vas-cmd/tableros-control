@@ -52,7 +52,6 @@ TODAS_LAS_PESTANIAS = [
     "Histórico", 
     "Alertas y Edición", 
     "Oficios", 
-    "Finalizadas", 
     "Informes"
 ]
 
@@ -1213,6 +1212,7 @@ if entorno_activo == "Auditoría Interna":
     sin_plan = df_filtrado[col_estado].astype(str).str.contains("Sin plan|Sin defin", case=False, na=False).sum() if col_estado else 0
 
     df_activos = df_filtrado[~df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else df_filtrado.copy()
+    df_finalizados_completo = df_filtrado[df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
 
     total_hallazgos_unicos_pendientes = df_activos[col_hallazgo].dropna().nunique() if col_hallazgo and col_hallazgo in df_activos.columns else len(df_activos)
     total_planes_pendientes = abiertos + vencidos + sin_plan
@@ -1277,7 +1277,7 @@ if entorno_activo == "Auditoría Interna":
 
             for _, row in df_totales_aud.iterrows():
                 fig_aud_horiz.add_annotation(y=row[col_auditoria], x=row["Total_Pendientes"], text=f" <b>{row['Total_Pendientes']}</b>", showarrow=False, xanchor="left", yanchor="middle", font=dict(size=13, color="var(--text-color)"))
-            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, (df_totales_aud["Total_Pendientes"].max() if not df_totales_aud.empty else 10) * 1.25]), legend_title_text="Estado", margin=dict(l=280, r=60, t=60, b=40), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, max_pend_aud * 1.25 if 'max_pend_aud' in locals() else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
     dict_pestanias = {
         "Tablero": "📊 Tablero",
@@ -1287,7 +1287,6 @@ if entorno_activo == "Auditoría Interna":
         "Histórico": "📊 Histórico",
         "Alertas y Edición": "🚨 Alertas y Edición",
         "Oficios": "📩 Oficios",
-        "Finalizadas": "🎉 Finalizadas",
         "Informes": "📑 Informes"
     }
 
@@ -1519,29 +1518,25 @@ if entorno_activo == "Auditoría Interna":
                 st.header("📌 Indicadores de Gestión Auditoría Interna")
                 st.markdown("Selecciona una sub-pestaña para comparar la programación mensual contra la ejecución de planes finalizados.")
 
-                # CALCULO DINÁMICO DESDE FECHA DE CIERRE PARA AMBOS (PROGRAMADOS Y FINALIZADOS)
                 conteo_meses_prog = {m: 0 for m in meses_es}
                 conteo_meses_fin = {m: 0 for m in meses_es}
 
                 if col_fecha_cierre and col_fecha_cierre in df_raw.columns:
                     fechas_dt_todas = pd.to_datetime(df_raw[col_fecha_cierre], errors="coerce", dayfirst=True)
                     
-                    # 1. Programados por Fecha de Cierre
                     for f in fechas_dt_todas.dropna():
                         m_idx = f.month - 1
                         if 0 <= m_idx < 12:
                             conteo_meses_prog[meses_es[m_idx]] += 1
 
-                    # 2. Finalizados por Fecha de Cierre
-                    df_fin_calc = df_raw[df_raw[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
-                    if not df_fin_calc.empty:
-                        fechas_dt_fin = pd.to_datetime(df_fin_calc[col_fecha_cierre], errors="coerce", dayfirst=True)
+                    if not df_finalizados_completo.empty:
+                        fechas_dt_fin = pd.to_datetime(df_finalizados_completo[col_fecha_cierre], errors="coerce", dayfirst=True)
                         for f in fechas_dt_fin.dropna():
                             m_idx = f.month - 1
                             if 0 <= m_idx < 12:
                                 conteo_meses_fin[meses_es[m_idx]] += 1
 
-                sub_ind_1, sub_ind_2 = st.tabs(["📊 Planes Programados (Vigencia 2026)", "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)"])
+                sub_ind_1, sub_ind_2 = st.tabs(["📊 Planes Programados vs Finalizados 2026", "📈 Métricas Globales de Cumplimiento"])
 
                 with sub_ind_1:
                     st.subheader("🗓️ Programación de Cierre por Mes (Vigencia 2026)")
@@ -1571,10 +1566,22 @@ if entorno_activo == "Auditoría Interna":
                         st.markdown('</div>', unsafe_allow_html=True)
 
                     with col_m2:
-                        st.markdown('<div class="titulo-seccion-finaliz">📋 Detalle de Planes Programados 2026</div>', unsafe_allow_html=True)
-                        df_tabla_prog_vista = filtrar_solo_columnas_amarillas_ai(df_activos)
-                        df_tabla_prog_vista.index = range(1, len(df_tabla_prog_vista) + 1)
-                        st.dataframe(df_tabla_prog_vista, use_container_width=True, hide_index=False)
+                        st.markdown('<div class="titulo-seccion-finaliz">📋 Detalle de Planes Finalizados</div>', unsafe_allow_html=True)
+                        if not df_finalizados_completo.empty:
+                            df_tabla_fin_vista = filtrar_solo_columnas_amarillas_ai(df_finalizados_completo)
+                            df_tabla_fin_vista.index = range(1, len(df_tabla_fin_vista) + 1)
+                            st.dataframe(df_tabla_fin_vista, use_container_width=True, hide_index=False)
+                            
+                            st.download_button(
+                                label="📥 Descargar Solo Finalizadas (.xlsx)",
+                                data=generar_excel_formateado_ai(df_finalizados_completo),
+                                file_name=f"Acciones_Finalizadas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                key="btn_download_finalizadas_tab_ind",
+                                use_container_width=False,
+                            )
+                        else:
+                            st.info("ℹ️ No hay planes de acción finalizados registrados.")
 
                 with sub_ind_2:
                     st.subheader("📈 Métricas Globales de Cumplimiento")
@@ -1995,38 +2002,6 @@ if entorno_activo == "Auditoría Interna":
                 else:
                     st.warning("⚠️ No se detectó la columna 'Radicado' en la hoja Base de datos.")
 
-            elif nombre_tab_real == "Finalizadas":
-                st.header("🎉 Acciones Finalizadas")
-
-                col_m1, col_m2 = st.columns([0.24, 1])
-
-                with col_m1:
-                    st.markdown('<div class="titulo-seccion-finaliz">📅 Cierre Mensual 2026</div>', unsafe_allow_html=True)
-                    st.markdown('<div class="month-container">', unsafe_allow_html=True)
-                    for m, cant in conteo_meses.items():
-                        st.markdown(f'<div class="month-row"><span>{m}</span><div class="month-box">{cant}</div></div>', unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
-
-                with col_m2:
-                    st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Tabla de Planes Finalizados</div>', unsafe_allow_html=True)
-                    df_finalizadas_tabla = df_filtrado[df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
-
-                    if not df_finalizadas_tabla.empty:
-                        df_finalizadas_vista = filtrar_solo_columnas_amarillas_ai(df_finalizadas_tabla)
-                        df_finalizadas_vista.index = range(1, len(df_finalizadas_vista) + 1)
-                        st.dataframe(df_finalizadas_vista, use_container_width=True, hide_index=False)
-
-                        st.download_button(
-                            label="📥 Descargar Solo Finalizadas (.xlsx)",
-                            data=generar_excel_formateado_ai(df_finalizadas_tabla),
-                            file_name=f"Acciones_Finalizadas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            key="btn_download_finalizadas_only",
-                            use_container_width=False,
-                        )
-                    else:
-                        st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
-
             elif nombre_tab_real == "Informes":
                 st.header("📑 Informes de Auditoría Interna por Vigencia")
                 st.markdown("Haz clic en cualquier año para consultar únicamente los informes de esa vigencia específica.")
@@ -2091,8 +2066,6 @@ if entorno_activo == "Auditoría Interna":
                     key="btn_download_informes_pdf_ai_subtabs_exclusivas",
                     use_container_width=False,
                 )
-            else:
-                st.info("ℹ️ No hay vigencias válidas registradas en los informes.")
 
 # =========================================================
 # VISTA 2: CONTRALORÍA DE BOGOTÁ (ENTORNO 100% EXCLUSIVO)
@@ -2495,10 +2468,9 @@ else:
                 plot_bgcolor="rgba(0,0,0,0)"
             )
 
-    tab_c1, tab_c2, tab_c4, tab_c5 = st.tabs([
+    tab_c1, tab_c2, tab_c5 = st.tabs([
         "📊 Tablero Principal",
         "📈 Métricas de Cumplimiento",
-        "🎉 Finalizadas",
         "📑 Informes de Auditoría",
     ])
 
@@ -2604,27 +2576,6 @@ else:
             st.plotly_chart(fig_aud_horiz_c, use_container_width=True, key="fig_aud_contraloria_view", config={'displayModeBar': False})
         else:
             st.info("No hay compromisos pendientes en las vigencias.")
-
-    with tab_c4:
-        st.header("🎉 Acciones Finalizadas Contraloría")
-        col_cm1, col_cm2 = st.columns([0.24, 1])
-
-        with col_cm1:
-            st.markdown('<div class="titulo-seccion-finaliz">📅 Cierre Mensual 2026</div>', unsafe_allow_html=True)
-            st.markdown('<div class="month-container">', unsafe_allow_html=True)
-            for m, cant in conteo_meses_c.items():
-                st.markdown(f'<div class="month-row"><span>{m}</span><div class="month-box">{cant}</div></div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        with col_cm2:
-            st.markdown('<div class="titulo-seccion-finaliz" style="margin-left: 12px !important;">📋 Tabla de Planes Finalizados Contraloría</div>', unsafe_allow_html=True)
-            df_fin_c = df_filtrado_c[df_filtrado_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado_c else pd.DataFrame()
-            if not df_fin_c.empty:
-                df_fin_c_vista = filtrar_solo_columnas_amarillas_c(df_fin_c)
-                df_fin_c_vista.index = range(1, len(df_fin_c_vista) + 1)
-                st.dataframe(df_fin_c_vista, use_container_width=True, hide_index=False)
-            else:
-                st.info("ℹ️ No hay acciones finalizadas en Contraloría.")
 
     with tab_c5:
         st.header("📑 Informes de Auditoría de la Contraloría")

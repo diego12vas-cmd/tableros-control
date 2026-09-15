@@ -1074,7 +1074,7 @@ if entorno_activo == "Auditoría Interna":
     col_riesgo = "Nivel del Riesgo" if "Nivel del Riesgo" in df_raw.columns else buscar_columna_por_patron(df_raw, ["riesgo", "nivel de riesgo"])
     col_fecha_inicio = "Inicio" if "Inicio" in df_raw.columns else buscar_columna_por_patron(df_raw, ["inicio"])
     
-    # MAPEADO EXACTO: COLUMNA I (Cierre DD/MM/AA) Y COLUMNA S (Fecha de cierre Auditoría)
+    # MAPEADO EXACTO: COLUMNA I (Cierre) Y COLUMNA S (Fecha de cierre Auditoría)
     col_fecha_cierre = "Cierre" if "Cierre" in df_raw.columns else (buscar_columna_por_patron(df_raw, ["cierre dd/mm/a", "cierre"]) or buscar_columna_por_patron(df_raw, ["fecha cierre", "fecha compromiso"]))
     col_fecha_cierre_auditoria = "Fecha de cierre Auditoría" if "Fecha de cierre Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["fecha de cierre auditoria", "cierre auditoria"])
     col_obs_audit = buscar_columna_por_patron(df_raw, ["observacion auditoria"]) or "Observación Auditoría"
@@ -1590,11 +1590,11 @@ if entorno_activo == "Auditoría Interna":
                     "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)"
                 ])
 
-                # DICCIONARIO DE CONTEO REAL DE FINALIZADOS (EVALUANDO LA COLUMNA S: Fecha de cierre Auditoría)
+                # DICCIONARIO DE CONTEO REAL DE FINALIZADOS (EVALUANDO COLUMNA S - Fecha de cierre Auditoría)
                 conteo_meses_fin_real = {m: 0 for m in meses_es}
                 df_fin_ind = df_filtrado[df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else pd.DataFrame()
                 
-                col_fecha_fin_aud = col_fecha_cierre_auditoria if col_fecha_cierre_auditoria in df_raw.columns else col_fecha_cierre
+                col_fecha_fin_aud = col_fecha_cierre_auditoria if (col_fecha_cierre_auditoria and col_fecha_cierre_auditoria in df_raw.columns) else col_fecha_cierre
 
                 if not df_fin_ind.empty and col_fecha_fin_aud and col_fecha_fin_aud in df_fin_ind.columns:
                     fechas_dt_fin_real = pd.to_datetime(df_fin_ind[col_fecha_fin_aud], dayfirst=True, errors="coerce")
@@ -1612,7 +1612,7 @@ if entorno_activo == "Auditoría Interna":
                         "JULIO": 0, "AGO": 0, "SEP": 0, "OCT": 0, "NOV": 0, "DIC": 0
                     }
                     
-                    # FILTRADO SOBRE LA COLUMNA I (Cierre DD/MM/AA) PARA VIGENCIA 2026
+                    # FILTRADO EXACTO PARSEADO CON DAYFIRST SOBRE LA COLUMNA I (Cierre DD/MM/AA)
                     df_v2026 = df_raw.copy()
                     if col_fecha_cierre and col_fecha_cierre in df_v2026.columns:
                         fechas_cierre_dt_all = pd.to_datetime(df_v2026[col_fecha_cierre], dayfirst=True, errors="coerce")

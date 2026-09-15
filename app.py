@@ -335,21 +335,21 @@ def parsear_fecha_estricta(val):
             return pd.to_datetime(val, unit='D', origin='1899-12-30')
     except Exception:
         pass
-        
+
     try:
         dt = pd.to_datetime(val_str, format="%d/%m/%Y", errors="coerce")
         if pd.notnull(dt):
             return dt
     except Exception:
         pass
-        
+
     try:
         dt = pd.to_datetime(val_str, dayfirst=True, errors="coerce")
         if pd.notnull(dt):
             return dt
     except Exception:
         pass
-        
+
     return pd.NaT
 
 # ---------------------------------------------------------
@@ -1086,7 +1086,6 @@ if entorno_activo == "Auditoría Interna":
     col_riesgo = "Nivel del Riesgo" if "Nivel del Riesgo" in df_raw.columns else buscar_columna_por_patron(df_raw, ["riesgo", "nivel de riesgo"])
     col_fecha_inicio = "Inicio" if "Inicio" in df_raw.columns else buscar_columna_por_patron(df_raw, ["inicio"])
     
-    # LECTURA EXACTA DE COLUMNA I ("Cierre DD/MM/AA") Y COLUMNA S ("Fecha de cierre Auditoría")
     col_fecha_cierre = df_raw.columns[8] if len(df_raw.columns) > 8 else ("Cierre" if "Cierre" in df_raw.columns else buscar_columna_por_patron(df_raw, ["cierre dd/mm/a", "cierre"]))
     col_fecha_cierre_auditoria = df_raw.columns[18] if len(df_raw.columns) > 18 else ("Fecha de cierre Auditoría" if "Fecha de cierre Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["fecha de cierre auditoria", "cierre auditoria"]))
     col_obs_audit = buscar_columna_por_patron(df_raw, ["observacion auditoria"]) or "Observación Auditoría"
@@ -1318,7 +1317,7 @@ if entorno_activo == "Auditoría Interna":
 
             for _, row in df_totales_aud.iterrows():
                 fig_aud_horiz.add_annotation(y=row[col_auditoria], x=row["Total_Pendientes"], text=f" <b>{row['Total_Pendientes']}</b>", showarrow=False, xanchor="left", yanchor="middle", font=dict(size=13, color="var(--text-color)"))
-            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True, tickfont=dict(color="var(--text-color)")), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
     dict_pestanias = {
         "Tablero": "📊 Tablero",
@@ -1593,12 +1592,11 @@ if entorno_activo == "Auditoría Interna":
                 ])
 
                 # DICCIONARIO DE CONTEO REAL DE FINALIZADOS
-                # COLUMNA L (ÍNDICE 11) Y COLUMNA S (ÍNDICE 18)
                 conteo_meses_fin_real = {m: 0 for m in meses_es}
                 col_estado_idx = df_raw.columns[11] if len(df_raw.columns) > 11 else col_estado
                 col_fecha_fin_idx = df_raw.columns[18] if len(df_raw.columns) > 18 else col_fecha_cierre_auditoria
 
-                mask_fin_estricto = df_raw[col_estado_idx].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)
+                mask_fin_estricto = df_raw[col_estado_idx].astype(str).str.strip().str.lower().isin(["finalizada", "cerrada"])
                 df_fin_ind = df_raw[mask_fin_estricto].copy()
 
                 if not df_fin_ind.empty and col_fecha_fin_idx in df_fin_ind.columns:
@@ -1615,7 +1613,7 @@ if entorno_activo == "Auditoría Interna":
 
                     conteo_programados_2026 = {m: 0 for m in meses_es}
                     
-                    # LECTURA NATIVA FILA POR FILA SOBRE COLUMNA I (ÍNDICE 8)
+                    # LECTURA POR POSICIÓN EXACTA: COLUMNA I (ÍNDICE 8 - CIERRE DD/MM/AA)
                     col_cierre_idx = df_raw.columns[8] if len(df_raw.columns) > 8 else col_fecha_cierre
                     
                     fechas_cierre_parsed = df_raw[col_cierre_idx].apply(parsear_fecha_estricta)
@@ -1782,7 +1780,6 @@ if entorno_activo == "Auditoría Interna":
                 df_alertas = df_filtrado.copy()
                 hoy = pd.to_datetime(date.today())
 
-                # CÁLCULO DE MORA REAL EVALUANDO LA COLUMNA I (ÍNDICE 8)
                 col_cierre_idx = df_alertas.columns[8] if len(df_alertas.columns) > 8 else col_fecha_cierre
                 if col_cierre_idx and col_cierre_idx in df_alertas.columns:
                     fechas_alertas = df_alertas[col_cierre_idx].apply(parsear_fecha_estricta)
@@ -1792,7 +1789,6 @@ if entorno_activo == "Auditoría Interna":
                 else:
                     df_alertas["Dias_Atraso"] = 0
 
-                # MOSTRAR ACCIONES EN MORA DE 30 DÍAS O MÁS NO FINALIZADAS
                 df_criticos_30 = df_alertas[
                     (~df_alertas[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)) & 
                     (df_alertas["Dias_Atraso"] >= 30)

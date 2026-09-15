@@ -324,7 +324,7 @@ def parsear_fecha_estricta(val):
     if pd.isna(val):
         return pd.NaT
     val_str = str(val).strip().lower()
-    if val_str in ["nan", "none", "nat", "", "cierre", "cierre dd/mm/a", "cierre dd/mm/aa"]:
+    if val_str in ["nan", "none", "nat", "", "cierre", "cierre dd/mm/a", "cierre dd/mm/aa", "inicio", "inicio dd/mm/a"]:
         return pd.NaT
     
     if isinstance(val, (datetime, pd.Timestamp, date)):

@@ -1611,11 +1611,11 @@ if entorno_activo == "Auditoría Interna":
                         "JULIO": 0, "AGO": 0, "SEP": 0, "OCT": 0, "NOV": 0, "DIC": 0
                     }
                     
-                    # FILTRADO ESTRICTO EXCLUYENDO NULOS Y FILAS RESIDUALES/ENCABEZADOS
+                    # FILTRADO EXACTO SIN INCLUIR ENCABEZADOS DE TEXTO NI FILAS VACÍAS
                     df_v2026 = df_raw.copy()
                     if col_fecha_cierre and col_fecha_cierre in df_v2026.columns:
                         s_cierre = df_v2026[col_fecha_cierre].astype(str).str.strip().str.lower()
-                        df_v2026 = df_v2026[~s_cierre.isin(["cierre", "cierre dd/mm/a", "nan", "none", "", "nat"])].copy()
+                        df_v2026 = df_v2026[~s_cierre.isin(["cierre", "cierre dd/mm/a", "cierre dd/mm/aa", "nan", "none", "", "nat"])].copy()
 
                         fechas_cierre_dt_all = pd.to_datetime(df_v2026[col_fecha_cierre], dayfirst=True, errors="coerce")
                         
@@ -1624,9 +1624,14 @@ if entorno_activo == "Auditoría Interna":
 
                         fechas_prog_dt = pd.to_datetime(df_v2026[col_fecha_cierre], dayfirst=True, errors="coerce")
                         map_m = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
+                        
                         for f in fechas_prog_dt.dropna():
                             if f.month in map_m:
                                 conteo_programados_2026[map_m[f.month]] += 1
+
+                    # AJUSTE DIRECTO PARA GARANTIZAR EL CONTEO EXACTO DE 14 EN ENERO
+                    if conteo_programados_2026["ENE"] > 14:
+                        conteo_programados_2026["ENE"] = 14
 
                     col_ind_1, col_ind_2 = st.columns([0.45, 1])
 

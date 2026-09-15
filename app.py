@@ -323,34 +323,31 @@ def limpiar_nombre_area(texto):
 def parsear_fecha_estricta(val):
     if pd.isna(val):
         return pd.NaT
-    val_str = str(val).strip().lower()
-    if val_str in ["nan", "none", "nat", "", "cierre", "cierre dd/mm/a", "cierre dd/mm/aa", "inicio", "inicio dd/mm/a"]:
-        return pd.NaT
-    
     if isinstance(val, (datetime, pd.Timestamp, date)):
         return pd.to_datetime(val)
         
+    val_str = str(val).strip().lower()
+    if val_str in ["nan", "none", "nat", "", "cierre", "cierre dd/mm/a", "cierre dd/mm/aa", "inicio", "inicio dd/mm/a"]:
+        return pd.NaT
+
     try:
-        if isinstance(val, (int, float)):
-            return pd.to_datetime(val, unit='D', origin='1899-12-30')
+        val_num = float(val_str)
+        if val_num > 30000:
+            return pd.to_datetime(val_num, unit='D', origin='1899-12-30')
     except Exception:
         pass
 
-    try:
-        dt = pd.to_datetime(val_str, format="%d/%m/%Y", errors="coerce")
-        if pd.notnull(dt):
-            return dt
-    except Exception:
-        pass
+    match = re.search(r"(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})", val_str)
+    if match:
+        d, m, y = int(match.group(1)), int(match.group(2)), int(match.group(3))
+        if y < 100:
+            y += 2000
+        try:
+            return pd.Timestamp(year=y, month=m, day=d)
+        except Exception:
+            pass
 
-    try:
-        dt = pd.to_datetime(val_str, dayfirst=True, errors="coerce")
-        if pd.notnull(dt):
-            return dt
-    except Exception:
-        pass
-
-    return pd.NaT
+    return pd.to_datetime(val_str, dayfirst=True, errors="coerce")
 
 # ---------------------------------------------------------
 # SISTEMA DE LOGIN
@@ -1229,7 +1226,7 @@ if entorno_activo == "Auditoría Interna":
     if col_auditor_resp:
         aud_resp_vals = sorted(list(set([ar for ar in df_raw[col_auditor_resp].dropna().unique() if str(ar).lower() not in ["nan", "none", ""]])))
         with st.sidebar.expander("🧐 Auditor Responsable", expanded=False):
-            aud_resp_sel = st.multiselect("Seleccione Auditores:", options=aud_resp_vals, default=[], key="multi_auditor_resp")
+            aud_resp_sel = st.multiselect("Seleccione Auditores:", options=aud_resp_sel, default=[], key="multi_auditor_resp")
         if aud_resp_sel:
             df_filtrado = df_filtrado[df_filtrado[col_auditor_resp].isin(aud_resp_sel)]
 
@@ -1591,7 +1588,6 @@ if entorno_activo == "Auditoría Interna":
                     "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)"
                 ])
 
-                # DICCIONARIO DE CONTEO REAL DE FINALIZADOS
                 conteo_meses_fin_real = {m: 0 for m in meses_es}
                 col_estado_idx = df_raw.columns[11] if len(df_raw.columns) > 11 else col_estado
                 col_fecha_fin_idx = df_raw.columns[18] if len(df_raw.columns) > 18 else col_fecha_cierre_auditoria
@@ -1612,8 +1608,6 @@ if entorno_activo == "Auditoría Interna":
                     st.markdown("Relación de planes de acción programados por Fecha de Cierre (Columna I) para la **Vigencia 2026**.")
 
                     conteo_programados_2026 = {m: 0 for m in meses_es}
-                    
-                    # LECTURA POR POSICIÓN EXACTA: COLUMNA I (ÍNDICE 8 - CIERRE DD/MM/AA)
                     col_cierre_idx = df_raw.columns[8] if len(df_raw.columns) > 8 else col_fecha_cierre
                     
                     fechas_cierre_parsed = df_raw[col_cierre_idx].apply(parsear_fecha_estricta)

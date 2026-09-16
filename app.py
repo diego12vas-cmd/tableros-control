@@ -1343,7 +1343,7 @@ if entorno_activo == "Auditoría Interna":
 
             for _, row in df_totales_aud.iterrows():
                 fig_aud_horiz.add_annotation(y=row[col_auditoria], x=row["Total_Pendientes"], text=f" <b>{row['Total_Pendientes']}</b>", showarrow=False, xanchor="left", yanchor="middle", font=dict(size=13, color="var(--text-color)"))
-            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True, tickfont=dict(color="var(--text-color)")), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
     dict_pestanias = {
         "Tablero": "📊 Tablero",
@@ -1612,9 +1612,10 @@ if entorno_activo == "Auditoría Interna":
                 st.header("📌 Indicadores de Gestión Auditoría Interna")
                 st.markdown("Selecciona una sub-pestaña para comparar la **programación mensual** contra la **ejecución de planes finalizados**.")
 
-                subtab_ind1, subtab_ind2, subtab_ind3 = st.tabs([
+                subtab_ind1, subtab_ind2, subtab_ind_paa, subtab_ind3 = st.tabs([
                     "📅 Planes Programados (Vigencia 2026)",
                     "🎉 Planes Finalizados (Cierre Mensual + Histórico Completo)",
+                    "🗓️ Programa Anual de Auditoría (PAA)",
                     "🎯 Hallazgos Finalizados (% Hallazgo: Programados vs Finalizados 2026)"
                 ])
 
@@ -1702,7 +1703,85 @@ if entorno_activo == "Auditoría Interna":
                             st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
 
                 # ---------------------------------------------------------
-                # SUB-PESTAÑA 3: COMPARACIÓN PROGRAMADOS VS FINALIZADOS (% HALLAZGO 2026) - AUDITORÍA INTERNA
+                # SUB-PESTAÑA NUEVA: PROGRAMA ANUAL DE AUDITORÍA (PAA EN INDICADORES DE GESTIÓN)
+                # ---------------------------------------------------------
+                with subtab_ind_paa:
+                    st.subheader("🗓️ Programa Anual de Auditoría - Programadas vs Finalizadas (Vigencia 2026)")
+                    st.markdown("Comparativa mes a mes del número de auditorías del PAA **Programadas** (`Mes Programada`) frente a las **Finalizadas** (`Mes finalizada`) para la Vigencia 2026.")
+
+                    conteo_paa_prog_2026 = {m: 0 for m in meses_es}
+                    conteo_paa_fin_2026 = {m: 0 for m in meses_es}
+
+                    map_meses_paa = {
+                        "enero": "ENE", "febrero": "FEB", "marzo": "MAR", "abril": "ABR",
+                        "mayo": "MAYO", "junio": "JUNIO", "julio": "JULIO", "agosto": "AGO",
+                        "septiembre": "SEP", "octubre": "OCT", "noviembre": "NOV", "diciembre": "DIC"
+                    }
+
+                    if not df_paa_raw.empty:
+                        df_paa_calc = df_paa_raw.copy()
+                        col_vig_paa_calc = buscar_columna_por_patron(df_paa_calc, ["vigencia"]) or df_paa_calc.columns[0]
+                        col_nom_paa_calc = buscar_columna_por_patron(df_paa_calc, ["nombre", "auditoria"]) or df_paa_calc.columns[1]
+                        col_est_paa_calc = buscar_columna_por_patron(df_paa_calc, ["estado"]) or df_paa_calc.columns[2]
+                        col_mes_prog_paa = buscar_columna_por_patron(df_paa_calc, ["mes programada", "programada"]) or df_paa_calc.columns[3]
+                        col_mes_fin_paa = buscar_columna_por_patron(df_paa_calc, ["mes finalizada", "finalizada"]) or df_paa_calc.columns[4]
+
+                        df_paa_calc[col_vig_paa_calc] = df_paa_calc[col_vig_paa_calc].ffill().astype(str).str.replace(".0", "", regex=False).str.strip()
+                        df_paa_2026 = df_paa_calc[df_paa_calc[col_vig_paa_calc] == "2026"].copy()
+
+                        for _, r_paa in df_paa_2026.iterrows():
+                            m_prog_str = str(r_paa[col_mes_prog_paa]).strip().lower() if col_mes_prog_paa in r_paa and pd.notnull(r_paa[col_mes_prog_paa]) else ""
+                            if m_prog_str in map_meses_paa:
+                                conteo_paa_prog_2026[map_meses_paa[m_prog_str]] += 1
+
+                            m_fin_str = str(r_paa[col_mes_fin_paa]).strip().lower() if col_mes_fin_paa in r_paa and pd.notnull(r_paa[col_mes_fin_paa]) else ""
+                            if m_fin_str in map_meses_paa:
+                                conteo_paa_fin_2026[map_meses_paa[m_fin_str]] += 1
+
+                    col_paa_1, col_paa_2 = st.columns([0.45, 1])
+
+                    with col_paa_1:
+                        st.markdown('<div class="titulo-seccion-finaliz">🎯 Auditorías PAA 2026</div>', unsafe_allow_html=True)
+                        st.markdown('<div style="font-size:0.75rem; color:#A0AEC0; margin-bottom:8px;">🟩 Programadas | 🔳 Finalizadas</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="month-container">', unsafe_allow_html=True)
+                        for m_lbl in meses_es:
+                            c_p = conteo_paa_prog_2026[m_lbl]
+                            c_f = conteo_paa_fin_2026[m_lbl]
+
+                            st.markdown(
+                                f'''
+                                <div class="month-row">
+                                    <span>{m_lbl}</span>
+                                    <div style="display:flex; gap:6px;">
+                                        <div class="month-box" style="background-color:#C2E0C6;" title="Auditorías Programadas PAA 2026">{c_p}</div>
+                                        <div class="month-box-fin" style="background-color:#B4C6E7; color:#000;" title="Auditorías Finalizadas PAA 2026">{c_f}</div>
+                                    </div>
+                                </div>
+                                ''',
+                                unsafe_allow_html=True
+                            )
+                        st.markdown('</div>', unsafe_allow_html=True)
+
+                    with col_paa_2:
+                        st.markdown('<div class="titulo-seccion-finaliz">📋 Detalle del Programa Anual de Auditoría 2026</div>', unsafe_allow_html=True)
+                        if not df_paa_raw.empty:
+                            df_paa_2026_vista = df_paa_2026.copy().reset_index(drop=True)
+                            df_paa_2026_vista.index = range(1, len(df_paa_2026_vista) + 1)
+                            st.dataframe(df_paa_2026_vista[[col_nom_paa_calc, col_est_paa_calc, col_mes_prog_paa, col_mes_fin_paa]], use_container_width=True, hide_index=False)
+
+                            st.download_button(
+                                label="📥 Descargar PAA 2026 (.xlsx)",
+                                data=generar_excel_formateado_ai(df_paa_2026_vista),
+                                file_name=f"PAA_2026_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                key="btn_download_paa_subtab_ind",
+                                use_container_width=False,
+                            )
+                        else:
+                            st.info("ℹ️ No hay registros en el Programa Anual de Auditoría para 2026.")
+
+                # ---------------------------------------------------------
+                # SUB-PESTAÑA 4: COMPARACIÓN PROGRAMADOS VS FINALIZADOS (% HALLAZGO 2026) - AUDITORÍA INTERNA
                 # ---------------------------------------------------------
                 with subtab_ind3:
                     st.subheader("Programados vs Finalizados (% Hallazgo 2026)")

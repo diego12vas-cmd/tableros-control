@@ -1368,7 +1368,7 @@ if entorno_activo == "Auditoría Interna":
         yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)')
     )
 
-    # Gráfico 2: Top 5 Responsables con Planes de acción Vencidos / Pendientes por Riesgo
+    # Gráfico 2: Top 5 Responsables con Planes de acción desglosados por ESTADO (Abiertos vs Vencidos)
     df_pend_ai = df_activos.copy()
     if not df_pend_ai.empty and col_responsable in df_pend_ai.columns:
         df_pend_ai['Resp_Clean'] = df_pend_ai[col_responsable].astype(str).str.replace("\n", ",").str.split(",")
@@ -1377,7 +1377,11 @@ if entorno_activo == "Auditoría Interna":
         df_exploded_ai = df_exploded_ai[~df_exploded_ai['Resp_Clean'].isin(["", "NAN", "NONE", "NONE."])]
 
         if not df_exploded_ai.empty:
-            df_top5_grp = df_exploded_ai.groupby(['Resp_Clean', col_riesgo]).size().reset_index(name='Cantidad')
+            df_exploded_ai['Estado_Cat'] = df_exploded_ai[col_estado].astype(str).apply(
+                lambda x: 'Vencidos' if 'vencid' in x.lower() else 'Abiertos'
+            )
+
+            df_top5_grp = df_exploded_ai.groupby(['Resp_Clean', 'Estado_Cat']).size().reset_index(name='Cantidad')
             top_resp_names = df_exploded_ai.groupby('Resp_Clean').size().nlargest(5).index.tolist()
             df_top5_final = df_top5_grp[df_top5_grp['Resp_Clean'].isin(top_resp_names)].copy()
 
@@ -1385,10 +1389,10 @@ if entorno_activo == "Auditoría Interna":
                 df_top5_final,
                 y='Resp_Clean',
                 x='Cantidad',
-                color=col_riesgo,
+                color='Estado_Cat',
                 orientation='h',
-                title="🔥 Top 5 Responsables con Pendientes por Riesgo",
-                color_discrete_map={'Alto': '#FF5E5E', 'Medio': '#F39C12', 'Bajo': '#2ECC71'},
+                title="🔥 Top 5 Responsables con Pendientes por Estado",
+                color_discrete_map={'Abiertos': '#F39C12', 'Vencidos': '#FF5E5E'},
                 text='Cantidad'
             )
             fig_top5.update_traces(textposition='inside', insidetextanchor='middle')
@@ -1400,7 +1404,7 @@ if entorno_activo == "Auditoría Interna":
                 plot_bgcolor='rgba(0,0,0,0)',
                 yaxis=dict(type='category', autorange='reversed', title=None),
                 xaxis=dict(showgrid=False, visible=False),
-                legend_title_text="Riesgo",
+                legend_title_text="Estado",
                 legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center")
             )
         else:
@@ -1539,7 +1543,7 @@ if entorno_activo == "Auditoría Interna":
                 st.markdown("<div style='height:15px;'></div>", unsafe_allow_html=True)
 
                 # ---------------------------------------------------------
-                # FILA INTERMEDIA: NUEVOS GRÁFICOS PLOTLY DE TENDENCIA Y TOP 5
+                # FILA INTERMEDIA: NUEVOS GRÁFICOS PLOTLY DE TENDENCIA Y TOP 5 POR ESTADO
                 # ---------------------------------------------------------
                 c_graf1, c_graf2 = st.columns([1.1, 1])
 

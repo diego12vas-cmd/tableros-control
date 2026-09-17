@@ -2868,9 +2868,9 @@ else:
             if nombre_tab_real_c == "Tablero":
                 col_izq_c, col_der_c = st.columns([0.82, 1.5])
 
-                # 1. BLOQUE ARRIBA A LA IZQUIERDA: TARJETAS DE TOTALES CONTRALORÍA
+                # 1. BLOQUE ARRIBA A LA IZQUIERDA: TARJETAS DE TOTALES CONTRALORÍA (TÍTULO LIMPIO)
                 with col_izq_c:
-                    st.markdown('<div class="block-header">Total Hallazgos Pendientes Contraloría</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="block-header">Total Hallazgos Pendientes</div>', unsafe_allow_html=True)
                     st.markdown(f'<div class="card-box" style="background-color:#4B92DB; font-size:1.3rem; height:34px; line-height:26px;">{total_hallazgos_unicos_c}</div>', unsafe_allow_html=True)
 
                     st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
@@ -2922,7 +2922,7 @@ else:
 
                 st.markdown("---")
                 
-                # FILTROS DE TABLA EN CONTRALORÍA (IDÉNTICOS A AUDITORÍA INTERNA)
+                # FILTROS DE TABLA EN CONTRALORÍA
                 col_c_sub, col_c_search, col_c_filtro_rapido = st.columns([1.8, 1.3, 1])
                 with col_c_sub:
                     st.subheader("📋 Detalle de Compromisos Contraloría")

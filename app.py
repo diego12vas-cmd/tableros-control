@@ -709,52 +709,28 @@ st.markdown(
             color: var(--text-color);
             font-weight: bold;
         }
-        .alert-row-compact {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 4px;
-            font-weight: bold;
-            font-size: 0.85rem;
-            color: var(--text-color);
-        }
-        .alert-horizontal-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 6px;
-            width: 100%;
-            margin-top: 6px;
-        }
-        .alert-card-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        .alert-card-horiz {
             background-color: rgba(241, 245, 249, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 6px;
-            padding: 4px 6px;
-            flex: 1;
-            font-weight: bold;
-            font-size: 0.8rem;
-            color: var(--text-color);
-        }
-        .alert-item-label {
+            padding: 6px 12px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            width: 85px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: var(--text-color);
+            width: 100%;
         }
         .alert-val-box {
             background-color: #EFEFEF;
-            width: 38px;
+            width: 42px;
             text-align: center;
-            padding: 2px 0;
+            padding: 3px 0;
             border-radius: 4px;
             color: #000;
             font-weight: bold;
-            font-size: 0.82rem;
+            font-size: 0.88rem;
         }
         .small-note {
             background-color: rgba(75, 146, 219, 0.15);
@@ -1328,13 +1304,13 @@ if entorno_activo == "Auditoría Interna":
     max_val_pend = max([abiertos, vencidos, sin_plan])
     
     # ---------------------------------------------------------
-    # CONFIGURACIÓN VISUAL DEL CENTRO DEL TABLERO (MÁS GRANDE Y REORGANIZADO)
+    # CONFIGURACIÓN VISUAL DEL CENTRO DEL TABLERO (AMPLIADO A BARRAS DE 280PX Y TARJETAS DISTRIBUIDAS)
     # ---------------------------------------------------------
     df_bar = pd.DataFrame({"Estado": ["Abiertos", "Vencidos", "Sin definir"], "Cantidad": [abiertos, vencidos, sin_plan]})
     fig_bar = px.bar(df_bar, x="Estado", y="Cantidad", text="Cantidad", color="Estado", color_discrete_map={"Abiertos": "#58C57A", "Vencidos": "#FF5252", "Sin definir": "#F8A583"})
     fig_bar.update_traces(textposition="outside", textfont=dict(size=12, color="var(--text-color)", family="Arial"), cliponaxis=False)
     
-    # Ampliación del alto a 280px para mayor simetría y llenado del centro
+    # Alto ampliado a 280px para mayor simetría vertical
     fig_bar.update_layout(
         showlegend=False, 
         height=280, 
@@ -1460,8 +1436,8 @@ if entorno_activo == "Auditoría Interna":
                     st.markdown('<div class="block-header">Distribución de Planes Pendientes</div>', unsafe_allow_html=True)
                     st.plotly_chart(fig_bar, use_container_width=True, key="fig_bar_pendientes", config={'displayModeBar': False})
 
-                    # 2. Alertas de vencimiento extendidas horizontalmente abajo
-                    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+                    # 2. Alertas de vencimiento distribuidas en 4 columnas abarcando el 100% del ancho abajo
+                    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
                     st.markdown('<div class="block-header">Acciones próximas a vencer</div>', unsafe_allow_html=True)
 
                     def obtener_valor_alerta(col_name):
@@ -1477,17 +1453,15 @@ if entorno_activo == "Auditoría Interna":
                     val_20 = obtener_valor_alerta(col_a20)
                     val_30 = obtener_valor_alerta(col_a30)
 
-                    st.markdown(
-                        f"""
-                        <div class="alert-horizontal-container">
-                            <div class="alert-card-item"><span>5 días 🔴</span><div class="alert-val-box">{val_5}</div></div>
-                            <div class="alert-card-item"><span>10 días 🟡</span><div class="alert-val-box">{val_10}</div></div>
-                            <div class="alert-card-item"><span>20 días 🟢</span><div class="alert-val-box">{val_20}</div></div>
-                            <div class="alert-card-item"><span>30 días 🔵</span><div class="alert-val-box">{val_30}</div></div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                    alt1, alt2, alt3, alt4 = st.columns(4)
+                    with alt1:
+                        st.markdown(f'<div class="alert-card-horiz"><span>5 días 🔴</span><div class="alert-val-box">{val_5}</div></div>', unsafe_allow_html=True)
+                    with alt2:
+                        st.markdown(f'<div class="alert-card-horiz"><span>10 días 🟡</span><div class="alert-val-box">{val_10}</div></div>', unsafe_allow_html=True)
+                    with alt3:
+                        st.markdown(f'<div class="alert-card-horiz"><span>20 días 🟢</span><div class="alert-val-box">{val_20}</div></div>', unsafe_allow_html=True)
+                    with alt4:
+                        st.markdown(f'<div class="alert-card-horiz"><span>30 días 🔵</span><div class="alert-val-box">{val_30}</div></div>', unsafe_allow_html=True)
 
                 with c4:
                     st.markdown('<div class="block-header">Porcentaje de Acciones Pendientes</div>', unsafe_allow_html=True)
@@ -2526,7 +2500,7 @@ else:
     meses_es_map_c = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAY", 6: "JUN", 7: "JUL", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
     conteo_meses_c = {m: 0 for m in meses_es_map_c.values()}
 
-    # Conteo mensual de cierre 2026 filtrado estrictamente por f.year == 2026
+    # Conteo mensual de cierre 2026 filtrado strictly por f.year == 2026
     if col_fecha_cierre_aud_c and col_fecha_cierre_aud_c in df_filtrado_c.columns:
         df_fin_c = df_filtrado_c[df_filtrado_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado_c else pd.DataFrame()
         if not df_fin_c.empty:

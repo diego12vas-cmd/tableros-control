@@ -1302,7 +1302,6 @@ if entorno_activo == "Auditoría Interna":
     r_medio = df_activos[col_riesgo].astype(str).str.contains("Medio", case=False, na=False).sum() if col_riesgo else 0
     r_bajo = df_activos[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False).sum() if col_riesgo else 0
 
-    # VARIABLE GLOBAL PARA USAR EN TODAS LAS PESTAÑAS (EVITA NameError)
     pct_abiertos = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
 
     # ---------------------------------------------------------
@@ -1478,7 +1477,6 @@ if entorno_activo == "Auditoría Interna":
             if nombre_tab_real == "Tablero":
                 col_izq, col_der = st.columns([0.82, 1.5])
 
-                # 1. BLOQUE ARRIBA A LA IZQUIERDA: TARJETAS DE TOTALES
                 with col_izq:
                     st.markdown('<div class="block-header">Total Hallazgos Pendientes</div>', unsafe_allow_html=True)
                     st.markdown(f'<div class="card-box" style="background-color:#4B92DB; font-size:1.3rem; height:34px; line-height:26px;">{total_hallazgos_unicos_pendientes}</div>', unsafe_allow_html=True)
@@ -1513,7 +1511,6 @@ if entorno_activo == "Auditoría Interna":
 
                     st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
-                    # 2. BLOQUE ABAJO A LA IZQUIERDA: ACCIONES PRÓXIMAS A VENCER EN 1 SOLA COLUMNA VERTICAL COMPACTA
                     st.markdown('<div class="block-header">Acciones próximas a vencer</div>', unsafe_allow_html=True)
 
                     def obtener_valor_alerta(col_name):
@@ -1534,7 +1531,6 @@ if entorno_activo == "Auditoría Interna":
                     st.markdown(f'<div class="alert-card-horiz"><span>20 días 🟢</span><div class="alert-val-box">{val_20}</div></div>', unsafe_allow_html=True)
                     st.markdown(f'<div class="alert-card-horiz"><span>30 días 🔵</span><div class="alert-val-box">{val_30}</div></div>', unsafe_allow_html=True)
 
-                # 3. BLOQUE DE LA DERECHA: LOS DOS GRÁFICOS APILADOS PERFECTAMENTE
                 with col_der:
                     st.plotly_chart(fig_tendencia, use_container_width=True, key="fig_tendencia_tablero", config={'displayModeBar': False})
                     
@@ -2450,7 +2446,7 @@ if entorno_activo == "Auditoría Interna":
                 )
 
 # =========================================================
-# VISTA 2: CONTRALORÍA DE BOGOTÁ (ENTORNO 100% EXCLUSIVO CON LA MISMA ESTRUCTURA 2x2)
+# VISTA 2: CONTRALORÍA DE BOGOTÁ (LECTURA ESTRICTA COLUMNA W Y AA)
 # =========================================================
 else:
     def cargar_datos_c():
@@ -2485,14 +2481,16 @@ else:
     if df_raw_c.empty:
         st.stop()
 
-    col_estado_c = "ESTADO" if "ESTADO" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["estado"])
+    # LECTURA EXACTA POR COLUMNA
+    col_fecha_cierre_c = df_raw_c.columns[22] if len(df_raw_c.columns) > 22 else "FECHA DE TERMINACIÓN"  # COLUMNA W
+    col_estado_c = df_raw_c.columns[26] if len(df_raw_c.columns) > 26 else "ESTADO"                     # COLUMNA AA
+    
     col_responsable_c = "AREA RESPONSABLE" if "AREA RESPONSABLE" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["area responsable", "responsable", "dependencia"])
     col_entidad_c = buscar_columna_por_patron(df_raw_c, ["nombre de la entidad", "entidad", "sectorial"])
     col_plan_accion_c = "DESCRIPCIÓN ACCIÓN" if "DESCRIPCIÓN ACCIÓN" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["descripcion accion", "accion", "compromiso", "plan de accion"])
     col_auditoria_c = "VIGENCIA DE LA AUDITORÍA O VISITA" if "VIGENCIA DE LA AUDITORÍA O VISITA" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["vigencia de la auditoria", "vigencia auditoria", "vigencia"])
     col_hallazgo_c = "DESCRIPCIÓN HALLAZGO" if "DESCRIPCIÓN HALLAZGO" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["descripcion hallazgo", "titulo del hallazgo", "hallazgo", "id"])
     col_fecha_inicio_c = "FECHA DE INICIO" if "FECHA DE INICIO" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["fecha de inicio"])
-    col_fecha_cierre_c = "FECHA DE TERMINACIÓN" if "FECHA DE TERMINACIÓN" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["fecha de terminacion", "vencimiento", "cierre", "fecha cierre"])
     col_fecha_cierre_aud_c = "Fecha cierre x Auditoría" if "Fecha cierre x Auditoría" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["fecha cierre x auditoria", "cierre auditoria"])
     col_obs_audit_c = "OBSERVACIÓN" if "OBSERVACIÓN" in df_raw_c.columns else (buscar_columna_por_patron(df_raw_c, ["observacion"]) or "OBSERVACIÓN")
     
@@ -2596,7 +2594,7 @@ else:
     total_planes_c = abiertos_c + vencidos_c
 
     # ---------------------------------------------------------
-    # CONSTRUCCIÓN DE GRÁFICOS CONTRALORÍA (IDÉNTICOS AL TABLERO 2x2)
+    # TENDENCIA MENSUAL CONTRALORÍA (LECTURA ESTRICTA COLUMNA W Y AA)
     # ---------------------------------------------------------
     meses_orden_c = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
     map_m_num_c = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
@@ -2924,13 +2922,42 @@ else:
 
                 st.markdown("---")
                 
-                col_c_sub, col_c_search = st.columns([2.2, 1.8])
+                # FILTROS DE TABLA EN CONTRALORÍA (IDÉNTICOS A AUDITORÍA INTERNA)
+                col_c_sub, col_c_search, col_c_filtro_rapido = st.columns([1.8, 1.3, 1])
                 with col_c_sub:
                     st.subheader("📋 Detalle de Compromisos Contraloría")
+                
                 with col_c_search:
-                    busqueda_texto_c = st.text_input("🔍 Buscar texto en Contraloría:", placeholder="Escribe para filtrar...", key="search_tabla_contraloria").strip().lower()
+                    busqueda_texto_c = st.text_input("🔍 Buscar texto en la tabla:", placeholder="Escribe para filtrar...", key="search_tabla_contraloria").strip().lower()
+
+                with col_c_filtro_rapido:
+                    opciones_rapidas_c = ["(Mostrar Todos)", "Estado: Abiertos", "Estado: Vencidos"]
+                    if col_a5_c: opciones_rapidas_c.append("Alerta: Próximos a 5 días")
+                    if col_a10_c: opciones_rapidas_c.append("Alerta: Próximos a 10 días")
+                    if col_a20_c: opciones_rapidas_c.append("Alerta: Próximos a 20 días")
+                    if col_a30_c: opciones_rapidas_c.append("Alerta: Próximos a 30 días")
+
+                    filtro_elegido_c = st.selectbox("⚡ Filtrar por categoría:", options=opciones_rapidas_c, index=0, key="sel_categoria_c")
 
                 df_c_tabla = df_activos_c.copy()
+                if filtro_elegido_c != "(Mostrar Todos)":
+                    if "Estado: Abiertos" in filtro_elegido_c and col_estado_c:
+                        df_c_tabla = df_c_tabla[df_c_tabla[col_estado_c].astype(str).str.contains("Abiert", case=False, na=False)]
+                    elif "Estado: Vencidos" in filtro_elegido_c and col_estado_c:
+                        df_c_tabla = df_c_tabla[df_c_tabla[col_estado_c].astype(str).str.contains("Vencid", case=False, na=False)]
+                    elif "Alerta: Próximos a 5 días" in filtro_elegido_c and col_a5_c:
+                        s_val_c = df_c_tabla[col_a5_c].fillna("").astype(str).str.strip().str.lower()
+                        df_c_tabla = df_c_tabla[~s_val_c.isin(["nan", "none", "", "0", "0.0", "false"])]
+                    elif "Alerta: Próximos a 10 días" in filtro_elegido_c and col_a10_c:
+                        s_val_c = df_c_tabla[col_a10_c].fillna("").astype(str).str.strip().str.lower()
+                        df_c_tabla = df_c_tabla[~s_val_c.isin(["nan", "none", "", "0", "0.0", "false"])]
+                    elif "Alerta: Próximos a 20 días" in filtro_elegido_c and col_a20_c:
+                        s_val_c = df_c_tabla[col_a20_c].fillna("").astype(str).str.strip().str.lower()
+                        df_c_tabla = df_c_tabla[~s_val_c.isin(["nan", "none", "", "0", "0.0", "false"])]
+                    elif "Alerta: Próximos a 30 días" in filtro_elegido_c and col_a30_c:
+                        s_val_c = df_c_tabla[col_a30_c].fillna("").astype(str).str.strip().str.lower()
+                        df_c_tabla = df_c_tabla[~s_val_c.isin(["nan", "none", "", "0", "0.0", "false"])]
+
                 df_c_tabla_vista = filtrar_solo_columnas_amarillas_c(df_c_tabla)
 
                 if busqueda_texto_c:

@@ -1543,12 +1543,38 @@ if entorno_activo == "Auditoría Interna":
                 st.markdown("<div style='height:15px;'></div>", unsafe_allow_html=True)
 
                 # ---------------------------------------------------------
-                # FILA INTERMEDIA: NUEVOS GRÁFICOS PLOTLY DE TENDENCIA Y TOP 5 POR ESTADO
+                # FILA INTERMEDIA: NUEVOS GRÁFICOS PLOTLY DE TENDENCIA Y TOP 5 POR ESTADO Y SELECTOR DE MES
                 # ---------------------------------------------------------
                 c_graf1, c_graf2 = st.columns([1.1, 1])
 
                 with c_graf1:
-                    st.plotly_chart(fig_tendencia, use_container_width=True, key="fig_tendencia_tablero", config={'displayModeBar': False})
+                    meses_opciones = ["Todos los meses"] + meses_orden
+                    mes_filtro_sel = st.selectbox("📌 Filtrar Tendencia Mensual:", opciones_meses_tend, index=0, key="sel_mes_tendencia_interactive") if 'opciones_meses_tend' in locals() else st.selectbox("📌 Filtrar Tendencia por Mes:", options=meses_opciones, index=0, key="sel_mes_tendencia_interactive")
+                    
+                    if mes_filtro_sel != "Todos los meses":
+                        fig_tend_filtro = go.Figure()
+                        idx_m = meses_orden.index(mes_filtro_sel)
+                        
+                        fig_tend_filtro.add_trace(go.Bar(
+                            x=['Abiertos', 'Vencidos', 'Finalizados/Cerrados'],
+                            y=[data_tend_abiertos[mes_filtro_sel], data_tend_vencidos[mes_filtro_sel], data_tend_fin[mes_filtro_sel]],
+                            marker_color=['#F39C12', '#FF5E5E', '#2ECC71'],
+                            text=[data_tend_abiertos[mes_filtro_sel], data_tend_vencidos[mes_filtro_sel], data_tend_fin[mes_filtro_sel]],
+                            textposition='outside'
+                        ))
+                        fig_tend_filtro.update_layout(
+                            template='plotly_dark',
+                            title=dict(text=f"📈 Detalle de Planes para {mes_filtro_sel} (Vigencia 2026)", font=dict(size=14, color="white")),
+                            height=280,
+                            margin=dict(l=20, r=20, t=40, b=20),
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            xaxis=dict(showgrid=False),
+                            yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)')
+                        )
+                        st.plotly_chart(fig_tend_filtro, use_container_width=True, key="fig_tendencia_mes_filtro", config={'displayModeBar': False})
+                    else:
+                        st.plotly_chart(fig_tendencia, use_container_width=True, key="fig_tendencia_tablero", config={'displayModeBar': False})
 
                 with c_graf2:
                     if fig_top5 is not None:

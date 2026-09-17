@@ -709,21 +709,24 @@ st.markdown(
             color: var(--text-color);
             font-weight: bold;
         }
-        .alert-row-compact {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 4px;
-            font-weight: bold;
-            font-size: 0.85rem;
-            color: var(--text-color);
+        .alert-grid-compact {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px 16px;
+            background-color: rgba(241, 245, 249, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 10px 16px;
+            border-radius: 8px;
+            margin-top: 6px;
+            margin-bottom: 6px;
         }
-        .alert-item-label {
+        .alert-item-compact {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            width: 85px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: var(--text-color);
         }
         .alert-val-box {
             background-color: #EFEFEF;
@@ -1264,7 +1267,8 @@ if entorno_activo == "Auditoría Interna":
     if col_apoyo_resp and col_apoyo_resp in df_raw.columns:
         apoyo_raw_list = []
         for val in df_raw[col_apoyo_resp].dropna().unique():
-            names = [n.strip() for n in str(val).replace("\n", ",").split(",") if n.strip() and n.strip().lower() not in ["nan", "none"]]
+            val_norm = str(val).replace("Maryury", "Maryuri").replace("Carloina", "Carolina")
+            names = [n.strip() for n in val_norm.replace("\n", ",").split(",") if n.strip() and n.strip().lower() not in ["nan", "none"]]
             apoyo_raw_list.extend(names)
         apoyo_vals = sorted(list(set(apoyo_raw_list)))
         
@@ -1272,7 +1276,7 @@ if entorno_activo == "Auditoría Interna":
             apoyo_sel = st.multiselect("Seleccione Apoyo Responsable:", options=apoyo_vals, default=[], key="multi_apoyo_resp")
         if apoyo_sel:
             mask_apoyo = df_filtrado[col_apoyo_resp].fillna("").astype(str).apply(
-                lambda x: any(sel.lower() in str(x).lower() for sel in apoyo_sel)
+                lambda x: any(sel.lower() in str(x).replace("maryury", "maryuri").lower() for sel in apoyo_sel)
             )
             df_filtrado = df_filtrado[mask_apoyo]
 
@@ -1304,10 +1308,25 @@ if entorno_activo == "Auditoría Interna":
     r_bajo = df_activos[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False).sum() if col_riesgo else 0
 
     max_val_pend = max([abiertos, vencidos, sin_plan])
+    
+    # ---------------------------------------------------------
+    # CONFIGURACIÓN VISUAL DEL CENTRO DEL TABLERO (OPCIÓN A & REESTRUCTURACIÓN)
+    # ---------------------------------------------------------
     df_bar = pd.DataFrame({"Estado": ["Abiertos", "Vencidos", "Sin definir"], "Cantidad": [abiertos, vencidos, sin_plan]})
     fig_bar = px.bar(df_bar, x="Estado", y="Cantidad", text="Cantidad", color="Estado", color_discrete_map={"Abiertos": "#58C57A", "Vencidos": "#FF5252", "Sin definir": "#F8A583"})
     fig_bar.update_traces(textposition="outside", textfont=dict(size=12, color="var(--text-color)", family="Arial"), cliponaxis=False)
-    fig_bar.update_layout(showlegend=False, height=180, margin=dict(t=25, b=5, l=5, r=5), xaxis_title=None, yaxis_title=None, yaxis=dict(showticklabels=False, range=[0, max_val_pend * 1.25 if max_val_pend > 0 else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+    
+    # Ampliación del alto a 290px para mayor simetría y llenado del centro
+    fig_bar.update_layout(
+        showlegend=False, 
+        height=290, 
+        margin=dict(t=25, b=5, l=5, r=5), 
+        xaxis_title=None, 
+        yaxis_title=None, 
+        yaxis=dict(showticklabels=False, range=[0, max_val_pend * 1.25 if max_val_pend > 0 else 10]), 
+        paper_bgcolor="rgba(0,0,0,0)", 
+        plot_bgcolor="rgba(0,0,0,0)"
+    )
 
     pct_abiertos = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
     fig_dona_abiertos = go.Figure(data=[go.Pie(values=[1]*20, hole=0.68, marker_colors=["#00B050" if i < (pct_abiertos / 5) else "#E0E0E0" for i in range(20)], marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none", domain=dict(x=[0.05, 0.95], y=[0.05, 0.95]))])
@@ -1419,6 +1438,12 @@ if entorno_activo == "Auditoría Interna":
                         st.markdown(f'<div class="card-box" style="background-color:#F8A583; font-size:1.05rem; padding:4px;">{sin_plan}</div>', unsafe_allow_html=True)
 
                 with c3:
+                    # 1. Gráfico principal arriba
+                    st.markdown('<div class="block-header">Distribución de Planes Pendientes</div>', unsafe_allow_html=True)
+                    st.plotly_chart(fig_bar, use_container_width=True, key="fig_bar_pendientes", config={'displayModeBar': False})
+
+                    # 2. Alertas de vencimiento extendidas horizontalmente abajo
+                    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
                     st.markdown('<div class="block-header">Acciones próximas a vencer</div>', unsafe_allow_html=True)
 
                     def obtener_valor_alerta(col_name):
@@ -1436,18 +1461,15 @@ if entorno_activo == "Auditoría Interna":
 
                     st.markdown(
                         f"""
-                        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-                            <div class="alert-row-compact"><div class="alert-item-label"><span>5 días</span><span>🔴</span></div><div class="alert-val-box">{val_5}</div></div>
-                            <div class="alert-row-compact"><div class="alert-item-label"><span>10 días</span><span>🟡</span></div><div class="alert-val-box">{val_10}</div></div>
-                            <div class="alert-row-compact"><div class="alert-item-label"><span>20 días</span><span>🟢</span></div><div class="alert-val-box">{val_20}</div></div>
-                            <div class="alert-row-compact"><div class="alert-item-label"><span>30 días</span><span>🔵</span></div><div class="alert-val-box">{val_30}</div></div>
+                        <div class="alert-grid-compact">
+                            <div class="alert-item-compact"><span>5 días 🔴</span><div class="alert-val-box">{val_5}</div></div>
+                            <div class="alert-item-compact"><span>10 días 🟡</span><div class="alert-val-box">{val_10}</div></div>
+                            <div class="alert-item-compact"><span>20 días 🟢</span><div class="alert-val-box">{val_20}</div></div>
+                            <div class="alert-item-compact"><span>30 días 🔵</span><div class="alert-val-box">{val_30}</div></div>
                         </div>
                         """,
                         unsafe_allow_html=True,
                     )
-
-                    st.markdown('<div class="block-header" style="margin-top:2px;">Distribución de Planes Pendientes</div>', unsafe_allow_html=True)
-                    st.plotly_chart(fig_bar, use_container_width=True, key="fig_bar_pendientes", config={'displayModeBar': False})
 
                 with c4:
                     st.markdown('<div class="block-header">Porcentaje de Acciones Pendientes</div>', unsafe_allow_html=True)

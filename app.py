@@ -709,34 +709,52 @@ st.markdown(
             color: var(--text-color);
             font-weight: bold;
         }
-        .alert-grid-compact {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px 16px;
-            background-color: rgba(241, 245, 249, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 10px 16px;
-            border-radius: 8px;
-            margin-top: 6px;
-            margin-bottom: 6px;
-        }
-        .alert-item-compact {
+        .alert-row-compact {
             display: flex;
+            justify-content: center;
             align-items: center;
-            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 4px;
             font-weight: bold;
             font-size: 0.85rem;
             color: var(--text-color);
         }
+        .alert-horizontal-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+            margin-top: 6px;
+        }
+        .alert-card-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: rgba(241, 245, 249, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            padding: 4px 6px;
+            flex: 1;
+            font-weight: bold;
+            font-size: 0.8rem;
+            color: var(--text-color);
+        }
+        .alert-item-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 85px;
+        }
         .alert-val-box {
             background-color: #EFEFEF;
-            width: 44px;
+            width: 38px;
             text-align: center;
-            padding: 3px 0;
+            padding: 2px 0;
             border-radius: 4px;
             color: #000;
             font-weight: bold;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
         }
         .small-note {
             background-color: rgba(75, 146, 219, 0.15);
@@ -1310,16 +1328,16 @@ if entorno_activo == "Auditoría Interna":
     max_val_pend = max([abiertos, vencidos, sin_plan])
     
     # ---------------------------------------------------------
-    # CONFIGURACIÓN VISUAL DEL CENTRO DEL TABLERO (OPCIÓN A & REESTRUCTURACIÓN)
+    # CONFIGURACIÓN VISUAL DEL CENTRO DEL TABLERO (MÁS GRANDE Y REORGANIZADO)
     # ---------------------------------------------------------
     df_bar = pd.DataFrame({"Estado": ["Abiertos", "Vencidos", "Sin definir"], "Cantidad": [abiertos, vencidos, sin_plan]})
     fig_bar = px.bar(df_bar, x="Estado", y="Cantidad", text="Cantidad", color="Estado", color_discrete_map={"Abiertos": "#58C57A", "Vencidos": "#FF5252", "Sin definir": "#F8A583"})
     fig_bar.update_traces(textposition="outside", textfont=dict(size=12, color="var(--text-color)", family="Arial"), cliponaxis=False)
     
-    # Ampliación del alto a 290px para mayor simetría y llenado del centro
+    # Ampliación del alto a 280px para mayor simetría y llenado del centro
     fig_bar.update_layout(
         showlegend=False, 
-        height=290, 
+        height=280, 
         margin=dict(t=25, b=5, l=5, r=5), 
         xaxis_title=None, 
         yaxis_title=None, 
@@ -1438,7 +1456,7 @@ if entorno_activo == "Auditoría Interna":
                         st.markdown(f'<div class="card-box" style="background-color:#F8A583; font-size:1.05rem; padding:4px;">{sin_plan}</div>', unsafe_allow_html=True)
 
                 with c3:
-                    # 1. Gráfico principal arriba
+                    # 1. Gráfico principal arriba aprovechando la altura
                     st.markdown('<div class="block-header">Distribución de Planes Pendientes</div>', unsafe_allow_html=True)
                     st.plotly_chart(fig_bar, use_container_width=True, key="fig_bar_pendientes", config={'displayModeBar': False})
 
@@ -1461,11 +1479,11 @@ if entorno_activo == "Auditoría Interna":
 
                     st.markdown(
                         f"""
-                        <div class="alert-grid-compact">
-                            <div class="alert-item-compact"><span>5 días 🔴</span><div class="alert-val-box">{val_5}</div></div>
-                            <div class="alert-item-compact"><span>10 días 🟡</span><div class="alert-val-box">{val_10}</div></div>
-                            <div class="alert-item-compact"><span>20 días 🟢</span><div class="alert-val-box">{val_20}</div></div>
-                            <div class="alert-item-compact"><span>30 días 🔵</span><div class="alert-val-box">{val_30}</div></div>
+                        <div class="alert-horizontal-container">
+                            <div class="alert-card-item"><span>5 días 🔴</span><div class="alert-val-box">{val_5}</div></div>
+                            <div class="alert-card-item"><span>10 días 🟡</span><div class="alert-val-box">{val_10}</div></div>
+                            <div class="alert-card-item"><span>20 días 🟢</span><div class="alert-val-box">{val_20}</div></div>
+                            <div class="alert-card-item"><span>30 días 🔵</span><div class="alert-val-box">{val_30}</div></div>
                         </div>
                         """,
                         unsafe_allow_html=True,

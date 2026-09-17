@@ -709,28 +709,31 @@ st.markdown(
             color: var(--text-color);
             font-weight: bold;
         }
-        .alert-card-horiz {
-            background-color: rgba(241, 245, 249, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 6px;
-            padding: 8px 12px;
+        .alert-row-compact {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 4px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: var(--text-color);
+        }
+        .alert-item-label {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-weight: bold;
-            font-size: 0.88rem;
-            color: var(--text-color);
-            width: 100%;
+            width: 85px;
         }
         .alert-val-box {
             background-color: #EFEFEF;
-            width: 42px;
+            width: 44px;
             text-align: center;
             padding: 3px 0;
             border-radius: 4px;
             color: #000;
             font-weight: bold;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
         .small-note {
             background-color: rgba(75, 146, 219, 0.15);
@@ -1261,8 +1264,7 @@ if entorno_activo == "Auditoría Interna":
     if col_apoyo_resp and col_apoyo_resp in df_raw.columns:
         apoyo_raw_list = []
         for val in df_raw[col_apoyo_resp].dropna().unique():
-            val_norm = str(val).replace("Maryury", "Maryuri").replace("Carloina", "Carolina")
-            names = [n.strip() for n in val_norm.replace("\n", ",").split(",") if n.strip() and n.strip().lower() not in ["nan", "none"]]
+            names = [n.strip() for n in str(val).replace("\n", ",").split(",") if n.strip() and n.strip().lower() not in ["nan", "none"]]
             apoyo_raw_list.extend(names)
         apoyo_vals = sorted(list(set(apoyo_raw_list)))
         
@@ -1270,7 +1272,7 @@ if entorno_activo == "Auditoría Interna":
             apoyo_sel = st.multiselect("Seleccione Apoyo Responsable:", options=apoyo_vals, default=[], key="multi_apoyo_resp")
         if apoyo_sel:
             mask_apoyo = df_filtrado[col_apoyo_resp].fillna("").astype(str).apply(
-                lambda x: any(sel.lower() in str(x).replace("maryury", "maryuri").lower() for sel in apoyo_sel)
+                lambda x: any(sel.lower() in str(x).lower() for sel in apoyo_sel)
             )
             df_filtrado = df_filtrado[mask_apoyo]
 
@@ -1302,25 +1304,10 @@ if entorno_activo == "Auditoría Interna":
     r_bajo = df_activos[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False).sum() if col_riesgo else 0
 
     max_val_pend = max([abiertos, vencidos, sin_plan])
-    
-    # ---------------------------------------------------------
-    # CONFIGURACIÓN VISUAL DEL CENTRO DEL TABLERO
-    # ---------------------------------------------------------
     df_bar = pd.DataFrame({"Estado": ["Abiertos", "Vencidos", "Sin definir"], "Cantidad": [abiertos, vencidos, sin_plan]})
     fig_bar = px.bar(df_bar, x="Estado", y="Cantidad", text="Cantidad", color="Estado", color_discrete_map={"Abiertos": "#58C57A", "Vencidos": "#FF5252", "Sin definir": "#F8A583"})
     fig_bar.update_traces(textposition="outside", textfont=dict(size=12, color="var(--text-color)", family="Arial"), cliponaxis=False)
-    
-    # Alto ajustado para simetría limpia en la sección central superior
-    fig_bar.update_layout(
-        showlegend=False, 
-        height=180, 
-        margin=dict(t=25, b=5, l=5, r=5), 
-        xaxis_title=None, 
-        yaxis_title=None, 
-        yaxis=dict(showticklabels=False, range=[0, max_val_pend * 1.25 if max_val_pend > 0 else 10]), 
-        paper_bgcolor="rgba(0,0,0,0)", 
-        plot_bgcolor="rgba(0,0,0,0)"
-    )
+    fig_bar.update_layout(showlegend=False, height=180, margin=dict(t=25, b=5, l=5, r=5), xaxis_title=None, yaxis_title=None, yaxis=dict(showticklabels=False, range=[0, max_val_pend * 1.25 if max_val_pend > 0 else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
     pct_abiertos = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
     fig_dona_abiertos = go.Figure(data=[go.Pie(values=[1]*20, hole=0.68, marker_colors=["#00B050" if i < (pct_abiertos / 5) else "#E0E0E0" for i in range(20)], marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none", domain=dict(x=[0.05, 0.95], y=[0.05, 0.95]))])
@@ -1432,12 +1419,6 @@ if entorno_activo == "Auditoría Interna":
                         st.markdown(f'<div class="card-box" style="background-color:#F8A583; font-size:1.05rem; padding:4px;">{sin_plan}</div>', unsafe_allow_html=True)
 
                 with c3:
-                    # 1. Gráfico principal arriba aprovechando la altura
-                    st.markdown('<div class="block-header">Distribución de Planes Pendientes</div>', unsafe_allow_html=True)
-                    st.plotly_chart(fig_bar, use_container_width=True, key="fig_bar_pendientes", config={'displayModeBar': False})
-
-                    # 2. Alertas de vencimiento distribuidas en 4 columnas abarcando el 100% de c3 abajo
-                    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
                     st.markdown('<div class="block-header">Acciones próximas a vencer</div>', unsafe_allow_html=True)
 
                     def obtener_valor_alerta(col_name):
@@ -1453,15 +1434,20 @@ if entorno_activo == "Auditoría Interna":
                     val_20 = obtener_valor_alerta(col_a20)
                     val_30 = obtener_valor_alerta(col_a30)
 
-                    alt1, alt2, alt3, alt4 = st.columns(4)
-                    with alt1:
-                        st.markdown(f'<div class="alert-card-horiz"><span>5 días 🔴</span><div class="alert-val-box">{val_5}</div></div>', unsafe_allow_html=True)
-                    with alt2:
-                        st.markdown(f'<div class="alert-card-horiz"><span>10 días 🟡</span><div class="alert-val-box">{val_10}</div></div>', unsafe_allow_html=True)
-                    with alt3:
-                        st.markdown(f'<div class="alert-card-horiz"><span>20 días 🟢</span><div class="alert-val-box">{val_20}</div></div>', unsafe_allow_html=True)
-                    with alt4:
-                        st.markdown(f'<div class="alert-card-horiz"><span>30 días 🔵</span><div class="alert-val-box">{val_30}</div></div>', unsafe_allow_html=True)
+                    st.markdown(
+                        f"""
+                        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+                            <div class="alert-row-compact"><div class="alert-item-label"><span>5 días</span><span>🔴</span></div><div class="alert-val-box">{val_5}</div></div>
+                            <div class="alert-row-compact"><div class="alert-item-label"><span>10 días</span><span>🟡</span></div><div class="alert-val-box">{val_10}</div></div>
+                            <div class="alert-row-compact"><div class="alert-item-label"><span>20 días</span><span>🟢</span></div><div class="alert-val-box">{val_20}</div></div>
+                            <div class="alert-row-compact"><div class="alert-item-label"><span>30 días</span><span>🔵</span></div><div class="alert-val-box">{val_30}</div></div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+                    st.markdown('<div class="block-header" style="margin-top:2px;">Distribución de Planes Pendientes</div>', unsafe_allow_html=True)
+                    st.plotly_chart(fig_bar, use_container_width=True, key="fig_bar_pendientes", config={'displayModeBar': False})
 
                 with c4:
                     st.markdown('<div class="block-header">Porcentaje de Acciones Pendientes</div>', unsafe_allow_html=True)

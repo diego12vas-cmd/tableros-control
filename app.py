@@ -1301,6 +1301,9 @@ if entorno_activo == "Auditoría Interna":
     r_medio = df_activos[col_riesgo].astype(str).str.contains("Medio", case=False, na=False).sum() if col_riesgo else 0
     r_bajo = df_activos[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False).sum() if col_riesgo else 0
 
+    # VARIABLE GLOBAL PARA USAR EN TODAS LAS PESTAÑAS (EVITA NameError)
+    pct_abiertos = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
+
     # ---------------------------------------------------------
     # CONSTRUCCIÓN DE NUEVAS VISUALIZACIONES EN PLOTLY
     # ---------------------------------------------------------
@@ -1356,11 +1359,11 @@ if entorno_activo == "Auditoría Interna":
     fig_tendencia.update_layout(
         template='plotly_dark',
         title=dict(text="📈 Tendencia Mensual de Planes (Vigencia 2026)", font=dict(size=14, color="white")),
-        height=320,
-        margin=dict(l=20, r=20, t=40, b=20),
+        height=330,
+        margin=dict(l=20, r=20, t=50, b=50),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center"),
         xaxis=dict(showgrid=False),
         yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)')
     )
@@ -1391,14 +1394,14 @@ if entorno_activo == "Auditoría Interna":
             fig_top5.update_traces(textposition='inside', insidetextanchor='middle')
             fig_top5.update_layout(
                 template='plotly_dark',
-                height=320,
-                margin=dict(l=20, r=20, t=40, b=20),
+                height=330,
+                margin=dict(l=20, r=20, t=50, b=50),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
                 yaxis=dict(type='category', autorange='reversed', title=None),
                 xaxis=dict(showgrid=False, visible=False),
                 legend_title_text="Riesgo",
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center")
             )
         else:
             fig_top5 = None

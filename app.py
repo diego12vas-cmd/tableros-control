@@ -1095,6 +1095,7 @@ if entorno_activo == "Auditoría Interna":
     col_estado = "Estado" if "Estado" in df_raw.columns else buscar_columna_por_patron(df_raw, ["estado del compromiso", "estado compromiso"])
     col_responsable = "Responsable" if "Responsable" in df_raw.columns else buscar_columna_por_patron(df_raw, ["responsable", "area responsable"])
     col_auditor_resp = "Auditor Responsable" if "Auditor Responsable" in df_raw.columns else buscar_columna_por_patron(df_raw, ["auditor responsable", "auditor"])
+    col_apoyo_resp = "Apoyo Responsable" if "Apoyo Responsable" in df_raw.columns else buscar_columna_por_patron(df_raw, ["apoyo responsable", "apoyo"])
     col_plan_filtro = "Plan Auditoría" if "Plan Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["plan auditoria", "vigencia"])
     col_plan_accion = "Plan de Acción" if "Plan de Acción" in df_raw.columns else buscar_columna_por_patron(df_raw, ["compromiso", "plan de accion", "accion"]) or col_plan_filtro
     col_auditoria = "Auditoría" if "Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["auditoria especifica"])
@@ -1260,6 +1261,21 @@ if entorno_activo == "Auditoría Interna":
         if aud_resp_sel:
             df_filtrado = df_filtrado[df_filtrado[col_auditor_resp].isin(aud_resp_sel)]
 
+    if col_apoyo_resp and col_apoyo_resp in df_raw.columns:
+        apoyo_raw_list = []
+        for val in df_raw[col_apoyo_resp].dropna().unique():
+            names = [n.strip() for n in str(val).replace("\n", ",").split(",") if n.strip() and n.strip().lower() not in ["nan", "none"]]
+            apoyo_raw_list.extend(names)
+        apoyo_vals = sorted(list(set(apoyo_raw_list)))
+        
+        with st.sidebar.expander("👥 Apoyo Responsable", expanded=False):
+            apoyo_sel = st.multiselect("Seleccione Apoyo Responsable:", options=apoyo_vals, default=[], key="multi_apoyo_resp")
+        if apoyo_sel:
+            mask_apoyo = df_filtrado[col_apoyo_resp].fillna("").astype(str).apply(
+                lambda x: any(sel.lower() in str(x).lower() for sel in apoyo_sel)
+            )
+            df_filtrado = df_filtrado[mask_apoyo]
+
     if col_plan_filtro:
         plan_vals = sorted(list(set([p for p in df_raw[col_plan_filtro].dropna().unique() if str(p).lower() not in ["nan", "none", ""]])))
         with st.sidebar.expander("📁 Plan Auditoría / Vigencia", expanded=False):
@@ -1343,7 +1359,7 @@ if entorno_activo == "Auditoría Interna":
 
             for _, row in df_totales_aud.iterrows():
                 fig_aud_horiz.add_annotation(y=row[col_auditoria], x=row["Total_Pendientes"], text=f" <b>{row['Total_Pendientes']}</b>", showarrow=False, xanchor="left", yanchor="middle", font=dict(size=13, color="var(--text-color)"))
-            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            fig_aud_horiz.update_layout(height=max(450, len(df_totales_aud) * 44), coloraxis_showscale=False, yaxis=dict(type="category", autorange="reversed", title=None, automargin=True, tickfont=dict(color="var(--text-color)")), xaxis=dict(showticklabels=False, title=None, visible=False, range=[0, df_totales_aud["Total_Pendientes"].max() * 1.25 if not df_totales_aud.empty else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
 
     dict_pestanias = {
         "Tablero": "📊 Tablero",

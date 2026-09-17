@@ -1304,11 +1304,12 @@ if entorno_activo == "Auditoría Interna":
     # ---------------------------------------------------------
     # CONSTRUCCIÓN DE NUEVAS VISUALIZACIONES EN PLOTLY
     # ---------------------------------------------------------
-    # Gráfico 1: Tendencia Mensual de Planes de acción (Abiertos y Vencidos vs Finalizados)
+    # Gráfico 1: Tendencia Mensual desglosada (Abiertos vs Vencidos vs Finalizados)
     meses_orden = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
     map_m_num = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
 
-    data_tend_pend = {m: 0 for m in meses_orden}
+    data_tend_abiertos = {m: 0 for m in meses_orden}
+    data_tend_vencidos = {m: 0 for m in meses_orden}
     data_tend_fin = {m: 0 for m in meses_orden}
 
     df_eval_tend = df_filtrado.copy()
@@ -1321,15 +1322,25 @@ if entorno_activo == "Auditoría Interna":
             m_lbl = map_m_num[dt_c.month]
             if any(term in st_val for term in ['finaliz', 'cerrad']):
                 data_tend_fin[m_lbl] += 1
+            elif 'vencid' in st_val:
+                data_tend_vencidos[m_lbl] += 1
             else:
-                data_tend_pend[m_lbl] += 1
+                data_tend_abiertos[m_lbl] += 1
 
     fig_tendencia = go.Figure()
     fig_tendencia.add_trace(go.Scatter(
         x=meses_orden, 
-        y=[data_tend_pend[m] for m in meses_orden],
+        y=[data_tend_abiertos[m] for m in meses_orden],
         mode='lines+markers',
-        name='Abiertos y Vencidos',
+        name='Abiertos',
+        line=dict(color='#F39C12', width=3, shape='spline'),
+        marker=dict(size=6)
+    ))
+    fig_tendencia.add_trace(go.Scatter(
+        x=meses_orden, 
+        y=[data_tend_vencidos[m] for m in meses_orden],
+        mode='lines+markers',
+        name='Vencidos',
         line=dict(color='#FF5E5E', width=3, shape='spline'),
         marker=dict(size=6)
     ))

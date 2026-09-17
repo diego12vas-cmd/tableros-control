@@ -713,24 +713,25 @@ st.markdown(
             background-color: rgba(241, 245, 249, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 6px;
-            padding: 8px 12px;
+            padding: 6px 10px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             font-weight: bold;
-            font-size: 0.88rem;
+            font-size: 0.85rem;
             color: var(--text-color);
             width: 100%;
+            margin-bottom: 4px;
         }
         .alert-val-box {
             background-color: #EFEFEF;
-            width: 42px;
+            width: 38px;
             text-align: center;
-            padding: 3px 0;
+            padding: 2px 0;
             border-radius: 4px;
             color: #000;
             font-weight: bold;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
         .small-note {
             background-color: rgba(75, 146, 219, 0.15);
@@ -1359,8 +1360,8 @@ if entorno_activo == "Auditoría Interna":
     fig_tendencia.update_layout(
         template='plotly_dark',
         title=dict(text="📈 Tendencia Mensual de Planes (Vigencia 2026)", font=dict(size=14, color="white")),
-        height=320,
-        margin=dict(l=20, r=20, t=50, b=50),
+        height=270,
+        margin=dict(l=20, r=20, t=40, b=40),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center"),
@@ -1398,8 +1399,8 @@ if entorno_activo == "Auditoría Interna":
             fig_top5.update_traces(textposition='inside', insidetextanchor='middle')
             fig_top5.update_layout(
                 template='plotly_dark',
-                height=320,
-                margin=dict(l=20, r=20, t=50, b=50),
+                height=270,
+                margin=dict(l=20, r=20, t=40, b=40),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
                 yaxis=dict(type='category', autorange='reversed', title=None),
@@ -1478,9 +1479,9 @@ if entorno_activo == "Auditoría Interna":
         with tab_obj:
             if nombre_tab_real == "Tablero":
                 # ---------------------------------------------------------
-                # ESTRUCTURA EN CUADRÍCULA 2x2 BALANCEADA (COLUMNAS ANGOSTADAS A LA IZQUIERDA)
+                # ESTRUCTURA 2x2: COLUMNA IZQUIERDA ANGOSTADA Y ALINEACIÓN PERFECTA ABAJO
                 # ---------------------------------------------------------
-                col_izq, col_der = st.columns([1, 1.35])
+                col_izq, col_der = st.columns([0.82, 1.5])
 
                 # 1. BLOQUE ARRIBA A LA IZQUIERDA: TARJETAS DE TOTALES
                 with col_izq:
@@ -1515,17 +1516,9 @@ if entorno_activo == "Auditoría Interna":
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Sin definir</div>', unsafe_allow_html=True)
                         st.markdown(f'<div class="card-box" style="background-color:#F8A583; font-size:1.05rem; padding:4px;">{sin_plan}</div>', unsafe_allow_html=True)
 
-                # 2. BLOQUE ARRIBA A LA DERECHA: TENDENCIA MENSUAL DE PLANES
-                with col_der:
-                    st.plotly_chart(fig_tendencia, use_container_width=True, key="fig_tendencia_tablero", config={'displayModeBar': False})
+                    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
-                st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
-
-                # 3. FILA INFERIOR DE LA CUADRÍCULA (ABAJO IZQUIERDA Y ABAJO DERECHA)
-                col_izq_inf, col_der_inf = st.columns([1, 1.35])
-
-                # 3.1 BLOQUE ABAJO A LA IZQUIERDA: ACCIONES PRÓXIMAS A VENCER EN 2 COLUMNAS x 2 FILAS
-                with col_izq_inf:
+                    # 2. BLOQUE ABAJO A LA IZQUIERDA: ACCIONES PRÓXIMAS A VENCER EN 1 SOLA COLUMNA VERTICAL COMPACTA
                     st.markdown('<div class="block-header">Acciones próximas a vencer</div>', unsafe_allow_html=True)
 
                     def obtener_valor_alerta(col_name):
@@ -1541,24 +1534,17 @@ if entorno_activo == "Auditoría Interna":
                     val_20 = obtener_valor_alerta(col_a20)
                     val_30 = obtener_valor_alerta(col_a30)
 
-                    # Fila 1 de Alertas (5 días y 10 días)
-                    a_f1_col1, a_f1_col2 = st.columns(2)
-                    with a_f1_col1:
-                        st.markdown(f'<div class="alert-card-horiz"><span>5 días 🔴</span><div class="alert-val-box">{val_5}</div></div>', unsafe_allow_html=True)
-                    with a_f1_col2:
-                        st.markdown(f'<div class="alert-card-horiz"><span>10 días 🟡</span><div class="alert-val-box">{val_10}</div></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="alert-card-horiz"><span>5 días 🔴</span><div class="alert-val-box">{val_5}</div></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="alert-card-horiz"><span>10 días 🟡</span><div class="alert-val-box">{val_10}</div></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="alert-card-horiz"><span>20 días 🟢</span><div class="alert-val-box">{val_20}</div></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="alert-card-horiz"><span>30 días 🔵</span><div class="alert-val-box">{val_30}</div></div>', unsafe_allow_html=True)
 
-                    st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
-
-                    # Fila 2 de Alertas (20 días y 30 días)
-                    a_f2_col1, a_f2_col2 = st.columns(2)
-                    with a_f2_col1:
-                        st.markdown(f'<div class="alert-card-horiz"><span>20 días 🟢</span><div class="alert-val-box">{val_20}</div></div>', unsafe_allow_html=True)
-                    with a_f2_col2:
-                        st.markdown(f'<div class="alert-card-horiz"><span>30 días 🔵</span><div class="alert-val-box">{val_30}</div></div>', unsafe_allow_html=True)
-
-                # 3.2 BLOQUE ABAJO A LA DERECHA: TOP 5 RESPONSABLES CON PENDIENTES POR ESTADO
-                with col_der_inf:
+                # 3. BLOQUE DE LA DERECHA: LOS DOS GRÁFICOS APILADOS PERFECTAMENTE
+                with col_der:
+                    st.plotly_chart(fig_tendencia, use_container_width=True, key="fig_tendencia_tablero", config={'displayModeBar': False})
+                    
+                    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+                    
                     if fig_top5 is not None:
                         st.plotly_chart(fig_top5, use_container_width=True, key="fig_top5_tablero", config={'displayModeBar': False})
                     else:

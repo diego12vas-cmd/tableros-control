@@ -709,31 +709,28 @@ st.markdown(
             color: var(--text-color);
             font-weight: bold;
         }
-        .alert-row-compact {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 4px;
-            font-weight: bold;
-            font-size: 0.85rem;
-            color: var(--text-color);
-        }
-        .alert-item-label {
+        .alert-card-horiz {
+            background-color: rgba(241, 245, 249, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            padding: 8px 12px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            width: 85px;
+            font-weight: bold;
+            font-size: 0.88rem;
+            color: var(--text-color);
+            width: 100%;
         }
         .alert-val-box {
             background-color: #EFEFEF;
-            width: 44px;
+            width: 42px;
             text-align: center;
             padding: 3px 0;
             border-radius: 4px;
             color: #000;
             font-weight: bold;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
         }
         .small-note {
             background-color: rgba(75, 146, 219, 0.15);
@@ -1264,7 +1261,8 @@ if entorno_activo == "Auditoría Interna":
     if col_apoyo_resp and col_apoyo_resp in df_raw.columns:
         apoyo_raw_list = []
         for val in df_raw[col_apoyo_resp].dropna().unique():
-            names = [n.strip() for n in str(val).replace("\n", ",").split(",") if n.strip() and n.strip().lower() not in ["nan", "none"]]
+            val_norm = str(val).replace("Maryury", "Maryuri").replace("Carloina", "Carolina")
+            names = [n.strip() for n in val_norm.replace("\n", ",").split(",") if n.strip() and n.strip().lower() not in ["nan", "none"]]
             apoyo_raw_list.extend(names)
         apoyo_vals = sorted(list(set(apoyo_raw_list)))
         
@@ -1272,7 +1270,7 @@ if entorno_activo == "Auditoría Interna":
             apoyo_sel = st.multiselect("Seleccione Apoyo Responsable:", options=apoyo_vals, default=[], key="multi_apoyo_resp")
         if apoyo_sel:
             mask_apoyo = df_filtrado[col_apoyo_resp].fillna("").astype(str).apply(
-                lambda x: any(sel.lower() in str(x).lower() for sel in apoyo_sel)
+                lambda x: any(sel.lower() in str(x).replace("maryury", "maryuri").lower() for sel in apoyo_sel)
             )
             df_filtrado = df_filtrado[mask_apoyo]
 
@@ -1303,21 +1301,98 @@ if entorno_activo == "Auditoría Interna":
     r_medio = df_activos[col_riesgo].astype(str).str.contains("Medio", case=False, na=False).sum() if col_riesgo else 0
     r_bajo = df_activos[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False).sum() if col_riesgo else 0
 
-    max_val_pend = max([abiertos, vencidos, sin_plan])
-    df_bar = pd.DataFrame({"Estado": ["Abiertos", "Vencidos", "Sin definir"], "Cantidad": [abiertos, vencidos, sin_plan]})
-    fig_bar = px.bar(df_bar, x="Estado", y="Cantidad", text="Cantidad", color="Estado", color_discrete_map={"Abiertos": "#58C57A", "Vencidos": "#FF5252", "Sin definir": "#F8A583"})
-    fig_bar.update_traces(textposition="outside", textfont=dict(size=12, color="var(--text-color)", family="Arial"), cliponaxis=False)
-    fig_bar.update_layout(showlegend=False, height=180, margin=dict(t=25, b=5, l=5, r=5), xaxis_title=None, yaxis_title=None, yaxis=dict(showticklabels=False, range=[0, max_val_pend * 1.25 if max_val_pend > 0 else 10]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+    # ---------------------------------------------------------
+    # CONSTRUCCIÓN DE NUEVAS VISUALIZACIONES EN PLOTLY
+    # ---------------------------------------------------------
+    # Gráfico 1: Tendencia Mensual de Planes de acción (Abiertos y Vencidos vs Finalizados)
+    meses_orden = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
+    map_m_num = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
 
-    pct_abiertos = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
-    fig_dona_abiertos = go.Figure(data=[go.Pie(values=[1]*20, hole=0.68, marker_colors=["#00B050" if i < (pct_abiertos / 5) else "#E0E0E0" for i in range(20)], marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none", domain=dict(x=[0.05, 0.95], y=[0.05, 0.95]))])
-    fig_dona_abiertos.add_annotation(text=f"<b>{pct_abiertos}%</b>", x=0.5, y=0.5, font=dict(size=18, color="var(--text-color)"), showarrow=False)
-    fig_dona_abiertos.update_layout(showlegend=False, height=170, autosize=True, margin=dict(t=10, b=10, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+    data_tend_pend = {m: 0 for m in meses_orden}
+    data_tend_fin = {m: 0 for m in meses_orden}
 
-    pct_vencidos = round((vencidos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
-    fig_dona_vencidos = go.Figure(data=[go.Pie(values=[1]*20, hole=0.68, marker_colors=["#FF5252" if i < (pct_vencidos / 5) else "#E0E0E0" for i in range(20)], marker_line=dict(color="#FFFFFF", width=2), textinfo="none", hoverinfo="none", domain=dict(x=[0.05, 0.95], y=[0.05, 0.95]))])
-    fig_dona_vencidos.add_annotation(text=f"<b>{pct_vencidos}%</b>", x=0.5, y=0.5, font=dict(size=18, color="var(--text-color)"), showarrow=False)
-    fig_dona_vencidos.update_layout(showlegend=False, height=170, autosize=True, margin=dict(t=10, b=10, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+    df_eval_tend = df_filtrado.copy()
+    df_eval_tend['f_dt_eval'] = df_eval_tend[col_fecha_cierre].apply(parsear_fecha_estricta)
+
+    for _, r in df_eval_tend.iterrows():
+        dt_c = r['f_dt_eval']
+        st_val = str(r[col_estado]).lower()
+        if pd.notnull(dt_c) and dt_c.year == 2026 and dt_c.month in map_m_num:
+            m_lbl = map_m_num[dt_c.month]
+            if any(term in st_val for term in ['finaliz', 'cerrad']):
+                data_tend_fin[m_lbl] += 1
+            else:
+                data_tend_pend[m_lbl] += 1
+
+    fig_tendencia = go.Figure()
+    fig_tendencia.add_trace(go.Scatter(
+        x=meses_orden, 
+        y=[data_tend_pend[m] for m in meses_orden],
+        mode='lines+markers',
+        name='Abiertos y Vencidos',
+        line=dict(color='#FF5E5E', width=3, shape='spline'),
+        marker=dict(size=6)
+    ))
+    fig_tendencia.add_trace(go.Scatter(
+        x=meses_orden, 
+        y=[data_tend_fin[m] for m in meses_orden],
+        mode='lines+markers',
+        name='Finalizados/Cerrados',
+        line=dict(color='#2ECC71', width=3, shape='spline'),
+        marker=dict(size=6)
+    ))
+
+    fig_tendencia.update_layout(
+        template='plotly_dark',
+        title=dict(text="📈 Tendencia Mensual de Planes (Vigencia 2026)", font=dict(size=14, color="white")),
+        height=320,
+        margin=dict(l=20, r=20, t=40, b=20),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        xaxis=dict(showgrid=False),
+        yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)')
+    )
+
+    # Gráfico 2: Top 5 Responsables con Planes de acción Vencidos / Pendientes por Riesgo
+    df_pend_ai = df_activos.copy()
+    if not df_pend_ai.empty and col_responsable in df_pend_ai.columns:
+        df_pend_ai['Resp_Clean'] = df_pend_ai[col_responsable].astype(str).str.replace("\n", ",").str.split(",")
+        df_exploded_ai = df_pend_ai.explode('Resp_Clean')
+        df_exploded_ai['Resp_Clean'] = df_exploded_ai['Resp_Clean'].apply(limpiar_nombre_area)
+        df_exploded_ai = df_exploded_ai[~df_exploded_ai['Resp_Clean'].isin(["", "NAN", "NONE", "NONE."])]
+
+        if not df_exploded_ai.empty:
+            df_top5_grp = df_exploded_ai.groupby(['Resp_Clean', col_riesgo]).size().reset_index(name='Cantidad')
+            top_resp_names = df_exploded_ai.groupby('Resp_Clean').size().nlargest(5).index.tolist()
+            df_top5_final = df_top5_grp[df_top5_grp['Resp_Clean'].isin(top_resp_names)].copy()
+
+            fig_top5 = px.bar(
+                df_top5_final,
+                y='Resp_Clean',
+                x='Cantidad',
+                color=col_riesgo,
+                orientation='h',
+                title="🔥 Top 5 Responsables con Pendientes por Riesgo",
+                color_discrete_map={'Alto': '#FF5E5E', 'Medio': '#F39C12', 'Bajo': '#2ECC71'},
+                text='Cantidad'
+            )
+            fig_top5.update_traces(textposition='inside', insidetextanchor='middle')
+            fig_top5.update_layout(
+                template='plotly_dark',
+                height=320,
+                margin=dict(l=20, r=20, t=40, b=20),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                yaxis=dict(type='category', autorange='reversed', title=None),
+                xaxis=dict(showgrid=False, visible=False),
+                legend_title_text="Riesgo",
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            )
+        else:
+            fig_top5 = None
+    else:
+        fig_top5 = None
 
     df_perf = df_filtrado.copy()
     df_perf["Estado_Normalizado"] = df_perf[col_estado].fillna("").astype(str).str.strip().apply(lambda x: "Abierta" if "abiert" in x.lower() else ("Vencida" if "vencid" in x.lower() else ("Sin plan de acción" if "sin" in x.lower() else x))) if col_estado in df_perf.columns else ""
@@ -1384,9 +1459,12 @@ if entorno_activo == "Auditoría Interna":
     for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
         with tab_obj:
             if nombre_tab_real == "Tablero":
-                c2, c3, c4 = st.columns([2.5, 2.5, 2.0])
+                # ---------------------------------------------------------
+                # FILA SUPERIOR: METRICAS Y ALERTAS REESTRUCTURADAS
+                # ---------------------------------------------------------
+                col_met1, col_met2 = st.columns([1.2, 1])
 
-                with c2:
+                with col_met1:
                     st.markdown('<div class="block-header">Total Hallazgos Pendientes</div>', unsafe_allow_html=True)
                     st.markdown(f'<div class="card-box" style="background-color:#4B92DB; font-size:1.3rem; height:34px; line-height:26px;">{total_hallazgos_unicos_pendientes}</div>', unsafe_allow_html=True)
 
@@ -1418,7 +1496,7 @@ if entorno_activo == "Auditoría Interna":
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Sin definir</div>', unsafe_allow_html=True)
                         st.markdown(f'<div class="card-box" style="background-color:#F8A583; font-size:1.05rem; padding:4px;">{sin_plan}</div>', unsafe_allow_html=True)
 
-                with c3:
+                with col_met2:
                     st.markdown('<div class="block-header">Acciones próximas a vencer</div>', unsafe_allow_html=True)
 
                     def obtener_valor_alerta(col_name):
@@ -1434,30 +1512,37 @@ if entorno_activo == "Auditoría Interna":
                     val_20 = obtener_valor_alerta(col_a20)
                     val_30 = obtener_valor_alerta(col_a30)
 
-                    st.markdown(
-                        f"""
-                        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-                            <div class="alert-row-compact"><div class="alert-item-label"><span>5 días</span><span>🔴</span></div><div class="alert-val-box">{val_5}</div></div>
-                            <div class="alert-row-compact"><div class="alert-item-label"><span>10 días</span><span>🟡</span></div><div class="alert-val-box">{val_10}</div></div>
-                            <div class="alert-row-compact"><div class="alert-item-label"><span>20 días</span><span>🟢</span></div><div class="alert-val-box">{val_20}</div></div>
-                            <div class="alert-row-compact"><div class="alert-item-label"><span>30 días</span><span>🔵</span></div><div class="alert-val-box">{val_30}</div></div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                    alt1, alt2, alt3, alt4 = st.columns(4)
+                    with alt1:
+                        st.markdown(f'<div class="alert-card-horiz"><span>5 días 🔴</span><div class="alert-val-box">{val_5}</div></div>', unsafe_allow_html=True)
+                    with alt2:
+                        st.markdown(f'<div class="alert-card-horiz"><span>10 días 🟡</span><div class="alert-val-box">{val_10}</div></div>', unsafe_allow_html=True)
+                    with alt3:
+                        st.markdown(f'<div class="alert-card-horiz"><span>20 días 🟢</span><div class="alert-val-box">{val_20}</div></div>', unsafe_allow_html=True)
+                    with alt4:
+                        st.markdown(f'<div class="alert-card-horiz"><span>30 días 🔵</span><div class="alert-val-box">{val_30}</div></div>', unsafe_allow_html=True)
 
-                    st.markdown('<div class="block-header" style="margin-top:2px;">Distribución de Planes Pendientes</div>', unsafe_allow_html=True)
-                    st.plotly_chart(fig_bar, use_container_width=True, key="fig_bar_pendientes", config={'displayModeBar': False})
+                st.markdown("<div style='height:15px;'></div>", unsafe_allow_html=True)
 
-                with c4:
-                    st.markdown('<div class="block-header">Porcentaje de Acciones Pendientes</div>', unsafe_allow_html=True)
-                    st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#00B050;">🟢 En tiempo (Abiertos)</div>', unsafe_allow_html=True)
-                    st.plotly_chart(fig_dona_abiertos, use_container_width=True, key="fig_dona_abiertos_key", config={'displayModeBar': False})
-                    st.markdown('<div class="block-header" style="font-size:0.75rem; text-transform:none; margin-bottom:0px; color:#FF5252;">🔴 Vencidos</div>', unsafe_allow_html=True)
-                    st.plotly_chart(fig_dona_vencidos, use_container_width=True, key="fig_dona_vencidos_key", config={'displayModeBar': False})
+                # ---------------------------------------------------------
+                # FILA INTERMEDIA: NUEVOS GRÁFICOS PLOTLY DE TENDENCIA Y TOP 5
+                # ---------------------------------------------------------
+                c_graf1, c_graf2 = st.columns([1.1, 1])
+
+                with c_graf1:
+                    st.plotly_chart(fig_tendencia, use_container_width=True, key="fig_tendencia_tablero", config={'displayModeBar': False})
+
+                with c_graf2:
+                    if fig_top5 is not None:
+                        st.plotly_chart(fig_top5, use_container_width=True, key="fig_top5_tablero", config={'displayModeBar': False})
+                    else:
+                        st.info("ℹ️ No hay planes de acción pendientes registrados para generar el Top 5 Responsables.")
 
                 st.markdown("---")
 
+                # ---------------------------------------------------------
+                # FILA INFERIOR: TABLA DETALLADA Y FILTROS RÁPIDOS
+                # ---------------------------------------------------------
                 col_sub, col_search_box, col_filtro_rapido = st.columns([1.8, 1.3, 1])
                 with col_sub:
                     st.subheader("📋 Detalle General de Compromisos Pendientes")

@@ -1310,10 +1310,10 @@ if entorno_activo == "Auditoría Interna":
     fig_bar = px.bar(df_bar, x="Estado", y="Cantidad", text="Cantidad", color="Estado", color_discrete_map={"Abiertos": "#58C57A", "Vencidos": "#FF5252", "Sin definir": "#F8A583"})
     fig_bar.update_traces(textposition="outside", textfont=dict(size=12, color="var(--text-color)", family="Arial"), cliponaxis=False)
     
-    # Alto ampliado a 280px para mayor simetría vertical
+    # Alto ajustado para simetría limpia en la sección central superior
     fig_bar.update_layout(
         showlegend=False, 
-        height=280, 
+        height=180, 
         margin=dict(t=25, b=5, l=5, r=5), 
         xaxis_title=None, 
         yaxis_title=None, 
@@ -1436,7 +1436,7 @@ if entorno_activo == "Auditoría Interna":
                     st.markdown('<div class="block-header">Distribución de Planes Pendientes</div>', unsafe_allow_html=True)
                     st.plotly_chart(fig_bar, use_container_width=True, key="fig_bar_pendientes", config={'displayModeBar': False})
 
-                    # 2. Alertas de vencimiento distribuidas horizontalmente ocupando el 100% de la columna central abajo
+                    # 2. Alertas de vencimiento distribuidas en 4 columnas abarcando el 100% de c3 abajo
                     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
                     st.markdown('<div class="block-header">Acciones próximas a vencer</div>', unsafe_allow_html=True)
 

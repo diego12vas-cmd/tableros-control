@@ -1315,19 +1315,25 @@ if entorno_activo == "Auditoría Interna":
     data_tend_fin = {m: 0 for m in meses_orden}
 
     df_eval_tend = df_filtrado.copy()
-    df_eval_tend['f_dt_eval'] = df_eval_tend[col_fecha_cierre].apply(parsear_fecha_estricta)
 
     for _, r in df_eval_tend.iterrows():
-        dt_c = r['f_dt_eval']
         st_val = str(r[col_estado]).lower()
-        if pd.notnull(dt_c) and dt_c.year == 2026 and dt_c.month in map_m_num:
-            m_lbl = map_m_num[dt_c.month]
-            if any(term in st_val for term in ['finaliz', 'cerrad']):
+        
+        # SI ESTÁ FINALIZADO O CERRADO: USAMOS COLUMNA S (Fecha de cierre Auditoría)
+        if any(term in st_val for term in ['finaliz', 'cerrad']):
+            dt_s = parsear_fecha_estricta(r[col_fecha_cierre_aud]) if col_fecha_cierre_aud in r else pd.NaT
+            if pd.notnull(dt_s) and dt_s.year == 2026 and dt_s.month in map_m_num:
+                m_lbl = map_m_num[dt_s.month]
                 data_tend_fin[m_lbl] += 1
-            elif 'vencid' in st_val:
-                data_tend_vencidos[m_lbl] += 1
-            else:
-                data_tend_abiertos[m_lbl] += 1
+        else:
+            # PARA ABIERTOS Y VENCIDOS: USAMOS COLUMNA I (Cierre)
+            dt_i = parsear_fecha_estricta(r[col_fecha_cierre]) if col_fecha_cierre in r else pd.NaT
+            if pd.notnull(dt_i) and dt_i.year == 2026 and dt_i.month in map_m_num:
+                m_lbl = map_m_num[dt_i.month]
+                if 'vencid' in st_val:
+                    data_tend_vencidos[m_lbl] += 1
+                else:
+                    data_tend_abiertos[m_lbl] += 1
 
     fig_tendencia = go.Figure()
     fig_tendencia.add_trace(go.Scatter(
@@ -2594,7 +2600,7 @@ else:
     total_planes_c = abiertos_c + vencidos_c
 
     # ---------------------------------------------------------
-    # TENDENCIA MENSUAL CONTRALORÍA (LECTURA ESTRICTA COLUMNA W Y AA)
+    # TENDENCIA MENSUAL CONTRALORÍA (FINALIZADOS -> COLUMNA AI / FECHA CIERRE AUDITORÍA)
     # ---------------------------------------------------------
     meses_orden_c = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
     map_m_num_c = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
@@ -2604,17 +2610,22 @@ else:
     data_tend_fin_c = {m: 0 for m in meses_orden_c}
 
     df_eval_tend_c = df_filtrado_c.copy()
-    if col_fecha_cierre_c and col_fecha_cierre_c in df_eval_tend_c.columns:
-        df_eval_tend_c['f_dt_eval'] = df_eval_tend_c[col_fecha_cierre_c].apply(parsear_fecha_estricta)
 
-        for _, r in df_eval_tend_c.iterrows():
-            dt_c = r['f_dt_eval']
-            st_val = str(r[col_estado_c]).lower()
-            if pd.notnull(dt_c) and dt_c.year == 2026 and dt_c.month in map_m_num_c:
-                m_lbl = map_m_num_c[dt_c.month]
-                if any(term in st_val for term in ['finaliz', 'cerrad']):
-                    data_tend_fin_c[m_lbl] += 1
-                elif 'vencid' in st_val:
+    for _, r in df_eval_tend_c.iterrows():
+        st_val = str(r[col_estado_c]).lower()
+        
+        # SI ESTÁ FINALIZADO O CERRADO: USAMOS COLUMNA AI (Fecha cierre x Auditoría)
+        if any(term in st_val for term in ['finaliz', 'cerrad']):
+            dt_s = parsear_fecha_estricta(r[col_fecha_cierre_aud_c]) if col_fecha_cierre_aud_c in r else pd.NaT
+            if pd.notnull(dt_s) and dt_s.year == 2026 and dt_s.month in map_m_num_c:
+                m_lbl = map_m_num_c[dt_s.month]
+                data_tend_fin_c[m_lbl] += 1
+        else:
+            # PARA ABIERTOS Y VENCIDOS: USAMOS COLUMNA W (FECHA DE TERMINACIÓN)
+            dt_w = parsear_fecha_estricta(r[col_fecha_cierre_c]) if col_fecha_cierre_c in r else pd.NaT
+            if pd.notnull(dt_w) and dt_w.year == 2026 and dt_w.month in map_m_num_c:
+                m_lbl = map_m_num_c[dt_w.month]
+                if 'vencid' in st_val:
                     data_tend_vencidos_c[m_lbl] += 1
                 else:
                     data_tend_abiertos_c[m_lbl] += 1

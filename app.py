@@ -15,9 +15,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-# ---------------------------------------------------------
-# IMPORTACIONES DE REPORTLAB PARA PDF CORPORATIVO
-# ---------------------------------------------------------
+# IMPORTACIÓN PARA PDF
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
@@ -49,248 +47,6 @@ def buscar_logo_local():
 LOGO_PATH = buscar_logo_local()
 
 # ---------------------------------------------------------
-# GENERADOR DE INFORME EJECUTIVO CON PLANTILLA CORPORATIVA
-# ---------------------------------------------------------
-class CorporateTemplateCanvas(canvas.Canvas):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._saved_page_states = []
-
-    def showPage(self):
-        self._saved_page_states.append(dict(self.__dict__))
-        self._startPage()
-
-    def save(self):
-        num_pages = len(self._saved_page_states)
-        for state in self._saved_page_states:
-            self.__dict__.update(state)
-            self.draw_page_decorations(num_pages)
-            super().showPage()
-        super().save()
-
-    def draw_page_decorations(self, page_count):
-        self.saveState()
-        
-        # 1. ENCABEZADO CORPORATIVO
-        header_img_path = "logo_header.png"
-        if not os.path.exists(header_img_path):
-            header_img_path = "extracted_media/image1.jpeg"
-            
-        if os.path.exists(header_img_path):
-            try:
-                self.drawImage(header_img_path, 36, 735, width=540, height=45, preserveAspectRatio=True, mask='auto')
-            except Exception:
-                pass
-        else:
-            self.setFillColor(colors.HexColor("#0077C8"))
-            self.rect(0, 772, 612, 20, fill=True, stroke=False)
-            self.setFillColor(colors.HexColor("#7AB800"))
-            self.rect(0, 768, 612, 4, fill=True, stroke=False)
-
-        # 2. PIE DE PÁGINA CORPORATIVO
-        footer_img_path = "logo_footer.png"
-        if not os.path.exists(footer_img_path):
-            footer_img_path = "extracted_media/image2.png"
-            
-        if os.path.exists(footer_img_path):
-            try:
-                self.drawImage(footer_img_path, 36, 30, width=540, height=35, preserveAspectRatio=True, mask='auto')
-            except Exception:
-                pass
-
-        self.setFont("Helvetica", 8)
-        self.setFillColor(colors.HexColor("#555555"))
-        self.drawString(36, 18, f"La Terminal S.A. | Informe de Gestión Trimestral - Emitido el {datetime.now().strftime('%d/%m/%Y %H:%M')}")
-        self.drawRightString(576, 18, f"Página {self._pageNumber} de {page_count}")
-        
-        self.setStrokeColor(colors.HexColor("#CCCCCC"))
-        self.setLineWidth(0.5)
-        self.line(36, 725, 576, 725)
-        self.line(36, 68, 576, 68)
-        
-        self.restoreState()
-
-def generar_pdf_informe_trimestral(entorno_nombre, anio_sel, trim_sel, df_base_input):
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=letter,
-        leftMargin=36,
-        rightMargin=36,
-        topMargin=75,
-        bottomMargin=80
-    )
-
-    styles = getSampleStyleSheet()
-    
-    style_title = ParagraphStyle('DocTitle', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=16, leading=20, textColor=colors.HexColor("#0077C8"), alignment=0, spaceAfter=4)
-    style_subtitle = ParagraphStyle('DocSub', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10, leading=13, textColor=colors.HexColor("#555555"), alignment=0, spaceAfter=12)
-    style_sec_head = ParagraphStyle('SecHead', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=11, leading=14, textColor=colors.HexColor("#0077C8"), spaceBefore=10, spaceAfter=6)
-    style_body = ParagraphStyle('BodyTextCustom', parent=styles['Normal'], fontName='Helvetica', fontSize=8, leading=11, textColor=colors.HexColor("#222222"))
-    style_table_cell = ParagraphStyle('TableCell', parent=styles['Normal'], fontName='Helvetica', fontSize=8, leading=10, textColor=colors.HexColor("#222222"))
-    style_table_header = ParagraphStyle('TableHeader', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8, leading=10, textColor=colors.white, alignment=1)
-
-    elements = []
-
-    elements.append(Paragraph(f"INFORME EJECUTIVO DE GESTIÓN - {entorno_nombre.upper()}", style_title))
-    elements.append(Paragraph(f"Corte Evaluado: <b>{trim_sel} - Vigencia {anio_sel}</b>", style_subtitle))
-
-    map_trim_meses = {
-        "Trimestre 1 (Q1)": [1, 2, 3],
-        "Trimestre 2 (Q2)": [4, 5, 6],
-        "Trimestre 3 (Q3)": [7, 8, 9],
-        "Trimestre 4 (Q4)": [10, 11, 12]
-    }
-    meses_trim = map_trim_meses.get(trim_sel, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
-
-    df_inf = df_base_input.copy()
-    
-    col_cierre = "Cierre" if "Cierre" in df_inf.columns else ("FECHA DE TERMINACIÓN" if "FECHA DE TERMINACIÓN" in df_inf.columns else df_inf.columns[8])
-    col_estado = "Estado" if "Estado" in df_inf.columns else ("ESTADO" if "ESTADO" in df_inf.columns else df_inf.columns[11])
-    col_resp = "Responsable" if "Responsable" in df_inf.columns else ("AREA RESPONSABLE" if "AREA RESPONSABLE" in df_inf.columns else df_inf.columns[6])
-    col_riesgo = "Nivel del Riesgo" if "Nivel del Riesgo" in df_inf.columns else None
-    col_hallaz = "Transcribir el del Hallazgo o Situación Evidenciada" if "Transcribir el del Hallazgo o Situación Evidenciada" in df_inf.columns else ("DESCRIPCIÓN HALLAZGO" if "DESCRIPCIÓN HALLAZGO" in df_inf.columns else df_inf.columns[2])
-    col_id = "ID" if "ID" in df_inf.columns else ("No. HALLAZGO" if "No. HALLAZGO" in df_inf.columns else df_inf.columns[0])
-
-    df_inf['Fecha_DT'] = df_inf[col_cierre].apply(parsear_fecha_estricta)
-    
-    mask_trim = (df_inf['Fecha_DT'].dt.year == int(anio_sel)) & (df_inf['Fecha_DT'].dt.month.isin(meses_trim))
-    df_q = df_inf[mask_trim].copy()
-
-    total_pendientes = len(df_q[~df_q[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)])
-    abiertos_cnt = len(df_q[df_q[col_estado].astype(str).str.contains("Abiert", case=False, na=False)])
-    vencidos_cnt = len(df_q[df_q[col_estado].astype(str).str.contains("Vencid", case=False, na=False)])
-    
-    pct_venc = round((vencidos_cnt / total_pendientes * 100), 1) if total_pendientes > 0 else 0.0
-
-    r_alto = len(df_q[df_q[col_riesgo].astype(str).str.contains("Alto", case=False, na=False)]) if col_riesgo and col_riesgo in df_q.columns else 0
-    r_medio = len(df_q[df_q[col_riesgo].astype(str).str.contains("Medio", case=False, na=False)]) if col_riesgo and col_riesgo in df_q.columns else 0
-    r_bajo = len(df_q[df_q[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False)]) if col_riesgo and col_riesgo in df_q.columns else 0
-
-    top_area_str = "N/A"
-    if not df_q.empty and col_resp in df_q.columns:
-        df_q_pend = df_q[~df_q[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy()
-        if not df_q_pend.empty:
-            df_q_pend['Resp_Clean'] = df_q_pend[col_resp].astype(str).str.replace("\n", ",").str.split(",")
-            df_exp = df_q_pend.explode('Resp_Clean')
-            df_exp['Resp_Clean'] = df_exp['Resp_Clean'].apply(limpiar_nombre_area)
-            df_exp = df_exp[~df_exp['Resp_Clean'].isin(["", "NAN", "NONE"])]
-            if not df_exp.empty:
-                top_area_str = df_exp['Resp_Clean'].value_counts().index[0]
-
-    elements.append(Paragraph("1. Resumen Ejecutivo del Trimestre", style_sec_head))
-    
-    data_resumen = [
-        [Paragraph("Indicador / Métrica", style_table_header), Paragraph("Valor Registrado", style_table_header), Paragraph("Estado / Diagnóstico", style_table_header)],
-        [Paragraph("<b>Total Planes Pendientes</b>", style_table_cell), Paragraph(f"<b>{total_pendientes}</b>", style_table_cell), Paragraph("Planes de Acción activos en el corte evaluado", style_table_cell)],
-        [Paragraph("<b>Riesgo Alto / Medio / Bajo</b>", style_table_cell), Paragraph(f"🔴 {r_alto} | 🟡 {r_medio} | 🟢 {r_bajo}", style_table_cell), Paragraph("Clasificación por severidad del riesgo", style_table_cell)],
-        [Paragraph("<b>Porcentaje Vencidos</b>", style_table_cell), Paragraph(f"<b>{pct_venc}%</b> ({vencidos_cnt} planes)", style_table_cell), Paragraph("Mora sobre el total de pendientes del trimestre", style_table_cell)],
-        [Paragraph("<b>Top Área Crítica</b>", style_table_cell), Paragraph(f"<b>{top_area_str}</b>", style_table_cell), Paragraph("Dependencia con mayor carga de pendientes", style_table_cell)]
-    ]
-
-    t_resumen = Table(data_resumen, colWidths=[160, 140, 240])
-    t_resumen.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#0077C8")),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
-        ('ALIGN', (1, 1), (1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-        ('TOPPADDING', (0, 0), (-1, -1), 5),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor("#FFFFFF"), colors.HexColor("#F8FAFC")]),
-    ]))
-    elements.append(t_resumen)
-    elements.append(Spacer(1, 10))
-
-    elements.append(Paragraph("2. Detalle General de Planes de Acción Abiertos (En Gestión)", style_sec_head))
-    df_abiertos = df_q[df_q[col_estado].astype(str).str.contains("Abiert", case=False, na=False)].copy()
-
-    if not df_abiertos.empty:
-        data_abiertos = [[
-            Paragraph("Código/ID", style_table_header),
-            Paragraph("Hallazgo / Situación", style_table_header),
-            Paragraph("Área Responsable", style_table_header),
-            Paragraph("Riesgo", style_table_header),
-            Paragraph("Fecha Límite", style_table_header)
-        ]]
-
-        for _, row_a in df_abiertos.iterrows():
-            val_id = str(row_a[col_id]).replace(".0", "").strip() if pd.notnull(row_a[col_id]) else "—"
-            val_h = Paragraph(str(row_a[col_hallaz])[:130] + "..." if len(str(row_a[col_hallaz])) > 130 else str(row_a[col_hallaz]), style_table_cell) if col_hallaz in row_a else Paragraph("—", style_table_cell)
-            val_r = Paragraph(limpiar_nombre_area(str(row_a[col_resp])), style_table_cell) if col_resp in row_a else Paragraph("—", style_table_cell)
-            val_rg = str(row_a[col_riesgo]) if col_riesgo and col_riesgo in row_a and pd.notnull(row_a[col_riesgo]) else "—"
-            val_f = row_a['Fecha_DT'].strftime('%d/%m/%Y') if pd.notnull(row_a['Fecha_DT']) else "—"
-
-            data_abiertos.append([
-                Paragraph(f"<b>{val_id}</b>", style_table_cell),
-                val_h,
-                val_r,
-                Paragraph(val_rg, style_table_cell),
-                Paragraph(val_f, style_table_cell)
-            ])
-
-        t_abiertos = Table(data_abiertos, colWidths=[55, 215, 150, 60, 60])
-        t_abiertos.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#1F4E78")),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor("#FFFFFF"), colors.HexColor("#F8FAFC")]),
-        ]))
-        elements.append(t_abiertos)
-    else:
-        elements.append(Paragraph("<i>No se registran compromisos Abiertos en este trimestre.</i>", style_body))
-
-    elements.append(Spacer(1, 10))
-
-    elements.append(Paragraph("3. Detalle de Planes de Acción Vencidos (Fuera de Plazo)", style_sec_head))
-    df_vencidos = df_q[df_q[col_estado].astype(str).str.contains("Vencid", case=False, na=False)].copy()
-
-    if not df_vencidos.empty:
-        hoy_dt = pd.to_datetime(date.today())
-        df_vencidos['Dias_Atraso'] = (hoy_dt - df_vencidos['Fecha_DT']).dt.days
-        df_vencidos['Dias_Atraso'] = df_vencidos['Dias_Atraso'].apply(lambda x: x if pd.notnull(x) and x > 0 else 0)
-
-        data_vencidos = [[
-            Paragraph("Código/ID", style_table_header),
-            Paragraph("Hallazgo / Situación", style_table_header),
-            Paragraph("Área Responsable", style_table_header),
-            Paragraph("Fecha Límite", style_table_header),
-            Paragraph("Días Atraso", style_table_header)
-        ]]
-
-        for _, row_v in df_vencidos.iterrows():
-            val_id_v = str(row_v[col_id]).replace(".0", "").strip() if pd.notnull(row_v[col_id]) else "—"
-            val_h_v = Paragraph(str(row_v[col_hallaz])[:130] + "..." if len(str(row_v[col_hallaz])) > 130 else str(row_v[col_hallaz]), style_table_cell) if col_hallaz in row_v else Paragraph("—", style_table_cell)
-            val_r_v = Paragraph(limpiar_nombre_area(str(row_v[col_resp])), style_table_cell) if col_resp in row_v else Paragraph("—", style_table_cell)
-            val_f_v = row_v['Fecha_DT'].strftime('%d/%m/%Y') if pd.notnull(row_v['Fecha_DT']) else "—"
-            val_da = f"<font color='#FF5252'><b>+{row_v['Dias_Atraso']} días</b></font>"
-
-            data_vencidos.append([
-                Paragraph(f"<b>{val_id_v}</b>", style_table_cell),
-                val_h_v,
-                val_r_v,
-                Paragraph(val_f_v, style_table_cell),
-                Paragraph(val_da, style_table_cell)
-            ])
-
-        t_vencidos = Table(data_vencidos, colWidths=[55, 215, 150, 60, 60])
-        t_vencidos.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#C0392B")),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor("#FFFFFF"), colors.HexColor("#FFF5F5")]),
-        ]))
-        elements.append(t_vencidos)
-    else:
-        elements.append(Paragraph("<i>🎉 ¡Excelente! No existen planes Vencidos registrados en este trimestre.</i>", style_body))
-
-    doc.build(elements, canvasmaker=CorporateTemplateCanvas)
-    return buffer.getvalue()
-
-# ---------------------------------------------------------
 # PERSISTENCIA LOCAL Y BASE DE DATOS
 # ---------------------------------------------------------
 DB_PATH = "usuarios_app.db"
@@ -320,6 +76,136 @@ USUARIOS_AMARILLOS = [
     'omar.diaz',
     'omar.diaz@terminaldetransporte.gov.co'
 ]
+
+def hash_password(password):
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
+
+def verificar_password(password, hashed):
+    return hmac.compare_digest(hash_password(password), str(hashed).strip())
+
+def parsear_fecha_estricta(val):
+    if pd.isna(val):
+        return pd.NaT
+    if isinstance(val, (datetime, pd.Timestamp, date)):
+        return pd.to_datetime(val)
+        
+    val_str = str(val).strip().lower()
+    if val_str in ["nan", "none", "nat", "", "cierre", "cierre dd/mm/a", "cierre dd/mm/aa", "inicio", "inicio dd/mm/a"]:
+        return pd.NaT
+
+    try:
+        val_num = float(val_str)
+        if val_num > 30000:
+            return pd.to_datetime(val_num, unit='D', origin='1899-12-30')
+    except Exception:
+        pass
+
+    match = re.search(r"(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})", val_str)
+    if match:
+        d, m, y = int(match.group(1)), int(match.group(2)), int(match.group(3))
+        if y < 100:
+            y += 2000
+        try:
+            return pd.Timestamp(year=y, month=m, day=d)
+        except Exception:
+            pass
+
+    return pd.to_datetime(val_str, dayfirst=True, errors="coerce")
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS usuarios (
+            usuario TEXT PRIMARY KEY,
+            email TEXT UNIQUE,
+            password_hash TEXT,
+            autorizado INTEGER DEFAULT 1,
+            token_recuperacion TEXT,
+            perm_pestañas TEXT DEFAULT 'TODOS',
+            perm_entornos TEXT DEFAULT 'TODOS',
+            requiere_2fa INTEGER DEFAULT 1
+        )
+    ''')
+    conn.commit()
+
+    try:
+        c.execute("ALTER TABLE usuarios ADD COLUMN requiere_2fa INTEGER DEFAULT 1")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+    pw_defecto = hash_password("123456")
+
+    usuarios_base_raw = [
+        ('edgar.ortiz', 'edgar.ortiz@terminaldetransporte.gov'),
+        ('manuel.cifuentes', 'manuel.cifuentes@terminaldetransporte.gov.co'),
+        ('eduardo.gonzalez', 'eduardo.gonzalez@terminaldetransporte.gov.co'),
+        ('oscar.garzon', 'oscar.garzon@terminaldetransporte.gov.co'),
+        ('manuel.santamaria', 'manuel.santamaria@terminaldetransporte.gov.co'),
+        ('carlos.salcedo', 'carlos.salcedo@terminaldetransporte.gov.co'),
+        ('juan.alviz', 'juan.alviz@terminaldetransporte.gov.co'),
+        ('julio.mosquera', 'julio.mosquera@terminaldetransporte.gov.co'),
+        ('marcela.angarita', 'marcela.angarita@terminaldetransporte.gov.co'),
+        ('roberto.bermudez', 'roberto.bermudez@terminaldetransporte.gov.co'),
+        ('miguel.salina', 'miguel.salina@terminaldetransporte.gov.co'),
+        ('oscar.castañeda', 'oscar.castaneda@terminaldetransporte.gov.co'),
+        ('andres.panqueva', 'andres.panqueva@terminaldetransporte.gov.co'),
+        ('christian.pardo', 'christian.pardo@terminaldetransporte.gov.co'),
+        ('diana.ortiz', 'diana.ortiz@terminaldetransporte.gov.co'),
+        ('andrea.lievano', 'andrea.lievano@terminaldetransporte.gov.co'),
+        ('william.camargo', 'william.camargo@terminaldetransporte.gov.co'),
+        ('gerson.lugo', 'gerson.lugo@terminaldetransporte.gov.co'),
+        ('leonardo.vasquez', 'leonardo.vasquez@terminaldetransporte.gov.co'),
+        ('javier.veloza', 'javier.veloza@terminaldetransporte.gov.co'),
+        ('manuel.salgado', 'manuel.salgado@terminaldetransporte.gov.co'),
+        ('edgar.guzman', 'edgar.guzman@terminaldetransporte.gov.co'),
+        ('carolina.bueno', 'carolina.bueno@terminaldetransporte.gov.co'),
+        ('jenny.gomez', 'jenny.gomez@terminaldetransporte.gov.co'),
+        ('paola.copete', 'paola.copete@terminaldetransporte.gov.co'),
+        ('hugo.montoya', 'hugo.montoya@terminaldetransporte.gov.co'),
+        ('admin', 'diego.vasquez@terminaldetransporte.gov.co'),
+        ('diego.12', 'diego12vas@gmail.com'),
+        ('fabian.silva', 'fabian.silva@terminaldetransporte.gov.co'),
+        ('manuel.gutierrez', 'manuel.gutierrez@terminaldetransporte.gov.co'),
+        ('omar.diaz', 'omar.diaz@terminaldetransporte.gov.co')
+    ]
+
+    usuarios_base = [
+        (u, email, pw_defecto, 1, 'TODOS', 'TODOS', 0 if (u in USUARIOS_AMARILLOS or email in USUARIOS_AMARILLOS) else 1)
+        for u, email in usuarios_base_raw
+    ]
+
+    if os.path.exists(JSON_USERS_FILE):
+        try:
+            with open(JSON_USERS_FILE, "r", encoding="utf-8") as f:
+                usuarios_json = json.load(f)
+                if usuarios_json:
+                    usuarios_base = [
+                        (
+                            u["usuario"], 
+                            u["email"], 
+                            u["password_hash"], 
+                            u.get("autorizado", 1), 
+                            u.get("perm_pestañas", "TODOS"), 
+                            u.get("perm_entornos", "TODOS"),
+                            0 if (u["usuario"] in USUARIOS_AMARILLOS or u["email"] in USUARIOS_AMARILLOS) else 1
+                        ) 
+                        for u in usuarios_json
+                    ]
+        except Exception:
+            pass
+
+    c.executemany('''
+        INSERT OR IGNORE INTO usuarios (usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos, requiere_2fa)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', usuarios_base)
+
+    for item in USUARIOS_AMARILLOS:
+        c.execute("UPDATE usuarios SET requiere_2fa = 0 WHERE LOWER(usuario) = ? OR LOWER(email) = ?", (item.lower(), item.lower()))
+
+    conn.commit()
+    conn.close()
 
 init_db()
 
@@ -439,6 +325,36 @@ def enviar_correo_token(email_destino, token):
         return True
     except Exception:
         return False
+
+def limpiar_nombre_area(texto):
+    if not texto or pd.isna(texto):
+        return ""
+    txt = str(texto).upper().strip()
+
+    reemplazos = [
+        (r"DIRECCIÓNDE", "DIRECCIÓN DE "),
+        (r"DIRECCIONDE", "DIRECCIÓN DE "),
+        (r"DEGESTIÓN", "DE GESTIÓN "),
+        (r"DEGESTION", "DE GESTIÓN "),
+        (r"DERECURSOS", "DE RECURSOS "),
+        (r"FÍSICOSY", "FÍSICOS Y "),
+        (r"FISICOSY", "FÍSICOS Y "),
+        (r"FÍSICOSNEGOCIOS", "FÍSICOS Y NEGOCIOS "),
+        (r"FISICOSNEGOCIOS", "FÍSICOS Y NEGOCIOS "),
+        (r"TECNOLÓGICOS", "TECNOLÓGICOS"),
+        (r"TECNOLOGICOS", "TECNOLÓGICOS"),
+        (r"SUBGERENCIAJURÍDICA", "SUBGERENCIA JURÍDICA"),
+        (r"SUBGERENCIACORPORATIVA", "SUBGERENCIA CORPORATIVA"),
+        (r"SUBGERENCIADESERVICIOS", "SUBGERENCIA DE SERVICIOS "),
+        (r"OPERACIONALESEINFRAESTRUCTURA", "OPERACIONALES E INFRAESTRUCTURA"),
+        (r"SUB GERENCIA", "SUBGERENCIA"),
+    ]
+
+    for pat, rep in reemplazos:
+        txt = re.sub(pat, rep, txt)
+
+    txt = re.sub(r"\s+", " ", txt).strip()
+    return txt
 
 # ---------------------------------------------------------
 # SISTEMA DE LOGIN
@@ -818,7 +734,7 @@ st.markdown(
             background-color: #EFEFEF;
             width: 38px;
             text-align: center;
-            padding: 2px 0;
+            padding: 3px 0;
             border-radius: 4px;
             color: #000;
             font-weight: bold;
@@ -2478,8 +2394,8 @@ if entorno_activo == "Auditoría Interna":
                     st.warning("⚠️ No se detectó la columna 'Radicado' en la hoja Base de datos.")
 
             elif nombre_tab_real == "Informes":
-                st.header("📑 Generación de Informes Trimestrales de Gestión")
-                st.markdown("Selecciona una **Vigencia** y un **Trimestre** para generar un Informe Ejecutivo oficial en PDF formateado automáticamente.")
+                st.header("📑 Generación e Impresión de Informes Trimestrales")
+                st.markdown("Selecciona una **Vigencia** y un **Trimestre** para generar automáticamente un Informe Ejecutivo en formato PDF corporativo.")
 
                 col_inf_1, col_inf_2, col_inf_3 = st.columns([1, 1.2, 1.5])
 
@@ -2491,8 +2407,138 @@ if entorno_activo == "Auditoría Interna":
 
                 with col_inf_3:
                     st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+                    
+                    def generar_pdf_local_ai(entorno_nombre, anio_sel, trim_sel, df_base_input):
+                        buffer = io.BytesIO()
+                        doc = SimpleDocTemplate(buffer, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=50, bottomMargin=50)
+                        styles = getSampleStyleSheet()
+                        
+                        style_title = ParagraphStyle('DocTitle', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=16, leading=20, textColor=colors.HexColor("#0077C8"), spaceAfter=4)
+                        style_subtitle = ParagraphStyle('DocSub', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10, leading=13, textColor=colors.HexColor("#555555"), spaceAfter=12)
+                        style_sec_head = ParagraphStyle('SecHead', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=11, leading=14, textColor=colors.HexColor("#0077C8"), spaceBefore=10, spaceAfter=6)
+                        style_body = ParagraphStyle('BodyTextCustom', parent=styles['Normal'], fontName='Helvetica', fontSize=8, leading=11, textColor=colors.HexColor("#222222"))
+                        style_table_cell = ParagraphStyle('TableCell', parent=styles['Normal'], fontName='Helvetica', fontSize=8, leading=10, textColor=colors.HexColor("#222222"))
+                        style_table_header = ParagraphStyle('TableHeader', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8, leading=10, textColor=colors.white, alignment=1)
+
+                        elements = []
+                        elements.append(Paragraph(f"INFORME EJECUTIVO DE GESTIÓN - {entorno_nombre.upper()}", style_title))
+                        elements.append(Paragraph(f"Corte Evaluado: <b>{trim_sel} - Vigencia {anio_sel}</b> | Fecha de Emisión: {datetime.now().strftime('%d/%m/%Y')}", style_subtitle))
+
+                        map_trim_meses = {"Trimestre 1 (Q1)": [1, 2, 3], "Trimestre 2 (Q2)": [4, 5, 6], "Trimestre 3 (Q3)": [7, 8, 9], "Trimestre 4 (Q4)": [10, 11, 12]}
+                        meses_trim = map_trim_meses.get(trim_sel, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+
+                        df_inf = df_base_input.copy()
+                        col_cierre = col_fecha_cierre if col_fecha_cierre in df_inf.columns else df_inf.columns[8]
+                        col_est = col_estado if col_estado in df_inf.columns else df_inf.columns[11]
+                        col_rsp = col_responsable if col_responsable in df_inf.columns else df_inf.columns[6]
+                        col_rsg = col_riesgo if col_riesgo and col_riesgo in df_inf.columns else None
+                        col_hlz = col_hallazgo if col_hallazgo and col_hallazgo in df_inf.columns else df_inf.columns[3]
+                        col_id_val = "ID" if "ID" in df_inf.columns else df_inf.columns[0]
+
+                        df_inf['Fecha_DT'] = df_inf[col_cierre].apply(parsear_fecha_estricta)
+                        mask_trim = (df_inf['Fecha_DT'].dt.year == int(anio_sel)) & (df_inf['Fecha_DT'].dt.month.isin(meses_trim))
+                        df_q = df_inf[mask_trim].copy()
+
+                        total_pendientes = len(df_q[~df_q[col_est].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)])
+                        abiertos_cnt = len(df_q[df_q[col_est].astype(str).str.contains("Abiert", case=False, na=False)])
+                        vencidos_cnt = len(df_q[df_q[col_est].astype(str).str.contains("Vencid", case=False, na=False)])
+                        pct_venc = round((vencidos_cnt / total_pendientes * 100), 1) if total_pendientes > 0 else 0.0
+
+                        r_alto = len(df_q[df_q[col_rsg].astype(str).str.contains("Alto", case=False, na=False)]) if col_rsg else 0
+                        r_medio = len(df_q[df_q[col_rsg].astype(str).str.contains("Medio", case=False, na=False)]) if col_rsg else 0
+                        r_bajo = len(df_q[df_q[col_rsg].astype(str).str.contains("Bajo", case=False, na=False)]) if col_rsg else 0
+
+                        top_area_str = "N/A"
+                        if not df_q.empty and col_rsp in df_q.columns:
+                            df_q_pend = df_q[~df_q[col_est].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy()
+                            if not df_q_pend.empty:
+                                df_q_pend['Resp_Clean'] = df_q_pend[col_rsp].astype(str).str.replace("\n", ",").str.split(",")
+                                df_exp = df_q_pend.explode('Resp_Clean')
+                                df_exp['Resp_Clean'] = df_exp['Resp_Clean'].apply(limpiar_nombre_area)
+                                df_exp = df_exp[~df_exp['Resp_Clean'].isin(["", "NAN", "NONE"])]
+                                if not df_exp.empty:
+                                    top_area_str = df_exp['Resp_Clean'].value_counts().index[0]
+
+                        elements.append(Paragraph("1. Resumen Ejecutivo del Trimestre", style_sec_head))
+                        data_resumen = [
+                            [Paragraph("Indicador / Métrica", style_table_header), Paragraph("Valor Registrado", style_table_header), Paragraph("Estado / Diagnóstico", style_table_header)],
+                            [Paragraph("<b>Total Planes Pendientes</b>", style_table_cell), Paragraph(f"<b>{total_pendientes}</b>", style_table_cell), Paragraph("Planes de Acción activos en el corte evaluado", style_table_cell)],
+                            [Paragraph("<b>Riesgo Alto / Medio / Bajo</b>", style_table_cell), Paragraph(f"🔴 {r_alto} | 🟡 {r_medio} | 🟢 {r_bajo}", style_table_cell), Paragraph("Clasificación por severidad del riesgo", style_table_cell)],
+                            [Paragraph("<b>Porcentaje Vencidos</b>", style_table_cell), Paragraph(f"<b>{pct_venc}%</b> ({vencidos_cnt} planes)", style_table_cell), Paragraph("Mora sobre el total de pendientes del trimestre", style_table_cell)],
+                            [Paragraph("<b>Top Área Crítica</b>", style_table_cell), Paragraph(f"<b>{top_area_str}</b>", style_table_cell), Paragraph("Dependencia con mayor carga de pendientes", style_table_cell)]
+                        ]
+                        t_resumen = Table(data_resumen, colWidths=[160, 140, 240])
+                        t_resumen.setStyle(TableStyle([
+                            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#0077C8")),
+                            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
+                            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                            ('BOTTOMPADDING', (0, 0), (-1, -1), 5), ('TOPPADDING', (0, 0), (-1, -1), 5),
+                            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor("#FFFFFF"), colors.HexColor("#F8FAFC")]),
+                        ]))
+                        elements.append(t_resumen)
+                        elements.append(Spacer(1, 10))
+
+                        elements.append(Paragraph("2. Detalle General de Planes de Acción Abiertos (En Gestión)", style_sec_head))
+                        df_abiertos = df_q[df_q[col_est].astype(str).str.contains("Abiert", case=False, na=False)].copy()
+
+                        if not df_abiertos.empty:
+                            data_abiertos = [[Paragraph("ID", style_table_header), Paragraph("Hallazgo / Situación", style_table_header), Paragraph("Área Responsable", style_table_header), Paragraph("Riesgo", style_table_header), Paragraph("Fecha Límite", style_table_header)]]
+                            for _, row_a in df_abiertos.iterrows():
+                                val_id = str(row_a[col_id_val]).replace(".0", "").strip() if pd.notnull(row_a[col_id_val]) else "—"
+                                val_h = Paragraph(str(row_a[col_hlz])[:130] + "..." if len(str(row_a[col_hlz])) > 130 else str(row_a[col_hlz]), style_table_cell) if col_hlz in row_a else Paragraph("—", style_table_cell)
+                                val_r = Paragraph(limpiar_nombre_area(str(row_a[col_rsp])), style_table_cell) if col_rsp in row_a else Paragraph("—", style_table_cell)
+                                val_rg = str(row_a[col_rsg]) if col_rsg and col_rsg in row_a and pd.notnull(row_a[col_rsg]) else "—"
+                                val_f = row_a['Fecha_DT'].strftime('%d/%m/%Y') if pd.notnull(row_a['Fecha_DT']) else "—"
+                                data_abiertos.append([Paragraph(f"<b>{val_id}</b>", style_table_cell), val_h, val_r, Paragraph(val_rg, style_table_cell), Paragraph(val_f, style_table_cell)])
+
+                            t_abiertos = Table(data_abiertos, colWidths=[45, 225, 150, 60, 60])
+                            t_abiertos.setStyle(TableStyle([
+                                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#1F4E78")),
+                                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
+                                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                                ('BOTTOMPADDING', (0, 0), (-1, -1), 4), ('TOPPADDING', (0, 0), (-1, -1), 4),
+                                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor("#FFFFFF"), colors.HexColor("#F8FAFC")]),
+                            ]))
+                            elements.append(t_abiertos)
+                        else:
+                            elements.append(Paragraph("<i>No se registran compromisos Abiertos en este trimestre.</i>", style_body))
+
+                        elements.append(Spacer(1, 10))
+
+                        elements.append(Paragraph("3. Detalle de Planes de Acción Vencidos (Fuera de Plazo)", style_sec_head))
+                        df_vencidos = df_q[df_q[col_est].astype(str).str.contains("Vencid", case=False, na=False)].copy()
+
+                        if not df_vencidos.empty:
+                            hoy_dt = pd.to_datetime(date.today())
+                            df_vencidos['Dias_Atraso'] = (hoy_dt - df_vencidos['Fecha_DT']).dt.days
+                            df_vencidos['Dias_Atraso'] = df_vencidos['Dias_Atraso'].apply(lambda x: x if pd.notnull(x) and x > 0 else 0)
+
+                            data_vencidos = [[Paragraph("ID", style_table_header), Paragraph("Hallazgo / Situación", style_table_header), Paragraph("Área Responsable", style_table_header), Paragraph("Fecha Límite", style_table_header), Paragraph("Días Atraso", style_table_header)]]
+                            for _, row_v in df_vencidos.iterrows():
+                                val_id_v = str(row_v[col_id_val]).replace(".0", "").strip() if pd.notnull(row_v[col_id_val]) else "—"
+                                val_h_v = Paragraph(str(row_v[col_hlz])[:130] + "..." if len(str(row_v[col_hlz])) > 130 else str(row_v[col_hlz]), style_table_cell) if col_hlz in row_v else Paragraph("—", style_table_cell)
+                                val_r_v = Paragraph(limpiar_nombre_area(str(row_v[col_rsp])), style_table_cell) if col_rsp in row_v else Paragraph("—", style_table_cell)
+                                val_f_v = row_v['Fecha_DT'].strftime('%d/%m/%Y') if pd.notnull(row_v['Fecha_DT']) else "—"
+                                val_da = f"<font color='#FF5252'><b>+{row_v['Dias_Atraso']} días</b></font>"
+                                data_vencidos.append([Paragraph(f"<b>{val_id_v}</b>", style_table_cell), val_h_v, val_r_v, Paragraph(val_f_v, style_table_cell), Paragraph(val_da, style_table_cell)])
+
+                            t_vencidos = Table(data_vencidos, colWidths=[45, 225, 150, 60, 60])
+                            t_vencidos.setStyle(TableStyle([
+                                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#C0392B")),
+                                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
+                                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                                ('BOTTOMPADDING', (0, 0), (-1, -1), 4), ('TOPPADDING', (0, 0), (-1, -1), 4),
+                                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor("#FFFFFF"), colors.HexColor("#FFF5F5")]),
+                            ]))
+                            elements.append(t_vencidos)
+                        else:
+                            elements.append(Paragraph("<i>🎉 ¡Excelente! No existen planes Vencidos registrados en este trimestre.</i>", style_body))
+
+                        doc.build(elements)
+                        return buffer.getvalue()
+
                     try:
-                        bytes_pdf_ai = generar_pdf_informe_trimestral("Auditoría Interna", anio_pdf_sel, trim_pdf_sel, df_raw)
+                        bytes_pdf_ai = generar_pdf_local_ai("Auditoría Interna", anio_pdf_sel, trim_pdf_sel, df_raw)
                         st.download_button(
                             label="📄 Generar e Imprimir Informe PDF",
                             data=bytes_pdf_ai,
@@ -2505,14 +2551,19 @@ if entorno_activo == "Auditoría Interna":
                         st.error(f"❌ Error al generar PDF: {e_pdf}")
 
                 st.markdown("---")
-                st.subheader("📁 Consulta Historica de Informes de Auditoría")
+                st.subheader("📁 Consulta Histórica de Informes de Auditoría")
 
                 if not df_informes_raw.empty:
                     df_inf_vista = df_informes_raw.copy()
                     col_vig_inf = buscar_columna_por_patron(df_inf_vista, ["vigencia"]) or df_inf_vista.columns[0]
                     col_link_inf = buscar_columna_por_patron(df_inf_vista, ["enlace", "pdf", "link", "drive"]) or df_inf_vista.columns[2]
 
-                    df_inf_vista[col_vig_inf] = df_inf_vista[col_vig_inf].astype(str).str.replace(".0", "", regex=False).str.strip()
+                    df_inf_vista[col_vig_inf] = (
+                        df_inf_vista[col_vig_inf]
+                        .astype(str)
+                        .str.replace(".0", "", regex=False)
+                        .str.strip()
+                    )
 
                     def asegurar_link(u):
                         val = str(u).strip()
@@ -2522,7 +2573,10 @@ if entorno_activo == "Auditoría Interna":
 
                     df_inf_vista[col_link_inf] = df_inf_vista[col_link_inf].apply(asegurar_link)
 
-                    vigencias_unicas = sorted([v for v in df_inf_vista[col_vig_inf].dropna().unique() if str(v).lower() not in ["nan", "none", ""]])
+                    vigencias_unicas = sorted([
+                        v for v in df_inf_vista[col_vig_inf].dropna().unique() 
+                        if str(v).lower() not in ["nan", "none", ""]
+                    ])
 
                     if vigencias_unicas:
                         nombres_subtabs = [f"📅 Vigencia {v}" if str(v).isdigit() else str(v) for v in vigencias_unicas]
@@ -2545,6 +2599,16 @@ if entorno_activo == "Auditoría Interna":
                                         )
                                     }
                                 )
+
+                st.markdown("---")
+                st.download_button(
+                    label="📥 Descargar Relación Completa de Informes (.xlsx)",
+                    data=generar_excel_formateado_ai(df_inf_vista),
+                    file_name=f"Relacion_Informes_Auditoria_Interna_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="btn_download_informes_pdf_ai_subtabs_exclusivas",
+                    use_container_width=False,
+                )
 
 # =========================================================
 # VISTA 2: CONTRALORÍA DE BOGOTÁ (LECTURA ESTRICTA COLUMNA W Y AA EN ABIERTOS/VENCIDOS, COLUMNA AI EN FINALIZADOS)
@@ -2694,7 +2758,7 @@ else:
     total_planes_c = abiertos_c + vencidos_c
 
     # ---------------------------------------------------------
-    # TENDENCIA MENSUAL CONTRALORÍA (FINALIZADOS -> COLUMNA AI / Fecha cierre x Auditoría)
+    # TENDENCIA MENSUAL CONTRALORÍA
     # ---------------------------------------------------------
     meses_orden_c = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
     map_m_num_c = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
@@ -2708,14 +2772,12 @@ else:
     for _, r in df_eval_tend_c.iterrows():
         st_val = str(r[col_estado_c]).lower()
         
-        # SI ESTÁ FINALIZADO O CERRADO: USAMOS COLUMNA AI (Fecha cierre x Auditoría)
         if any(term in st_val for term in ['finaliz', 'cerrad']):
             dt_ai = parsear_fecha_estricta(r[col_fecha_cierre_aud_c]) if col_fecha_cierre_aud_c in r else pd.NaT
             if pd.notnull(dt_ai) and dt_ai.year == 2026 and dt_ai.month in map_m_num_c:
                 m_lbl = map_m_num_c[dt_ai.month]
                 data_tend_fin_c[m_lbl] += 1
         else:
-            # PARA ABIERTOS Y VENCIDOS: USAMOS COLUMNA W (FECHA DE TERMINACIÓN)
             dt_w = parsear_fecha_estricta(r[col_fecha_cierre_c]) if col_fecha_cierre_c in r else pd.NaT
             if pd.notnull(dt_w) and dt_w.year == 2026 and dt_w.month in map_m_num_c:
                 m_lbl = map_m_num_c[dt_w.month]
@@ -3296,8 +3358,8 @@ else:
                             st.info("ℹ️ No hay hallazgos finalizados registrados en Contraloría para la vigencia 2026.")
 
             elif nombre_tab_real_c == "Informes":
-                st.header("📑 Generación de Informes Trimestrales de Gestión Contraloría")
-                st.markdown("Selecciona una **Vigencia** y un **Trimestre** para generar un Informe Ejecutivo oficial en PDF formateado automáticamente.")
+                st.header("📑 Generación e Impresión de Informes Trimestrales Contraloría")
+                st.markdown("Selecciona una **Vigencia** y un **Trimestre** para generar automáticamente un Informe Ejecutivo en formato PDF corporativo.")
 
                 col_inf_c1, col_inf_c2, col_inf_c3 = st.columns([1, 1.2, 1.5])
 
@@ -3309,8 +3371,132 @@ else:
 
                 with col_inf_c3:
                     st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+                    
+                    def generar_pdf_local_c(entorno_nombre, anio_sel, trim_sel, df_base_input):
+                        buffer = io.BytesIO()
+                        doc = SimpleDocTemplate(buffer, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=50, bottomMargin=50)
+                        styles = getSampleStyleSheet()
+                        
+                        style_title = ParagraphStyle('DocTitle', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=16, leading=20, textColor=colors.HexColor("#0077C8"), spaceAfter=4)
+                        style_subtitle = ParagraphStyle('DocSub', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10, leading=13, textColor=colors.HexColor("#555555"), spaceAfter=12)
+                        style_sec_head = ParagraphStyle('SecHead', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=11, leading=14, textColor=colors.HexColor("#0077C8"), spaceBefore=10, spaceAfter=6)
+                        style_body = ParagraphStyle('BodyTextCustom', parent=styles['Normal'], fontName='Helvetica', fontSize=8, leading=11, textColor=colors.HexColor("#222222"))
+                        style_table_cell = ParagraphStyle('TableCell', parent=styles['Normal'], fontName='Helvetica', fontSize=8, leading=10, textColor=colors.HexColor("#222222"))
+                        style_table_header = ParagraphStyle('TableHeader', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8, leading=10, textColor=colors.white, alignment=1)
+
+                        elements = []
+                        elements.append(Paragraph(f"INFORME EJECUTIVO DE GESTIÓN - {entorno_nombre.upper()}", style_title))
+                        elements.append(Paragraph(f"Corte Evaluado: <b>{trim_sel} - Vigencia {anio_sel}</b> | Fecha de Emisión: {datetime.now().strftime('%d/%m/%Y')}", style_subtitle))
+
+                        map_trim_meses = {"Trimestre 1 (Q1)": [1, 2, 3], "Trimestre 2 (Q2)": [4, 5, 6], "Trimestre 3 (Q3)": [7, 8, 9], "Trimestre 4 (Q4)": [10, 11, 12]}
+                        meses_trim = map_trim_meses.get(trim_sel, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+
+                        df_inf = df_base_input.copy()
+                        col_cierre = col_fecha_cierre_c if col_fecha_cierre_c in df_inf.columns else df_inf.columns[22]
+                        col_est = col_estado_c if col_estado_c in df_inf.columns else df_inf.columns[26]
+                        col_rsp = col_responsable_c if col_responsable_c in df_inf.columns else df_inf.columns[20]
+                        col_hlz = col_hallazgo_c if col_hallazgo_c and col_hallazgo_c in df_inf.columns else df_inf.columns[14]
+                        col_id_val = "No. HALLAZGO" if "No. HALLAZGO" in df_inf.columns else df_inf.columns[7]
+
+                        df_inf['Fecha_DT'] = df_inf[col_cierre].apply(parsear_fecha_estricta)
+                        mask_trim = (df_inf['Fecha_DT'].dt.year == int(anio_sel)) & (df_inf['Fecha_DT'].dt.month.isin(meses_trim))
+                        df_q = df_inf[mask_trim].copy()
+
+                        total_pendientes = len(df_q[~df_q[col_est].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)])
+                        abiertos_cnt = len(df_q[df_q[col_est].astype(str).str.contains("Abiert", case=False, na=False)])
+                        vencidos_cnt = len(df_q[df_q[col_est].astype(str).str.contains("Vencid", case=False, na=False)])
+                        pct_venc = round((vencidos_cnt / total_pendientes * 100), 1) if total_pendientes > 0 else 0.0
+
+                        top_area_str = "N/A"
+                        if not df_q.empty and col_rsp in df_q.columns:
+                            df_q_pend = df_q[~df_q[col_est].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy()
+                            if not df_q_pend.empty:
+                                df_q_pend['Resp_Clean'] = df_q_pend[col_rsp].astype(str).str.replace("\n", ",").str.split("/")
+                                df_exp = df_q_pend.explode('Resp_Clean')
+                                df_exp['Resp_Clean'] = df_exp['Resp_Clean'].apply(limpiar_nombre_area)
+                                df_exp = df_exp[~df_exp['Resp_Clean'].isin(["", "NAN", "NONE"])]
+                                if not df_exp.empty:
+                                    top_area_str = df_exp['Resp_Clean'].value_counts().index[0]
+
+                        elements.append(Paragraph("1. Resumen Ejecutivo del Trimestre", style_sec_head))
+                        data_resumen = [
+                            [Paragraph("Indicador / Métrica", style_table_header), Paragraph("Valor Registrado", style_table_header), Paragraph("Estado / Diagnóstico", style_table_header)],
+                            [Paragraph("<b>Total Planes Pendientes</b>", style_table_cell), Paragraph(f"<b>{total_pendientes}</b>", style_table_cell), Paragraph("Planes de Acción activos en el corte evaluado", style_table_cell)],
+                            [Paragraph("<b>Detalle Abiertos / Vencidos</b>", style_table_cell), Paragraph(f"🟢 Abiertos: {abiertos_cnt} | 🔴 Vencidos: {vencidos_cnt}", style_table_cell), Paragraph("Clasificación de pendientes por estado", style_table_cell)],
+                            [Paragraph("<b>Porcentaje Vencidos</b>", style_table_cell), Paragraph(f"<b>{pct_venc}%</b> ({vencidos_cnt} planes)", style_table_cell), Paragraph("Mora sobre el total de pendientes del trimestre", style_table_cell)],
+                            [Paragraph("<b>Top Área Crítica</b>", style_table_cell), Paragraph(f"<b>{top_area_str}</b>", style_table_cell), Paragraph("Dependencia con mayor carga de pendientes", style_table_cell)]
+                        ]
+                        t_resumen = Table(data_resumen, colWidths=[160, 140, 240])
+                        t_resumen.setStyle(TableStyle([
+                            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#0077C8")),
+                            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
+                            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                            ('BOTTOMPADDING', (0, 0), (-1, -1), 5), ('TOPPADDING', (0, 0), (-1, -1), 5),
+                            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor("#FFFFFF"), colors.HexColor("#F8FAFC")]),
+                        ]))
+                        elements.append(t_resumen)
+                        elements.append(Spacer(1, 10))
+
+                        elements.append(Paragraph("2. Detalle General de Planes de Acción Abiertos (En Gestión)", style_sec_head))
+                        df_abiertos = df_q[df_q[col_est].astype(str).str.contains("Abiert", case=False, na=False)].copy()
+
+                        if not df_abiertos.empty:
+                            data_abiertos = [[Paragraph("No.", style_table_header), Paragraph("Hallazgo / Situación", style_table_header), Paragraph("Área Responsable", style_table_header), Paragraph("Fecha Límite", style_table_header)]]
+                            for _, row_a in df_abiertos.iterrows():
+                                val_id = str(row_a[col_id_val]).replace(".0", "").strip() if pd.notnull(row_a[col_id_val]) else "—"
+                                val_h = Paragraph(str(row_a[col_hlz])[:140] + "..." if len(str(row_a[col_hlz])) > 140 else str(row_a[col_hlz]), style_table_cell) if col_hlz in row_a else Paragraph("—", style_table_cell)
+                                val_r = Paragraph(limpiar_nombre_area(str(row_a[col_rsp])), style_table_cell) if col_rsp in row_a else Paragraph("—", style_table_cell)
+                                val_f = row_a['Fecha_DT'].strftime('%d/%m/%Y') if pd.notnull(row_a['Fecha_DT']) else "—"
+                                data_abiertos.append([Paragraph(f"<b>{val_id}</b>", style_table_cell), val_h, val_r, Paragraph(val_f, style_table_cell)])
+
+                            t_abiertos = Table(data_abiertos, colWidths=[45, 275, 160, 60])
+                            t_abiertos.setStyle(TableStyle([
+                                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#1F4E78")),
+                                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
+                                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                                ('BOTTOMPADDING', (0, 0), (-1, -1), 4), ('TOPPADDING', (0, 0), (-1, -1), 4),
+                                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor("#FFFFFF"), colors.HexColor("#F8FAFC")]),
+                            ]))
+                            elements.append(t_abiertos)
+                        else:
+                            elements.append(Paragraph("<i>No se registran compromisos Abiertos en este trimestre.</i>", style_body))
+
+                        elements.append(Spacer(1, 10))
+
+                        elements.append(Paragraph("3. Detalle de Planes de Acción Vencidos (Fuera de Plazo)", style_sec_head))
+                        df_vencidos = df_q[df_q[col_est].astype(str).str.contains("Vencid", case=False, na=False)].copy()
+
+                        if not df_vencidos.empty:
+                            hoy_dt = pd.to_datetime(date.today())
+                            df_vencidos['Dias_Atraso'] = (hoy_dt - df_vencidos['Fecha_DT']).dt.days
+                            df_vencidos['Dias_Atraso'] = df_vencidos['Dias_Atraso'].apply(lambda x: x if pd.notnull(x) and x > 0 else 0)
+
+                            data_vencidos = [[Paragraph("No.", style_table_header), Paragraph("Hallazgo / Situación", style_table_header), Paragraph("Área Responsable", style_table_header), Paragraph("Fecha Límite", style_table_header), Paragraph("Días Atraso", style_table_header)]]
+                            for _, row_v in df_vencidos.iterrows():
+                                val_id_v = str(row_v[col_id_val]).replace(".0", "").strip() if pd.notnull(row_v[col_id_val]) else "—"
+                                val_h_v = Paragraph(str(row_v[col_hlz])[:130] + "..." if len(str(row_v[col_hlz])) > 130 else str(row_v[col_hlz]), style_table_cell) if col_hlz in row_v else Paragraph("—", style_table_cell)
+                                val_r_v = Paragraph(limpiar_nombre_area(str(row_v[col_rsp])), style_table_cell) if col_rsp in row_v else Paragraph("—", style_table_cell)
+                                val_f_v = row_v['Fecha_DT'].strftime('%d/%m/%Y') if pd.notnull(row_v['Fecha_DT']) else "—"
+                                val_da = f"<font color='#FF5252'><b>+{row_v['Dias_Atraso']} días</b></font>"
+                                data_vencidos.append([Paragraph(f"<b>{val_id_v}</b>", style_table_cell), val_h_v, val_r_v, Paragraph(val_f_v, style_table_cell), Paragraph(val_da, style_table_cell)])
+
+                            t_vencidos = Table(data_vencidos, colWidths=[45, 225, 150, 60, 60])
+                            t_vencidos.setStyle(TableStyle([
+                                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#C0392B")),
+                                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
+                                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                                ('BOTTOMPADDING', (0, 0), (-1, -1), 4), ('TOPPADDING', (0, 0), (-1, -1), 4),
+                                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor("#FFFFFF"), colors.HexColor("#FFF5F5")]),
+                            ]))
+                            elements.append(t_vencidos)
+                        else:
+                            elements.append(Paragraph("<i>🎉 ¡Excelente! No existen planes Vencidos registrados en este trimestre.</i>", style_body))
+
+                        doc.build(elements)
+                        return buffer.getvalue()
+
                     try:
-                        bytes_pdf_c = generar_pdf_informe_trimestral("Contraloría de Bogotá", anio_pdf_sel_c, trim_pdf_sel_c, df_raw_c)
+                        bytes_pdf_c = generar_pdf_local_c("Contraloría de Bogotá", anio_pdf_sel_c, trim_pdf_sel_c, df_raw_c)
                         st.download_button(
                             label="📄 Generar e Imprimir Informe PDF",
                             data=bytes_pdf_c,
@@ -3323,7 +3509,7 @@ else:
                         st.error(f"❌ Error al generar PDF: {e_pdf_c}")
 
                 st.markdown("---")
-                st.subheader("📁 Consulta Historica de Informes de la Contraloría")
+                st.subheader("📁 Consulta Histórica de Informes de la Contraloría")
 
                 if not df_informes_raw_c.empty:
                     df_inf_c = df_informes_raw_c.copy()

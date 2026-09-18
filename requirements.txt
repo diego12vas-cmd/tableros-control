@@ -3,4 +3,5 @@ pandas
 plotly
 openpyxl
 xlsxwriter
-st-gsheets-connection
+reportlab
+python-docx

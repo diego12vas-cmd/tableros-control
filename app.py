@@ -727,7 +727,7 @@ st.markdown(
             background-color: #EFEFEF;
             width: 38px;
             text-align: center;
-            padding: 2px 0;
+            padding: 3px 0;
             border-radius: 4px;
             color: #000;
             font-weight: bold;
@@ -2452,7 +2452,7 @@ if entorno_activo == "Auditoría Interna":
                 )
 
 # =========================================================
-# VISTA 2: CONTRALORÍA DE BOGOTÁ (LECTURA ESTRICTA COLUMNA W Y AA)
+# VISTA 2: CONTRALORÍA DE BOGOTÁ (LECTURA ESTRICTA COLUMNA W Y AA EN ABIERTOS/VENCIDOS, COLUMNA AI EN FINALIZADOS)
 # =========================================================
 else:
     def cargar_datos_c():
@@ -2488,8 +2488,9 @@ else:
         st.stop()
 
     # LECTURA EXACTA POR COLUMNA
-    col_fecha_cierre_c = df_raw_c.columns[22] if len(df_raw_c.columns) > 22 else "FECHA DE TERMINACIÓN"  # COLUMNA W
-    col_estado_c = df_raw_c.columns[26] if len(df_raw_c.columns) > 26 else "ESTADO"                     # COLUMNA AA
+    col_fecha_cierre_c = df_raw_c.columns[22] if len(df_raw_c.columns) > 22 else "FECHA DE TERMINACIÓN"     # COLUMNA W
+    col_estado_c = df_raw_c.columns[26] if len(df_raw_c.columns) > 26 else "ESTADO"                        # COLUMNA AA
+    col_fecha_cierre_aud_c = df_raw_c.columns[34] if len(df_raw_c.columns) > 34 else "Fecha cierre x Auditoría" # COLUMNA AI
     
     col_responsable_c = "AREA RESPONSABLE" if "AREA RESPONSABLE" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["area responsable", "responsable", "dependencia"])
     col_entidad_c = buscar_columna_por_patron(df_raw_c, ["nombre de la entidad", "entidad", "sectorial"])
@@ -2497,7 +2498,6 @@ else:
     col_auditoria_c = "VIGENCIA DE LA AUDITORÍA O VISITA" if "VIGENCIA DE LA AUDITORÍA O VISITA" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["vigencia de la auditoria", "vigencia auditoria", "vigencia"])
     col_hallazgo_c = "DESCRIPCIÓN HALLAZGO" if "DESCRIPCIÓN HALLAZGO" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["descripcion hallazgo", "titulo del hallazgo", "hallazgo", "id"])
     col_fecha_inicio_c = "FECHA DE INICIO" if "FECHA DE INICIO" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["fecha de inicio"])
-    col_fecha_cierre_aud_c = "Fecha cierre x Auditoría" if "Fecha cierre x Auditoría" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["fecha cierre x auditoria", "cierre auditoria"])
     col_obs_audit_c = "OBSERVACIÓN" if "OBSERVACIÓN" in df_raw_c.columns else (buscar_columna_por_patron(df_raw_c, ["observacion"]) or "OBSERVACIÓN")
     
     col_link_evidencia_c = "ENLACE PARA CARGAR EVIDENCIAS" if "ENLACE PARA CARGAR EVIDENCIAS" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["enlace para cargar evidencias", "evidencias"])
@@ -2563,8 +2563,8 @@ else:
     if col_entidad_c:
         ent_vals_c = sorted(list(set([e for e in df_raw_c[col_entidad_c].dropna().unique() if str(e).lower() not in ["nan", "none", ""]])))
         with st.sidebar.expander("📁 Plan / Entidad", expanded=False):
-            ent_sel_c = st.multiselect("Seleccione una o varias Entidades:", options=ent_vals_c, default=[], key="multi_entidad_c")
-        if ent_sel_c:
+            ent_sel_c = st.multiselect("Seleccione una o varias Entidades:", options=ent_sel_c if 'ent_sel_c' in locals() else [], default=[], key="multi_entidad_c")
+        if 'ent_sel_c' in locals() and ent_sel_c:
             df_filtrado_c = df_filtrado_c[df_filtrado_c[col_entidad_c].isin(ent_sel_c)]
 
     if col_auditoria_c:
@@ -2600,7 +2600,7 @@ else:
     total_planes_c = abiertos_c + vencidos_c
 
     # ---------------------------------------------------------
-    # TENDENCIA MENSUAL CONTRALORÍA (FINALIZADOS -> COLUMNA AI / FECHA CIERRE AUDITORÍA)
+    # TENDENCIA MENSUAL CONTRALORÍA (FINALIZADOS -> COLUMNA AI / Fecha cierre x Auditoría)
     # ---------------------------------------------------------
     meses_orden_c = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
     map_m_num_c = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
@@ -2616,9 +2616,9 @@ else:
         
         # SI ESTÁ FINALIZADO O CERRADO: USAMOS COLUMNA AI (Fecha cierre x Auditoría)
         if any(term in st_val for term in ['finaliz', 'cerrad']):
-            dt_s = parsear_fecha_estricta(r[col_fecha_cierre_aud_c]) if col_fecha_cierre_aud_c in r else pd.NaT
-            if pd.notnull(dt_s) and dt_s.year == 2026 and dt_s.month in map_m_num_c:
-                m_lbl = map_m_num_c[dt_s.month]
+            dt_ai = parsear_fecha_estricta(r[col_fecha_cierre_aud_c]) if col_fecha_cierre_aud_c in r else pd.NaT
+            if pd.notnull(dt_ai) and dt_ai.year == 2026 and dt_ai.month in map_m_num_c:
+                m_lbl = map_m_num_c[dt_ai.month]
                 data_tend_fin_c[m_lbl] += 1
         else:
             # PARA ABIERTOS Y VENCIDOS: USAMOS COLUMNA W (FECHA DE TERMINACIÓN)
@@ -2879,7 +2879,7 @@ else:
             if nombre_tab_real_c == "Tablero":
                 col_izq_c, col_der_c = st.columns([0.82, 1.5])
 
-                # 1. BLOQUE ARRIBA A LA IZQUIERDA: TARJETAS DE TOTALES CONTRALORÍA (TÍTULO LIMPIO)
+                # 1. BLOQUE ARRIBA A LA IZQUIERDA: TARJETAS DE TOTALES CONTRALORÍA
                 with col_izq_c:
                     st.markdown('<div class="block-header">Total Hallazgos Pendientes</div>', unsafe_allow_html=True)
                     st.markdown(f'<div class="card-box" style="background-color:#4B92DB; font-size:1.3rem; height:34px; line-height:26px;">{total_hallazgos_unicos_c}</div>', unsafe_allow_html=True)

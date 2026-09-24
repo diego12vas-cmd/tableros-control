@@ -1326,14 +1326,12 @@ if entorno_activo == "Auditoría Interna":
     for _, r in df_eval_tend.iterrows():
         st_val = str(r[col_estado]).lower()
         
-        # SI ESTÁ FINALIZADO O CERRADO: USAMOS COLUMNA S (Fecha de cierre Auditoría)
         if any(term in st_val for term in ['finaliz', 'cerrad']):
             dt_s = parsear_fecha_estricta(r[col_fecha_cierre_aud]) if col_fecha_cierre_aud in r else pd.NaT
             if pd.notnull(dt_s) and dt_s.year == 2026 and dt_s.month in map_m_num:
                 m_lbl = map_m_num[dt_s.month]
                 data_tend_fin[m_lbl] += 1
         else:
-            # PARA ABIERTOS Y VENCIDOS: USAMOS COLUMNA I (Cierre)
             dt_i = parsear_fecha_estricta(r[col_fecha_cierre]) if col_fecha_cierre in r else pd.NaT
             if pd.notnull(dt_i) and dt_i.year == 2026 and dt_i.month in map_m_num:
                 m_lbl = map_m_num[dt_i.month]
@@ -2034,7 +2032,7 @@ if entorno_activo == "Auditoría Interna":
 
                         with c_h2:
                             df_hist_grouped = df_hist_calc.groupby(["Vigencia_Limpia", col_estado]).size().reset_index(name="Cantidad")
-                            df_hist_grouped["Texto_Etiqueta"] = df_hist_grouped["Cantidad"].apply(lambda x: str(x) if x > 0 else "")
+                            df_hist_grouped["Texto_Etiqueta"] = df_hist_grouped["Cantidad"].apply(lambda x: f"<b>{x}</b>" if x >= 3 else "")
                             max_hist_st = df_hist_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().max() if not df_hist_grouped.empty else 10
                             sum_tot_g2 = df_hist_grouped["Cantidad"].sum() if not df_hist_grouped.empty else 0
 
@@ -2044,13 +2042,21 @@ if entorno_activo == "Auditoría Interna":
                                 color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Sin plan de acción": "#F8A583"}
                             )
                             fig_hist_stack.update_traces(
-                                textposition="auto",
-                                textfont=dict(size=10, color="white", family="Arial Black")
+                                textposition="inside",
+                                insidetextanchor="middle",
+                                textfont=dict(size=11, color="white", family="Arial Black")
                             )
                             
                             df_totales_por_vigencia = df_hist_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
                             for _, row_v in df_totales_por_vigencia.iterrows():
-                                fig_hist_stack.add_annotation(x=row_v["Vigencia_Limpia"], y=row_v["Cantidad"], text=f"<b>{row_v['Cantidad']}</b>", showarrow=False, yanchor="bottom", font=dict(size=12, color="var(--text-color)"))
+                                fig_hist_stack.add_annotation(
+                                    x=row_v["Vigencia_Limpia"], 
+                                    y=row_v["Cantidad"] + max_hist_st * 0.05, 
+                                    text=f"<b>{row_v['Cantidad']}</b>", 
+                                    showarrow=False, 
+                                    yanchor="bottom", 
+                                    font=dict(size=14, color="var(--text-color)", family="Arial Black")
+                                )
 
                             fig_hist_stack.update_layout(
                                 height=360, xaxis_title=None, yaxis_title=None,
@@ -2112,7 +2118,7 @@ if entorno_activo == "Auditoría Interna":
 
                         with c_hu2:
                             df_hall_st_grouped = df_hall_unicos.groupby(["Vigencia_Limpia", col_estado]).size().reset_index(name="Cantidad")
-                            df_hall_st_grouped["Texto_Etiqueta"] = df_hall_st_grouped["Cantidad"].apply(lambda x: str(x) if x > 0 else "")
+                            df_hall_st_grouped["Texto_Etiqueta"] = df_hall_st_grouped["Cantidad"].apply(lambda x: f"<b>{x}</b>" if x >= 3 else "")
                             max_hist_hu_st = df_hall_st_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().max() if not df_hall_st_grouped.empty else 10
                             sum_tot_hu2 = df_hall_st_grouped["Cantidad"].sum() if not df_hall_st_grouped.empty else 0
 
@@ -2122,13 +2128,21 @@ if entorno_activo == "Auditoría Interna":
                                 color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Sin plan de acción": "#F8A583"}
                             )
                             fig_hist_hall_stack.update_traces(
-                                textposition="auto",
-                                textfont=dict(size=10, color="white", family="Arial Black")
+                                textposition="inside",
+                                insidetextanchor="middle",
+                                textfont=dict(size=11, color="white", family="Arial Black")
                             )
 
                             df_totales_hall_vig = df_hall_st_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
                             for _, row_hv in df_totales_hall_vig.iterrows():
-                                fig_hist_hall_stack.add_annotation(x=row_hv["Vigencia_Limpia"], y=row_hv["Cantidad"], text=f"<b>{row_hv['Cantidad']}</b>", showarrow=False, yanchor="bottom", font=dict(size=12, color="var(--text-color)"))
+                                fig_hist_hall_stack.add_annotation(
+                                    x=row_hv["Vigencia_Limpia"], 
+                                    y=row_hv["Cantidad"] + max_hist_hu_st * 0.05, 
+                                    text=f"<b>{row_hv['Cantidad']}</b>", 
+                                    showarrow=False, 
+                                    yanchor="bottom", 
+                                    font=dict(size=14, color="var(--text-color)", family="Arial Black")
+                                )
 
                             fig_hist_hall_stack.update_layout(
                                 height=360, xaxis_title=None, yaxis_title=None,
@@ -2585,7 +2599,6 @@ else:
     if df_raw_c.empty:
         st.stop()
 
-    # LECTURA EXACTA POR COLUMNA
     col_fecha_cierre_c = df_raw_c.columns[22] if len(df_raw_c.columns) > 22 else "FECHA DE TERMINACIÓN"     # COLUMNA W
     col_estado_c = df_raw_c.columns[26] if len(df_raw_c.columns) > 26 else "ESTADO"                        # COLUMNA AA
     col_fecha_cierre_aud_c = df_raw_c.columns[34] if len(df_raw_c.columns) > 34 else "Fecha cierre x Auditoría" # COLUMNA AI
@@ -3347,7 +3360,7 @@ else:
 
                         with c_h2_c:
                             df_hist_grouped_c = df_hist_calc_c.groupby(["Vigencia_Limpia", col_estado_c]).size().reset_index(name="Cantidad")
-                            df_hist_grouped_c["Texto_Etiqueta"] = df_hist_grouped_c["Cantidad"].apply(lambda x: str(x) if x > 0 else "")
+                            df_hist_grouped_c["Texto_Etiqueta"] = df_hist_grouped_c["Cantidad"].apply(lambda x: f"<b>{x}</b>" if x >= 3 else "")
                             max_hist_st_c = df_hist_grouped_c.groupby("Vigencia_Limpia")["Cantidad"].sum().max() if not df_hist_grouped_c.empty else 10
                             sum_tot_g2_c = df_hist_grouped_c["Cantidad"].sum() if not df_hist_grouped_c.empty else 0
 
@@ -3357,13 +3370,21 @@ else:
                                 color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB"}
                             )
                             fig_hist_stack_c.update_traces(
-                                textposition="auto",
-                                textfont=dict(size=10, color="white", family="Arial Black")
+                                textposition="inside",
+                                insidetextanchor="middle",
+                                textfont=dict(size=11, color="white", family="Arial Black")
                             )
                             
                             df_totales_por_vigencia_c = df_hist_grouped_c.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
                             for _, row_v in df_totales_por_vigencia_c.iterrows():
-                                fig_hist_stack_c.add_annotation(x=row_v["Vigencia_Limpia"], y=row_v["Cantidad"], text=f"<b>{row_v['Cantidad']}</b>", showarrow=False, yanchor="bottom", font=dict(size=12, color="var(--text-color)"))
+                                fig_hist_stack_c.add_annotation(
+                                    x=row_v["Vigencia_Limpia"], 
+                                    y=row_v["Cantidad"] + max_hist_st_c * 0.05, 
+                                    text=f"<b>{row_v['Cantidad']}</b>", 
+                                    showarrow=False, 
+                                    yanchor="bottom", 
+                                    font=dict(size=14, color="var(--text-color)", family="Arial Black")
+                                )
 
                             fig_hist_stack_c.update_layout(
                                 height=360, xaxis_title=None, yaxis_title=None,
@@ -3433,7 +3454,7 @@ else:
 
                         with c_hu2_c:
                             df_hall_st_grouped_c = df_hall_unicos_c.groupby(["Vigencia_Limpia", col_estado_c]).size().reset_index(name="Cantidad")
-                            df_hall_st_grouped_c["Texto_Etiqueta"] = df_hall_st_grouped_c["Cantidad"].apply(lambda x: str(x) if x > 0 else "")
+                            df_hall_st_grouped_c["Texto_Etiqueta"] = df_hall_st_grouped_c["Cantidad"].apply(lambda x: f"<b>{x}</b>" if x >= 3 else "")
                             max_hist_hu_st_c = df_hall_st_grouped_c.groupby("Vigencia_Limpia")["Cantidad"].sum().max() if not df_hall_st_grouped_c.empty else 10
                             sum_tot_hu2_c = df_hall_st_grouped_c["Cantidad"].sum() if not df_hall_st_grouped_c.empty else 0
 
@@ -3443,13 +3464,21 @@ else:
                                 color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB"}
                             )
                             fig_hist_hall_stack_c.update_traces(
-                                textposition="auto",
-                                textfont=dict(size=10, color="white", family="Arial Black")
+                                textposition="inside",
+                                insidetextanchor="middle",
+                                textfont=dict(size=11, color="white", family="Arial Black")
                             )
 
                             df_totales_hall_vig_c = df_hall_st_grouped_c.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
                             for _, row_hv in df_totales_hall_vig_c.iterrows():
-                                fig_hist_hall_stack_c.add_annotation(x=row_hv["Vigencia_Limpia"], y=row_hv["Cantidad"], text=f"<b>{row_hv['Cantidad']}</b>", showarrow=False, yanchor="bottom", font=dict(size=12, color="var(--text-color)"))
+                                fig_hist_hall_stack_c.add_annotation(
+                                    x=row_hv["Vigencia_Limpia"], 
+                                    y=row_hv["Cantidad"] + max_hist_hu_st_c * 0.05, 
+                                    text=f"<b>{row_hv['Cantidad']}</b>", 
+                                    showarrow=False, 
+                                    yanchor="bottom", 
+                                    font=dict(size=14, color="var(--text-color)", family="Arial Black")
+                                )
 
                             fig_hist_hall_stack_c.update_layout(
                                 height=360, xaxis_title=None, yaxis_title=None,

@@ -2051,7 +2051,7 @@ if entorno_activo == "Auditoría Interna":
                             for _, row_v in df_totales_por_vigencia.iterrows():
                                 fig_hist_stack.add_annotation(
                                     x=row_v["Vigencia_Limpia"], 
-                                    y=row_v["Cantidad"] + max_hist_st * 0.05, 
+                                    y=row_v["Cantidad"] + max_hist_st * 0.15, 
                                     text=f"<b>{row_v['Cantidad']}</b>", 
                                     showarrow=False, 
                                     yanchor="bottom", 
@@ -2061,7 +2061,7 @@ if entorno_activo == "Auditoría Interna":
                             fig_hist_stack.update_layout(
                                 height=360, xaxis_title=None, yaxis_title=None,
                                 xaxis=dict(showgrid=False, zeroline=False),
-                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_st * 1.35]),
+                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_st * 1.38]),
                                 legend_title_text="Estado", margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
                             )
                             st.plotly_chart(fig_hist_stack, use_container_width=True, key="fig_hist_stack_key", config={'displayModeBar': False})
@@ -2137,7 +2137,7 @@ if entorno_activo == "Auditoría Interna":
                             for _, row_hv in df_totales_hall_vig.iterrows():
                                 fig_hist_hall_stack.add_annotation(
                                     x=row_hv["Vigencia_Limpia"], 
-                                    y=row_hv["Cantidad"] + max_hist_hu_st * 0.05, 
+                                    y=row_hv["Cantidad"] + max_hist_hu_st * 0.15, 
                                     text=f"<b>{row_hv['Cantidad']}</b>", 
                                     showarrow=False, 
                                     yanchor="bottom", 
@@ -2147,7 +2147,7 @@ if entorno_activo == "Auditoría Interna":
                             fig_hist_hall_stack.update_layout(
                                 height=360, xaxis_title=None, yaxis_title=None,
                                 xaxis=dict(showgrid=False, zeroline=False),
-                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_hu_st * 1.35]),
+                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_hu_st * 1.38]),
                                 legend_title_text="Estado", margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
                             )
                             st.plotly_chart(fig_hist_hall_stack, use_container_width=True, key="fig_hist_hall_stack_key", config={'displayModeBar': False})
@@ -2599,6 +2599,7 @@ else:
     if df_raw_c.empty:
         st.stop()
 
+    # LECTURA EXACTA POR COLUMNA
     col_fecha_cierre_c = df_raw_c.columns[22] if len(df_raw_c.columns) > 22 else "FECHA DE TERMINACIÓN"     # COLUMNA W
     col_estado_c = df_raw_c.columns[26] if len(df_raw_c.columns) > 26 else "ESTADO"                        # COLUMNA AA
     col_fecha_cierre_aud_c = df_raw_c.columns[34] if len(df_raw_c.columns) > 34 else "Fecha cierre x Auditoría" # COLUMNA AI
@@ -3379,7 +3380,7 @@ else:
                             for _, row_v in df_totales_por_vigencia_c.iterrows():
                                 fig_hist_stack_c.add_annotation(
                                     x=row_v["Vigencia_Limpia"], 
-                                    y=row_v["Cantidad"] + max_hist_st_c * 0.05, 
+                                    y=row_v["Cantidad"] + max_hist_st_c * 0.15, 
                                     text=f"<b>{row_v['Cantidad']}</b>", 
                                     showarrow=False, 
                                     yanchor="bottom", 
@@ -3389,7 +3390,7 @@ else:
                             fig_hist_stack_c.update_layout(
                                 height=360, xaxis_title=None, yaxis_title=None,
                                 xaxis=dict(showgrid=False, zeroline=False),
-                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_st_c * 1.35]),
+                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_st_c * 1.38]),
                                 legend_title_text="Estado", margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
                             )
                             st.plotly_chart(fig_hist_stack_c, use_container_width=True, key="fig_hist_stack_c_key", config={'displayModeBar': False})
@@ -3473,7 +3474,7 @@ else:
                             for _, row_hv in df_totales_hall_vig_c.iterrows():
                                 fig_hist_hall_stack_c.add_annotation(
                                     x=row_hv["Vigencia_Limpia"], 
-                                    y=row_hv["Cantidad"] + max_hist_hu_st_c * 0.05, 
+                                    y=row_hv["Cantidad"] + max_hist_hu_st_c * 0.15, 
                                     text=f"<b>{row_hv['Cantidad']}</b>", 
                                     showarrow=False, 
                                     yanchor="bottom", 
@@ -3483,7 +3484,7 @@ else:
                             fig_hist_hall_stack_c.update_layout(
                                 height=360, xaxis_title=None, yaxis_title=None,
                                 xaxis=dict(showgrid=False, zeroline=False),
-                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_hu_st_c * 1.35]),
+                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_hu_st_c * 1.38]),
                                 legend_title_text="Estado", margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
                             )
                             st.plotly_chart(fig_hist_hall_stack_c, use_container_width=True, key="fig_hist_hall_stack_c_key", config={'displayModeBar': False})

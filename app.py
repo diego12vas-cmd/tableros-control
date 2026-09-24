@@ -15,13 +15,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-# IMPORTACIÓN PARA PDF
-from reportlab.lib.pagesizes import letter
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.pdfgen import canvas
-
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
@@ -1401,7 +1394,7 @@ if entorno_activo == "Auditoría Interna":
                 color='Estado_Cat',
                 orientation='h',
                 title="🔥 Top 5 Responsables con Pendientes por Estado",
-                color_discrete_map={'Abiertos': '#F39C12', 'Vencidos': '#FF5E5E'},
+                color_discrete_map={'Abiertos': '#F39C12', 'Vencidos': '#FF5252'},
                 text='Cantidad'
             )
             fig_top5.update_traces(textposition='inside', insidetextanchor='middle')
@@ -2032,26 +2025,21 @@ if entorno_activo == "Auditoría Interna":
 
                         with c_h2:
                             df_hist_grouped = df_hist_calc.groupby(["Vigencia_Limpia", col_estado]).size().reset_index(name="Cantidad")
-                            df_hist_grouped["Texto_Etiqueta"] = df_hist_grouped["Cantidad"].apply(lambda x: f"<b>{x}</b>" if x >= 3 else "")
                             max_hist_st = df_hist_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().max() if not df_hist_grouped.empty else 10
                             sum_tot_g2 = df_hist_grouped["Cantidad"].sum() if not df_hist_grouped.empty else 0
 
+                            # Renderizado limpio sin texto apretado dentro de las barras para evitar distorsión
                             fig_hist_stack = px.bar(
-                                df_hist_grouped, x="Vigencia_Limpia", y="Cantidad", color=col_estado, text="Texto_Etiqueta",
+                                df_hist_grouped, x="Vigencia_Limpia", y="Cantidad", color=col_estado,
                                 title="Distribución de Estados por Vigencia", barmode="stack",
                                 color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Sin plan de acción": "#F8A583"}
-                            )
-                            fig_hist_stack.update_traces(
-                                textposition="inside",
-                                insidetextanchor="middle",
-                                textfont=dict(size=11, color="white", family="Arial Black")
                             )
                             
                             df_totales_por_vigencia = df_hist_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
                             for _, row_v in df_totales_por_vigencia.iterrows():
                                 fig_hist_stack.add_annotation(
                                     x=row_v["Vigencia_Limpia"], 
-                                    y=row_v["Cantidad"] + max_hist_st * 0.15, 
+                                    y=row_v["Cantidad"] + max_hist_st * 0.08, 
                                     text=f"<b>{row_v['Cantidad']}</b>", 
                                     showarrow=False, 
                                     yanchor="bottom", 
@@ -2061,7 +2049,7 @@ if entorno_activo == "Auditoría Interna":
                             fig_hist_stack.update_layout(
                                 height=360, xaxis_title=None, yaxis_title=None,
                                 xaxis=dict(showgrid=False, zeroline=False),
-                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_st * 1.38]),
+                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_st * 1.35]),
                                 legend_title_text="Estado", margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
                             )
                             st.plotly_chart(fig_hist_stack, use_container_width=True, key="fig_hist_stack_key", config={'displayModeBar': False})
@@ -2118,26 +2106,20 @@ if entorno_activo == "Auditoría Interna":
 
                         with c_hu2:
                             df_hall_st_grouped = df_hall_unicos.groupby(["Vigencia_Limpia", col_estado]).size().reset_index(name="Cantidad")
-                            df_hall_st_grouped["Texto_Etiqueta"] = df_hall_st_grouped["Cantidad"].apply(lambda x: f"<b>{x}</b>" if x >= 3 else "")
                             max_hist_hu_st = df_hall_st_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().max() if not df_hall_st_grouped.empty else 10
                             sum_tot_hu2 = df_hall_st_grouped["Cantidad"].sum() if not df_hall_st_grouped.empty else 0
 
                             fig_hist_hall_stack = px.bar(
-                                df_hall_st_grouped, x="Vigencia_Limpia", y="Cantidad", color=col_estado, text="Texto_Etiqueta",
+                                df_hall_st_grouped, x="Vigencia_Limpia", y="Cantidad", color=col_estado,
                                 title="Distribución de Estados por Vigencia (Hallazgos Únicos)", barmode="stack",
                                 color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Sin plan de acción": "#F8A583"}
-                            )
-                            fig_hist_hall_stack.update_traces(
-                                textposition="inside",
-                                insidetextanchor="middle",
-                                textfont=dict(size=11, color="white", family="Arial Black")
                             )
 
                             df_totales_hall_vig = df_hall_st_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
                             for _, row_hv in df_totales_hall_vig.iterrows():
                                 fig_hist_hall_stack.add_annotation(
                                     x=row_hv["Vigencia_Limpia"], 
-                                    y=row_hv["Cantidad"] + max_hist_hu_st * 0.15, 
+                                    y=row_hv["Cantidad"] + max_hist_hu_st * 0.08, 
                                     text=f"<b>{row_hv['Cantidad']}</b>", 
                                     showarrow=False, 
                                     yanchor="bottom", 
@@ -2147,7 +2129,7 @@ if entorno_activo == "Auditoría Interna":
                             fig_hist_hall_stack.update_layout(
                                 height=360, xaxis_title=None, yaxis_title=None,
                                 xaxis=dict(showgrid=False, zeroline=False),
-                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_hu_st * 1.38]),
+                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_hu_st * 1.35]),
                                 legend_title_text="Estado", margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
                             )
                             st.plotly_chart(fig_hist_hall_stack, use_container_width=True, key="fig_hist_hall_stack_key", config={'displayModeBar': False})
@@ -2801,7 +2783,7 @@ else:
                 color='Estado_Cat',
                 orientation='h',
                 title="🔥 Top 5 Responsables con Pendientes por Estado",
-                color_discrete_map={'Abiertos': '#F39C12', 'Vencidos': '#FF5E5E'},
+                color_discrete_map={'Abiertos': '#F39C12', 'Vencidos': '#FF5252'},
                 text='Cantidad'
             )
             fig_top5_c.update_traces(textposition='inside', insidetextanchor='middle')
@@ -3361,26 +3343,20 @@ else:
 
                         with c_h2_c:
                             df_hist_grouped_c = df_hist_calc_c.groupby(["Vigencia_Limpia", col_estado_c]).size().reset_index(name="Cantidad")
-                            df_hist_grouped_c["Texto_Etiqueta"] = df_hist_grouped_c["Cantidad"].apply(lambda x: f"<b>{x}</b>" if x >= 3 else "")
                             max_hist_st_c = df_hist_grouped_c.groupby("Vigencia_Limpia")["Cantidad"].sum().max() if not df_hist_grouped_c.empty else 10
                             sum_tot_g2_c = df_hist_grouped_c["Cantidad"].sum() if not df_hist_grouped_c.empty else 0
 
                             fig_hist_stack_c = px.bar(
-                                df_hist_grouped_c, x="Vigencia_Limpia", y="Cantidad", color=col_estado_c, text="Texto_Etiqueta",
+                                df_hist_grouped_c, x="Vigencia_Limpia", y="Cantidad", color=col_estado_c,
                                 title="Distribución de Estados por Vigencia", barmode="stack",
                                 color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB"}
-                            )
-                            fig_hist_stack_c.update_traces(
-                                textposition="inside",
-                                insidetextanchor="middle",
-                                textfont=dict(size=11, color="white", family="Arial Black")
                             )
                             
                             df_totales_por_vigencia_c = df_hist_grouped_c.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
                             for _, row_v in df_totales_por_vigencia_c.iterrows():
                                 fig_hist_stack_c.add_annotation(
                                     x=row_v["Vigencia_Limpia"], 
-                                    y=row_v["Cantidad"] + max_hist_st_c * 0.15, 
+                                    y=row_v["Cantidad"] + max_hist_st_c * 0.08, 
                                     text=f"<b>{row_v['Cantidad']}</b>", 
                                     showarrow=False, 
                                     yanchor="bottom", 
@@ -3390,7 +3366,7 @@ else:
                             fig_hist_stack_c.update_layout(
                                 height=360, xaxis_title=None, yaxis_title=None,
                                 xaxis=dict(showgrid=False, zeroline=False),
-                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_st_c * 1.38]),
+                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_st_c * 1.35]),
                                 legend_title_text="Estado", margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
                             )
                             st.plotly_chart(fig_hist_stack_c, use_container_width=True, key="fig_hist_stack_c_key", config={'displayModeBar': False})
@@ -3455,26 +3431,20 @@ else:
 
                         with c_hu2_c:
                             df_hall_st_grouped_c = df_hall_unicos_c.groupby(["Vigencia_Limpia", col_estado_c]).size().reset_index(name="Cantidad")
-                            df_hall_st_grouped_c["Texto_Etiqueta"] = df_hall_st_grouped_c["Cantidad"].apply(lambda x: f"<b>{x}</b>" if x >= 3 else "")
                             max_hist_hu_st_c = df_hall_st_grouped_c.groupby("Vigencia_Limpia")["Cantidad"].sum().max() if not df_hall_st_grouped_c.empty else 10
                             sum_tot_hu2_c = df_hall_st_grouped_c["Cantidad"].sum() if not df_hall_st_grouped_c.empty else 0
 
                             fig_hist_hall_stack_c = px.bar(
-                                df_hall_st_grouped_c, x="Vigencia_Limpia", y="Cantidad", color=col_estado_c, text="Texto_Etiqueta",
+                                df_hall_st_grouped_c, x="Vigencia_Limpia", y="Cantidad", color=col_estado_c,
                                 title="Distribución de Estados por Vigencia (Hallazgos Únicos)", barmode="stack",
                                 color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB"}
-                            )
-                            fig_hist_hall_stack_c.update_traces(
-                                textposition="inside",
-                                insidetextanchor="middle",
-                                textfont=dict(size=11, color="white", family="Arial Black")
                             )
 
                             df_totales_hall_vig_c = df_hall_st_grouped_c.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
                             for _, row_hv in df_totales_hall_vig_c.iterrows():
                                 fig_hist_hall_stack_c.add_annotation(
                                     x=row_hv["Vigencia_Limpia"], 
-                                    y=row_hv["Cantidad"] + max_hist_hu_st_c * 0.15, 
+                                    y=row_hv["Cantidad"] + max_hist_hu_st_c * 0.08, 
                                     text=f"<b>{row_hv['Cantidad']}</b>", 
                                     showarrow=False, 
                                     yanchor="bottom", 
@@ -3484,7 +3454,7 @@ else:
                             fig_hist_hall_stack_c.update_layout(
                                 height=360, xaxis_title=None, yaxis_title=None,
                                 xaxis=dict(showgrid=False, zeroline=False),
-                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_hu_st_c * 1.38]),
+                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_hu_st_c * 1.35]),
                                 legend_title_text="Estado", margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
                             )
                             st.plotly_chart(fig_hist_hall_stack_c, use_container_width=True, key="fig_hist_hall_stack_c_key", config={'displayModeBar': False})

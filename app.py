@@ -15,6 +15,13 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+# IMPORTACIÓN PARA PDF
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.pdfgen import canvas
+
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
@@ -1377,7 +1384,7 @@ if entorno_activo == "Auditoría Interna":
     fig_tendencia.update_layout(
         template='plotly_dark',
         title=dict(text="📈 Tendencia Mensual de Planes (Vigencia 2026)", font=dict(size=14, color="white")),
-        height=270,
+        height=345,
         margin=dict(l=20, r=20, t=40, b=40),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
@@ -1415,7 +1422,7 @@ if entorno_activo == "Auditoría Interna":
             fig_top5.update_traces(textposition='inside', insidetextanchor='middle')
             fig_top5.update_layout(
                 template='plotly_dark',
-                height=270,
+                height=345,
                 margin=dict(l=20, r=20, t=40, b=40),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
@@ -2790,7 +2797,7 @@ else:
     fig_tendencia_c.update_layout(
         template='plotly_dark',
         title=dict(text="📈 Tendencia Mensual de Planes (Vigencia 2026)", font=dict(size=14, color="white")),
-        height=270,
+        height=345,
         margin=dict(l=20, r=20, t=40, b=40),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
@@ -2828,7 +2835,7 @@ else:
             fig_top5_c.update_traces(textposition='inside', insidetextanchor='middle')
             fig_top5_c.update_layout(
                 template='plotly_dark',
-                height=270,
+                height=345,
                 margin=dict(l=20, r=20, t=40, b=40),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',

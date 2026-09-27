@@ -15,13 +15,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-# IMPORTACIÓN PARA PDF
-from reportlab.lib.pagesizes import letter
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.pdfgen import canvas
-
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
@@ -1537,16 +1530,16 @@ if entorno_activo == "Auditoría Interna":
 
                     st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
 
-                    # MÉTRICAS ESTRATÉGICAS - BOTONES DE NAVEGACIÓN DIRECTA (PORCENTAJE ENTERO)
+                    # MÉTRICAS ESTRATÉGICAS (TARJETAS ORIGINALES CON LEYENDA EXTERNA ABAJO)
                     col_m_strat1, col_m_strat2 = st.columns(2)
                     with col_m_strat1:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">🎯 % Cumplimiento</div>', unsafe_allow_html=True)
-                        if st.button(f"✨ {pct_cumplimiento_ai}%\n({fin_ai_cnt} cerrados)", key="btn_goto_ind_ai", use_container_width=True, help="Haz clic para consultar las tablas de finalizadas"):
-                            st.info("💡 Para consultar la tabla completa de los 106 planes finalizados, ve a la pestaña superior **📌 Indicadores de Gestión** ➡️ **🎉 Planes Finalizados**.")
+                        st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:0.95rem; padding:4px;">{int(round(pct_cumplimiento_ai))}%</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div style="text-align:center; font-size:0.72rem; color:#A0AEC0; margin-top:2px;">({fin_ai_cnt} cerrados de {total_hist_ai} totales)</div>', unsafe_allow_html=True)
                     with col_m_strat2:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️ Prom. Días Mora</div>', unsafe_allow_html=True)
-                        if st.button(f"🔴 {prom_mora_ai_val} días\n({len(df_raw_venc_ai)} vencidos)", key="btn_goto_alertas_ai", use_container_width=True, help="Haz clic para consultar las tablas de vencidas"):
-                            st.info("💡 Para consultar la tabla completa de los 34 planes vencidos, ve a la pestaña superior **🚨 Alertas y Edición**.")
+                        st.markdown(f'<div class="card-box" style="background-color:#C0392B; color:#FFFFFF; font-size:0.95rem; padding:4px;">{prom_mora_ai_val} días</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div style="text-align:center; font-size:0.72rem; color:#A0AEC0; margin-top:2px;">({len(df_raw_venc_ai)} vencidos)</div>', unsafe_allow_html=True)
 
                     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
@@ -3039,16 +3032,16 @@ else:
 
                     st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
 
-                    # MÉTRICAS ESTRATÉGICAS - BOTONES DE NAVEGACIÓN DIRECTA (CONTRALORÍA - PORCENTAJE ENTERO)
+                    # MÉTRICAS ESTRATÉGICAS CONTRALORÍA (TARJETAS ORIGINALES CON LEYENDA EXTERNA ABAJO)
                     col_m_strat_c1, col_m_strat_c2 = st.columns(2)
                     with col_m_strat_c1:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">🎯 % Cumplimiento</div>', unsafe_allow_html=True)
-                        if st.button(f"✨ {pct_cumplimiento_c}%\n({fin_c_cnt} cerrados)", key="btn_goto_ind_c", use_container_width=True, help="Haz clic para consultar las tablas de finalizadas"):
-                            st.info("💡 Para consultar la tabla de planes finalizados en Contraloría, ve a la pestaña superior **📌 Indicadores de Gestión** ➡️ **🎉 Planes Finalizados**.")
+                        st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:0.95rem; padding:4px;">{int(round(pct_cumplimiento_c))}%</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div style="text-align:center; font-size:0.72rem; color:#A0AEC0; margin-top:2px;">({fin_c_cnt} cerrados de {total_hist_c} totales)</div>', unsafe_allow_html=True)
                     with col_m_strat_c2:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️ Prom. Días Mora</div>', unsafe_allow_html=True)
-                        if st.button(f"🔴 {prom_mora_c_val} días\n({len(df_raw_venc_c)} vencidos)", key="btn_goto_alertas_c", use_container_width=True, help="Haz clic para consultar las tablas de vencidas"):
-                            st.info("💡 Para consultar los planes vencidos de Contraloría, selecciona la categoría **'Estado: Vencidos'** en la tabla inferior.")
+                        st.markdown(f'<div class="card-box" style="background-color:#C0392B; color:#FFFFFF; font-size:0.95rem; padding:4px;">{prom_mora_c_val} días</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div style="text-align:center; font-size:0.72rem; color:#A0AEC0; margin-top:2px;">({len(df_raw_venc_c)} vencidos)</div>', unsafe_allow_html=True)
 
                     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 

@@ -1309,10 +1309,10 @@ if entorno_activo == "Auditoría Interna":
     r_medio = df_activos[col_riesgo].astype(str).str.contains("Medio", case=False, na=False).sum() if col_riesgo else 0
     r_bajo = df_activos[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False).sum() if col_riesgo else 0
 
-    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (AI)
+    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (AI - EN ENTEROS LIMPIOS)
     total_hist_ai = len(df_raw)
     fin_ai_cnt = df_raw[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado else 0
-    pct_cumplimiento_ai = round((fin_ai_cnt / total_hist_ai) * 100, 1) if total_hist_ai > 0 else 0.0
+    pct_cumplimiento_ai = int(round((fin_ai_cnt / total_hist_ai) * 100)) if total_hist_ai > 0 else 0
 
     hoy_dt = pd.to_datetime(date.today())
     df_raw_venc_ai = df_raw[df_raw[col_estado].astype(str).str.contains("Vencid", case=False, na=False)].copy() if col_estado else pd.DataFrame()
@@ -1320,7 +1320,7 @@ if entorno_activo == "Auditoría Interna":
         fechas_ai_parsed = df_raw_venc_ai[col_fecha_cierre].apply(parsear_fecha_estricta)
         dias_mora_ai_series = (hoy_dt - fechas_ai_parsed).dt.days.dropna()
         dias_mora_ai_series = dias_mora_ai_series[dias_mora_ai_series > 0]
-        prom_mora_ai_val = int(dias_mora_ai_series.mean()) if not dias_mora_ai_series.empty else 0
+        prom_mora_ai_val = int(round(dias_mora_ai_series.mean())) if not dias_mora_ai_series.empty else 0
     else:
         prom_mora_ai_val = 0
 
@@ -1537,16 +1537,16 @@ if entorno_activo == "Auditoría Interna":
 
                     st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
 
-                    # MÉTRICAS ESTRATÉGICAS ALINEADAS (PRECISIÓN TEXTUAL GARANTIZADA)
+                    # MÉTRICAS ESTRATÉGICAS - BOTONES DE NAVEGACIÓN DIRECTA (PORCENTAJE ENTERO)
                     col_m_strat1, col_m_strat2 = st.columns(2)
                     with col_m_strat1:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">🎯 % Cumplimiento</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:0.95rem; padding:4px;">{pct_cumplimiento_ai}%</div>', unsafe_allow_html=True)
-                        st.caption(f"({fin_ai_cnt} cerrados de {total_hist_ai} totales)")
+                        if st.button(f"✨ {pct_cumplimiento_ai}%\n({fin_ai_cnt} cerrados)", key="btn_goto_ind_ai", use_container_width=True, help="Haz clic para consultar las tablas de finalizadas"):
+                            st.info("💡 Para consultar la tabla completa de los 106 planes finalizados, ve a la pestaña superior **📌 Indicadores de Gestión** ➡️ **🎉 Planes Finalizados**.")
                     with col_m_strat2:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️ Prom. Días Mora</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="card-box" style="background-color:#C0392B; color:#FFFFFF; font-size:0.95rem; padding:4px;">{prom_mora_ai_val} días</div>', unsafe_allow_html=True)
-                        st.caption(f"({len(df_raw_venc_ai)} vencidos)")
+                        if st.button(f"🔴 {prom_mora_ai_val} días\n({len(df_raw_venc_ai)} vencidos)", key="btn_goto_alertas_ai", use_container_width=True, help="Haz clic para consultar las tablas de vencidas"):
+                            st.info("💡 Para consultar la tabla completa de los 34 planes vencidos, ve a la pestaña superior **🚨 Alertas y Edición**.")
 
                     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
@@ -2726,18 +2726,18 @@ else:
 
     total_planes_c = abiertos_c + vencidos_c
 
-    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (CONTRALORÍA)
+    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (CONTRALORÍA - ENTEROS LIMPIOS)
     hoy_dt_c = pd.to_datetime(date.today())
     total_hist_c = len(df_raw_c)
     fin_c_cnt = df_raw_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado_c else 0
-    pct_cumplimiento_c = round((fin_c_cnt / total_hist_c) * 100, 1) if total_hist_c > 0 else 0.0
+    pct_cumplimiento_c = int(round((fin_c_cnt / total_hist_c) * 100)) if total_hist_c > 0 else 0
 
     df_raw_venc_c = df_raw_c[df_raw_c[col_estado_c].astype(str).str.contains("Vencid", case=False, na=False)].copy() if col_estado_c else pd.DataFrame()
     if not df_raw_venc_c.empty and col_fecha_cierre_c in df_raw_venc_c.columns:
         fechas_c_parsed = df_raw_venc_c[col_fecha_cierre_c].apply(parsear_fecha_estricta)
         dias_mora_c_series = (hoy_dt_c - fechas_c_parsed).dt.days.dropna()
         dias_mora_c_series = dias_mora_c_series[dias_mora_c_series > 0]
-        prom_mora_c_val = int(dias_mora_c_series.mean()) if not dias_mora_c_series.empty else 0
+        prom_mora_c_val = int(round(dias_mora_c_series.mean())) if not dias_mora_c_series.empty else 0
     else:
         prom_mora_c_val = 0
 
@@ -3039,16 +3039,16 @@ else:
 
                     st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
 
-                    # MÉTRICAS ESTRATÉGICAS ALINEADAS (CONTRALORÍA)
+                    # MÉTRICAS ESTRATÉGICAS - BOTONES DE NAVEGACIÓN DIRECTA (CONTRALORÍA - PORCENTAJE ENTERO)
                     col_m_strat_c1, col_m_strat_c2 = st.columns(2)
                     with col_m_strat_c1:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">🎯 % Cumplimiento</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:0.95rem; padding:4px;">{pct_cumplimiento_c}%</div>', unsafe_allow_html=True)
-                        st.caption(f"({fin_c_cnt} cerrados de {total_hist_c} totales)")
+                        if st.button(f"✨ {pct_cumplimiento_c}%\n({fin_c_cnt} cerrados)", key="btn_goto_ind_c", use_container_width=True, help="Haz clic para consultar las tablas de finalizadas"):
+                            st.info("💡 Para consultar la tabla de planes finalizados en Contraloría, ve a la pestaña superior **📌 Indicadores de Gestión** ➡️ **🎉 Planes Finalizados**.")
                     with col_m_strat_c2:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️ Prom. Días Mora</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="card-box" style="background-color:#C0392B; color:#FFFFFF; font-size:0.95rem; padding:4px;">{prom_mora_c_val} días</div>', unsafe_allow_html=True)
-                        st.caption(f"({len(df_raw_venc_c)} vencidos)")
+                        if st.button(f"🔴 {prom_mora_c_val} días\n({len(df_raw_venc_c)} vencidos)", key="btn_goto_alertas_c", use_container_width=True, help="Haz clic para consultar las tablas de vencidas"):
+                            st.info("💡 Para consultar los planes vencidos de Contraloría, selecciona la categoría **'Estado: Vencidos'** en la tabla inferior.")
 
                     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
@@ -3526,7 +3526,7 @@ else:
                             df_area_hall_c = df_hall_unicos_c.copy()
                             df_area_hall_c[col_responsable_c] = df_area_hall_c[col_responsable_c].astype(str).str.replace("\n", ",").str.split("/")
                             df_area_hall_exploded_c = df_area_hall_c.explode(col_responsable_c)
-                            df_area_hall_exploded_c[col_responsable_c] = df_area_hall_exploded_c[col_responsable_c].astype(str).apply(limpiar_nombre_area)
+                            df_area_hall_exploded_c[col_responsable_c] = df_area_hall_exploded_c[col_responsable_c].apply(limpiar_nombre_area)
                             df_area_hall_exploded_c = df_area_hall_exploded_c[~df_area_hall_exploded_c[col_responsable_c].isin(["", "NAN", "NONE", "NONE."])]
 
                             df_pivot_area_hall_c = pd.pivot_table(df_area_hall_exploded_c, index=col_responsable_c, columns="Vigencia_Limpia", aggfunc="size", fill_value=0)

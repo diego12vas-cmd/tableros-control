@@ -1729,9 +1729,9 @@ if entorno_activo == "Auditoría Interna":
 
                 m1, m2, m3, m4 = st.columns(4)
                 m1.metric("Planes de Acción Pendientes", total_planes_pendientes)
-                m2.metric("🔴 Compromisos Vencidos", comp_vencidos_pendientes, delta=f"{(comp_vencidos_pendientes/total_planes_pendientes*100):.1f}% de pendientes" if total_planes_pendientes > 0 else "0%", delta_color="inverse")
-                m3.metric("🔥 Hallazgos Riesgo Alto", comp_criticos_pendientes, delta=f"{(comp_criticos_pendientes/total_planes_pendientes*100):.1f}% de pendientes" if total_planes_pendientes > 0 else "0%", delta_color="inverse")
-                m4.metric("🎯 Tasa Global de Cierre", f"{pct_abiertos}%", delta="Objetivo: 85%")
+                m2.metric("🔴 Compromisos Vencidos", comp_vencidos_pendientes)
+                m3.metric("🟢 Compromisos Abiertos", abiertos)
+                m4.metric("🔥 Hallazgos Riesgo Alto", comp_criticos_pendientes)
 
                 st.markdown("---")
                 st.subheader("👥 Distribución de Compromisos Pendientes por Área")

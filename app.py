@@ -1377,11 +1377,11 @@ if entorno_activo == "Auditoría Interna":
     fig_tendencia.update_layout(
         template='plotly_dark',
         title=dict(text="📈 Tendencia Mensual de Planes (Vigencia 2026)", font=dict(size=14, color="white")),
-        height=320,
-        margin=dict(l=20, r=20, t=35, b=20),
+        height=345,
+        margin=dict(l=20, r=20, t=40, b=40),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        legend=dict(orientation="h", y=-0.22, x=0.5, xanchor="center"),
+        legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center"),
         xaxis=dict(showgrid=False),
         yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)')
     )
@@ -2717,7 +2717,8 @@ else:
 
     total_planes_c = abiertos_c + vencidos_c
 
-    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (CONTRALORÍA)
+    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (CONTRALORÍA - INSTANCIACIÓN PROPIA Y SEGURA)
+    hoy_dt_c = pd.to_datetime(date.today())
     total_hist_c = len(df_raw_c)
     fin_c_cnt = df_raw_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado_c else 0
     pct_cumplimiento_c = round((fin_c_cnt / total_hist_c) * 100, 1) if total_hist_c > 0 else 0.0
@@ -2725,7 +2726,7 @@ else:
     df_raw_venc_c = df_raw_c[df_raw_c[col_estado_c].astype(str).str.contains("Vencid", case=False, na=False)].copy() if col_estado_c else pd.DataFrame()
     if not df_raw_venc_c.empty and col_fecha_cierre_c in df_raw_venc_c.columns:
         fechas_c_parsed = df_raw_venc_c[col_fecha_cierre_c].apply(parsear_fecha_estricta)
-        dias_mora_c_series = (hoy_dt - fechas_c_parsed).dt.days.dropna()
+        dias_mora_c_series = (hoy_dt_c - fechas_c_parsed).dt.days.dropna()
         dias_mora_c_series = dias_mora_c_series[dias_mora_c_series > 0]
         prom_mora_c_val = int(dias_mora_c_series.mean()) if not dias_mora_c_series.empty else 0
     else:
@@ -2789,11 +2790,11 @@ else:
     fig_tendencia_c.update_layout(
         template='plotly_dark',
         title=dict(text="📈 Tendencia Mensual de Planes (Vigencia 2026)", font=dict(size=14, color="white")),
-        height=320,
-        margin=dict(l=20, r=20, t=35, b=20),
+        height=345,
+        margin=dict(l=20, r=20, t=40, b=40),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        legend=dict(orientation="h", y=-0.22, x=0.5, xanchor="center"),
+        legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center"),
         xaxis=dict(showgrid=False),
         yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)')
     )

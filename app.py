@@ -850,26 +850,10 @@ def obtener_fecha_excel(ruta_target):
     if not ruta_target or not os.path.exists(ruta_target):
         return None
     try:
-        xls = pd.ExcelFile(ruta_target)
-        if "Tablero" in xls.sheet_names:
-            df_tablero = pd.read_excel(xls, sheet_name="Tablero", header=None)
-            for col in df_tablero.columns:
-                for row_idx, val in enumerate(df_tablero[col].dropna()):
-                    val_str = str(val).strip()
-                    if "última fecha de actualización" in val_str.lower() or "ultima fecha" in val_str.lower():
-                        match = re.search(r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})", val_str)
-                        if match:
-                            return match.group(1)
-                        if row_idx + 1 < len(df_tablero):
-                            val_next = str(df_tablero[col].iloc[row_idx + 1]).strip()
-                            match_next = re.search(r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})", val_next)
-                            if match_next:
-                                return match_next.group(1)
+        # Tomar estrictamente la fecha de última modificación del archivo de base de datos en disco
         timestamp_mod = os.path.getmtime(ruta_target)
         return datetime.fromtimestamp(timestamp_mod).strftime("%d/%m/%Y")
     except Exception:
-        if os.path.exists(ruta_target):
-            return datetime.fromtimestamp(os.path.getmtime(ruta_target)).strftime("%d/%m/%Y")
         return None
 
 def buscar_columna_por_patron(df, patrones):
@@ -2719,18 +2703,18 @@ else:
 
     total_planes_c = abiertos_c + vencidos_c
 
-    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (CONTRALORÍA - ENTEROS LIMPIOS)
+    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (CONTRALORÍA)
     hoy_dt_c = pd.to_datetime(date.today())
     total_hist_c = len(df_raw_c)
     fin_c_cnt = df_raw_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado_c else 0
-    pct_cumplimiento_c = int(round((fin_c_cnt / total_hist_c) * 100)) if total_hist_c > 0 else 0
+    pct_cumplimiento_c = round((fin_c_cnt / total_hist_c) * 100, 1) if total_hist_c > 0 else 0.0
 
     df_raw_venc_c = df_raw_c[df_raw_c[col_estado_c].astype(str).str.contains("Vencid", case=False, na=False)].copy() if col_estado_c else pd.DataFrame()
     if not df_raw_venc_c.empty and col_fecha_cierre_c in df_raw_venc_c.columns:
         fechas_c_parsed = df_raw_venc_c[col_fecha_cierre_c].apply(parsear_fecha_estricta)
         dias_mora_c_series = (hoy_dt_c - fechas_c_parsed).dt.days.dropna()
         dias_mora_c_series = dias_mora_c_series[dias_mora_c_series > 0]
-        prom_mora_c_val = int(round(dias_mora_c_series.mean())) if not dias_mora_c_series.empty else 0
+        prom_mora_c_val = int(dias_mora_c_series.mean()) if not dias_mora_c_series.empty else 0
     else:
         prom_mora_c_val = 0
 
@@ -3499,7 +3483,7 @@ else:
 
                             df_totales_hall_vig_c = df_hall_st_grouped_c.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
                             for _, row_hv in df_totales_hall_vig_c.iterrows():
-                                fig_hist_hall_stack.add_annotation(
+                                fig_hist_hall_stack_c.add_annotation(
                                     x=row_hv["Vigencia_Limpia"], 
                                     y=row_hv["Cantidad"] + max_hist_hu_st_c * 0.08, 
                                     text=f"<b>{row_hv['Cantidad']}</b>", 
@@ -3523,7 +3507,7 @@ else:
                             df_area_hall_c = df_hall_unicos_c.copy()
                             df_area_hall_c[col_responsable_c] = df_area_hall_c[col_responsable_c].astype(str).str.replace("\n", ",").str.split("/")
                             df_area_hall_exploded_c = df_area_hall_c.explode(col_responsable_c)
-                            df_area_hall_exploded_c[col_responsable_c] = df_area_hall_exploded_c[col_responsable_c].apply(limpiar_nombre_area)
+                            df_area_hall_exploded_c[col_responsable_c] = df_area_hall_exploded_c[col_responsable_c].astype(str).apply(limpiar_nombre_area)
                             df_area_hall_exploded_c = df_area_hall_exploded_c[~df_area_hall_exploded_c[col_responsable_c].isin(["", "NAN", "NONE", "NONE."])]
 
                             df_pivot_area_hall_c = pd.pivot_table(df_area_hall_exploded_c, index=col_responsable_c, columns="Vigencia_Limpia", aggfunc="size", fill_value=0)

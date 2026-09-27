@@ -15,13 +15,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-# IMPORTACIÓN PARA PDF
-from reportlab.lib.pagesizes import letter
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.pdfgen import canvas
-
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
@@ -1384,11 +1377,11 @@ if entorno_activo == "Auditoría Interna":
     fig_tendencia.update_layout(
         template='plotly_dark',
         title=dict(text="📈 Tendencia Mensual de Planes (Vigencia 2026)", font=dict(size=14, color="white")),
-        height=345,
-        margin=dict(l=20, r=20, t=40, b=40),
+        height=320,
+        margin=dict(l=20, r=20, t=35, b=20),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center"),
+        legend=dict(orientation="h", y=-0.22, x=0.5, xanchor="center"),
         xaxis=dict(showgrid=False),
         yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)')
     )
@@ -1416,20 +1409,20 @@ if entorno_activo == "Auditoría Interna":
                 color='Estado_Cat',
                 orientation='h',
                 title="🔥 Top 5 Responsables con Pendientes por Estado",
-                color_discrete_map={'Abiertos': '#F39C12', 'Vencidos': '#FF5E5E'},
+                color_discrete_map={'Abiertos': '#F39C12', 'Vencidos': '#FF5252'},
                 text='Cantidad'
             )
             fig_top5.update_traces(textposition='inside', insidetextanchor='middle')
             fig_top5.update_layout(
                 template='plotly_dark',
-                height=345,
-                margin=dict(l=20, r=20, t=40, b=40),
+                height=320,
+                margin=dict(l=20, r=20, t=30, b=10),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
                 yaxis=dict(type='category', autorange='reversed', title=None),
                 xaxis=dict(showgrid=False, visible=False),
                 legend_title_text="Estado",
-                legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center")
+                legend=dict(orientation="h", y=-0.08, x=0.5, xanchor="center")
             )
         else:
             fig_top5 = None
@@ -2724,12 +2717,11 @@ else:
 
     total_planes_c = abiertos_c + vencidos_c
 
-    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (CONTRALORÍA - PROTEGIDOS CONTRA NULL)
+    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (CONTRALORÍA)
     total_hist_c = len(df_raw_c)
     fin_c_cnt = df_raw_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado_c else 0
     pct_cumplimiento_c = round((fin_c_cnt / total_hist_c) * 100, 1) if total_hist_c > 0 else 0.0
 
-    hoy_dt = pd.to_datetime(date.today())
     df_raw_venc_c = df_raw_c[df_raw_c[col_estado_c].astype(str).str.contains("Vencid", case=False, na=False)].copy() if col_estado_c else pd.DataFrame()
     if not df_raw_venc_c.empty and col_fecha_cierre_c in df_raw_venc_c.columns:
         fechas_c_parsed = df_raw_venc_c[col_fecha_cierre_c].apply(parsear_fecha_estricta)
@@ -2797,11 +2789,11 @@ else:
     fig_tendencia_c.update_layout(
         template='plotly_dark',
         title=dict(text="📈 Tendencia Mensual de Planes (Vigencia 2026)", font=dict(size=14, color="white")),
-        height=345,
-        margin=dict(l=20, r=20, t=40, b=40),
+        height=320,
+        margin=dict(l=20, r=20, t=35, b=20),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center"),
+        legend=dict(orientation="h", y=-0.22, x=0.5, xanchor="center"),
         xaxis=dict(showgrid=False),
         yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)')
     )
@@ -2835,14 +2827,14 @@ else:
             fig_top5_c.update_traces(textposition='inside', insidetextanchor='middle')
             fig_top5_c.update_layout(
                 template='plotly_dark',
-                height=345,
-                margin=dict(l=20, r=20, t=40, b=40),
+                height=320,
+                margin=dict(l=20, r=20, t=30, b=10),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
                 yaxis=dict(type='category', autorange='reversed', title=None),
                 xaxis=dict(showgrid=False, visible=False),
                 legend_title_text="Estado",
-                legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center")
+                legend=dict(orientation="h", y=-0.08, x=0.5, xanchor="center")
             )
         else:
             fig_top5_c = None

@@ -1240,7 +1240,7 @@ if entorno_activo == "Auditoría Interna":
 
     if col_estado:
         estados_vals = sorted([e for e in df_raw[col_estado].dropna().unique() if str(e).lower() not in ["nan", "none", ""] and not re.search(r"finaliz|cerrad", str(e), re.IGNORECASE)])
-        with st.sidebar.expander("📌 Estado del compromiso", expanded=True):
+        with st.sidebar.expander("📌 Estado del compromiso", expanded=False):
             estado_sel = st.multiselect("Seleccione Estados:", options=estados_vals, default=[], key="multi_estado")
         if estado_sel:
             df_filtrado = df_filtrado[df_filtrado[col_estado].isin(estado_sel)]
@@ -1530,16 +1530,16 @@ if entorno_activo == "Auditoría Interna":
 
                     st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
 
-                    # MÉTRICAS ESTRATÉGICAS (TARJETAS ORIGINALES CON LEYENDA EXTERNA ABAJO)
+                    # MÉTRICAS ESTRATÉGICAS ALINEADAS (PRECISIÓN TEXTUAL GARANTIZADA)
                     col_m_strat1, col_m_strat2 = st.columns(2)
                     with col_m_strat1:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">🎯 % Cumplimiento</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:0.95rem; padding:4px;">{int(round(pct_cumplimiento_ai))}%</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div style="text-align:center; font-size:0.72rem; color:#A0AEC0; margin-top:2px;">({fin_ai_cnt} cerrados de {total_hist_ai} totales)</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:0.95rem; padding:4px;">{pct_cumplimiento_ai}%</div>', unsafe_allow_html=True)
+                        st.caption(f"({fin_ai_cnt} cerrados de {total_hist_ai} totales)")
                     with col_m_strat2:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️ Prom. Días Mora</div>', unsafe_allow_html=True)
                         st.markdown(f'<div class="card-box" style="background-color:#C0392B; color:#FFFFFF; font-size:0.95rem; padding:4px;">{prom_mora_ai_val} días</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div style="text-align:center; font-size:0.72rem; color:#A0AEC0; margin-top:2px;">({len(df_raw_venc_ai)} vencidos)</div>', unsafe_allow_html=True)
+                        st.caption(f"({len(df_raw_venc_ai)} vencidos)")
 
                     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
@@ -1963,7 +1963,7 @@ if entorno_activo == "Auditoría Interna":
 
                     with col_h1:
                         st.markdown('<div class="titulo-seccion-finaliz">🎯 Programados vs Finalizados</div>', unsafe_allow_html=True)
-                        st.markdown('<div style="font-size:0.75rem; color:#A0AEC0; margin-bottom:8px;">🟩 Programados (Col I) | 🔳 Finalizados (Col S)</div>', unsafe_allow_html=True)
+                        st.markdown('<div style="font-size:0.75rem; color:#A0AEC0; margin-bottom:8px;">🟩 Programados | 🔳 Finalizados</div>', unsafe_allow_html=True)
                         st.markdown('<div class="month-container">', unsafe_allow_html=True)
                         for m_lbl in meses_es:
                             sum_p = conteo_pct_prog_2026[m_lbl]
@@ -2668,7 +2668,7 @@ else:
             e for e in df_raw_c[col_estado_c].dropna().unique() 
             if str(e).lower() not in ["nan", "none", ""] and not re.search(r"finaliz|cerrad", str(e), re.IGNORECASE)
         ])
-        with st.sidebar.expander("📌 Estado del compromiso", expanded=True):
+        with st.sidebar.expander("📌 Estado del compromiso", expanded=False):
             estado_sel_c = st.multiselect("Seleccione uno o varios Estados:", options=estados_vals_c, default=[], key="multi_estado_c")
         if estado_sel_c:
             df_filtrado_c = df_filtrado_c[df_filtrado_c[col_estado_c].isin(estado_sel_c)]
@@ -3151,9 +3151,13 @@ else:
 
             elif nombre_tab_real_c == "Métricas":
                 st.header("📈 Resumen de Estado y Desempeño - Contraloría")
-                st.markdown("Planes de Acción Pendientes")
-                st.markdown(f"## {total_planes_c}")
-                
+                st.markdown("Vista general del avance de compromisos por área y vigencia.")
+
+                m_c1, m_c2, m_c3 = st.columns(3)
+                m_c1.metric("Planes de Acción Pendientes", total_planes_c)
+                m_c2.metric("🔴 Compromisos Vencidos", vencidos_c)
+                m_c3.metric("🟢 Compromisos Abiertos", abiertos_c)
+
                 st.markdown("---")
                 st.subheader("👥 Distribución de Compromisos Pendientes por Área / Dependencia")
                 st.caption("Distribución por estado de los compromisos no finalizados asignados a cada área responsable.")
@@ -3307,7 +3311,7 @@ else:
 
                     with col_ch1:
                         st.markdown('<div class="titulo-seccion-finaliz">🎯 Programados vs Finalizados Contraloría</div>', unsafe_allow_html=True)
-                        st.markdown('<div style="font-size:0.75rem; color:#A0AEC0; margin-bottom:8px;">🟩 Programados (Col W) | 🔳 Finalizados (Col AI)</div>', unsafe_allow_html=True)
+                        st.markdown('<div style="font-size:0.75rem; color:#A0AEC0; margin-bottom:8px;">🟩 Programados | 🔳 Finalizados</div>', unsafe_allow_html=True)
                         st.markdown('<div class="month-container">', unsafe_allow_html=True)
                         for m_lbl in meses_es_c:
                             sum_p = conteo_pct_prog_2026_c[m_lbl]
@@ -3495,7 +3499,7 @@ else:
 
                             df_totales_hall_vig_c = df_hall_st_grouped_c.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
                             for _, row_hv in df_totales_hall_vig_c.iterrows():
-                                fig_hist_hall_stack_c.add_annotation(
+                                fig_hist_hall_stack.add_annotation(
                                     x=row_hv["Vigencia_Limpia"], 
                                     y=row_hv["Cantidad"] + max_hist_hu_st_c * 0.08, 
                                     text=f"<b>{row_hv['Cantidad']}</b>", 

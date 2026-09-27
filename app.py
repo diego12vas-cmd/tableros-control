@@ -15,6 +15,13 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+# IMPORTACIÓN PARA PDF
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.pdfgen import canvas
+
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
@@ -1530,22 +1537,16 @@ if entorno_activo == "Auditoría Interna":
 
                     st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
 
-                    # MÉTRICAS ESTRATÉGICAS CLICABLES (INTERACTIVAS COMO PESTAÑAS)
-                    if "vista_tabla_filtro" not in st.session_state:
-                        st.session_state["vista_tabla_filtro"] = "PENDIENTES"
-
+                    # MÉTRICAS ESTRATÉGICAS ALINEADAS (PRECISIÓN TEXTUAL GARANTIZADA)
                     col_m_strat1, col_m_strat2 = st.columns(2)
                     with col_m_strat1:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">🎯 % Cumplimiento</div>', unsafe_allow_html=True)
-                        if st.button(f"✨ {pct_cumplimiento_ai}%\n({fin_ai_cnt} cerrados)", key="btn_card_cumplimiento_ai", use_container_width=True):
-                            st.session_state["vista_tabla_filtro"] = "FINALIZADOS"
-                            st.rerun()
-
+                        st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:0.95rem; padding:4px;">{pct_cumplimiento_ai}%</div>', unsafe_allow_html=True)
+                        st.caption(f"({fin_ai_cnt} cerrados de {total_hist_ai} totales)")
                     with col_m_strat2:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️ Prom. Días Mora</div>', unsafe_allow_html=True)
-                        if st.button(f"🔴 {prom_mora_ai_val} días\n({len(df_raw_venc_ai)} vencidos)", key="btn_card_mora_ai", use_container_width=True):
-                            st.session_state["vista_tabla_filtro"] = "VENCIDOS"
-                            st.rerun()
+                        st.markdown(f'<div class="card-box" style="background-color:#C0392B; color:#FFFFFF; font-size:0.95rem; padding:4px;">{prom_mora_ai_val} días</div>', unsafe_allow_html=True)
+                        st.caption(f"({len(df_raw_venc_ai)} vencidos)")
 
                     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
@@ -1581,33 +1582,48 @@ if entorno_activo == "Auditoría Interna":
 
                 st.markdown("---")
 
-                # CÁLCULO DINÁMICO DE LA TABLA SEGÚN LA TARJETA SELECCIONADA
-                vista_actual = st.session_state.get("vista_tabla_filtro", "PENDIENTES")
-
-                col_sub, col_search_box, col_reset_view = st.columns([1.8, 1.3, 1])
+                col_sub, col_search_box, col_filtro_rapido = st.columns([1.8, 1.3, 1])
                 with col_sub:
-                    if vista_actual == "FINALIZADOS":
-                        st.subheader(f"📋 Detalle de Planes Finalizados / Cerrados ({fin_ai_cnt} totales)")
-                    elif vista_actual == "VENCIDOS":
-                        st.subheader(f"📋 Detalle de Planes Vencidos ({len(df_raw_venc_ai)} totales)")
-                    else:
-                        st.subheader("📋 Detalle General de Compromisos Pendientes")
+                    st.subheader("📋 Detalle General de Compromisos Pendientes")
                 
                 with col_search_box:
                     busqueda_texto = st.text_input("🔍 Buscar texto en la tabla:", placeholder="Escribe para filtrar...", key="search_tabla_general").strip().lower()
 
-                with col_reset_view:
-                    if vista_actual != "PENDIENTES":
-                        if st.button("🔄 Ver Pendientes (General)", use_container_width=True):
-                            st.session_state["vista_tabla_filtro"] = "PENDIENTES"
-                            st.rerun()
+                with col_filtro_rapido:
+                    opciones_rapidas = ["(Mostrar Todos)", "Riesgo: Alto", "Riesgo: Medio", "Riesgo: Bajo", "Estado: Abiertos", "Estado: Vencidos", "Estado: Sin definir"]
+                    if col_a5: opciones_rapidas.append("Alerta: Próximos a 5 días")
+                    if col_a10: opciones_rapidas.append("Alerta: Próximos a 10 días")
+                    if col_a20: opciones_rapidas.append("Alerta: Próximos a 20 días")
+                    if col_a30: opciones_rapidas.append("Alerta: Próximos a 30 días")
 
-                if vista_actual == "FINALIZADOS":
-                    df_tabla = df_raw[df_raw[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy()
-                elif vista_actual == "VENCIDOS":
-                    df_tabla = df_raw[df_raw[col_estado].astype(str).str.contains("Vencid", case=False, na=False)].copy()
-                else:
-                    df_tabla = df_activos.copy()
+                    filtro_elegido = st.selectbox("⚡ Filtrar por categoría:", options=opciones_rapidas, index=0)
+
+                df_tabla = df_activos.copy()
+                if filtro_elegido != "(Mostrar Todos)":
+                    if "Riesgo: Alto" in filtro_elegido and col_riesgo:
+                        df_tabla = df_tabla[df_tabla[col_riesgo].astype(str).str.contains("Alto", case=False, na=False)]
+                    elif "Riesgo: Medio" in filtro_elegido and col_riesgo:
+                        df_tabla = df_tabla[df_tabla[col_riesgo].astype(str).str.contains("Medio", case=False, na=False)]
+                    elif "Riesgo: Bajo" in filtro_elegido and col_riesgo:
+                        df_tabla = df_tabla[df_tabla[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False)]
+                    elif "Estado: Abiertos" in filtro_elegido and col_estado:
+                        df_tabla = df_tabla[df_tabla[col_estado].astype(str).str.contains("Abiert", case=False, na=False)]
+                    elif "Estado: Vencidos" in filtro_elegido and col_estado:
+                        df_tabla = df_tabla[df_tabla[col_estado].astype(str).str.contains("Vencid", case=False, na=False)]
+                    elif "Estado: Sin definir" in filtro_elegido and col_estado:
+                        df_tabla = df_tabla[df_tabla[col_estado].astype(str).str.contains("Sin", case=False, na=False)]
+                    elif "Alerta: Próximos a 5 días" in filtro_elegido and col_a5:
+                        s_val = df_tabla[col_a5].fillna("").astype(str).str.strip().str.lower()
+                        df_tabla = df_tabla[~s_val.isin(["nan", "none", "", "0", "0.0", "false"])]
+                    elif "Alerta: Próximos a 10 días" in filtro_elegido and col_a10:
+                        s_val = df_tabla[col_a10].fillna("").astype(str).str.strip().str.lower()
+                        df_tabla = df_tabla[~s_val.isin(["nan", "none", "", "0", "0.0", "false"])]
+                    elif "Alerta: Próximos a 20 días" in filtro_elegido and col_a20:
+                        s_val = df_tabla[col_a20].fillna("").astype(str).str.strip().str.lower()
+                        df_tabla = df_tabla[~s_val.isin(["nan", "none", "", "0", "0.0", "false"])]
+                    elif "Alerta: Próximos a 30 días" in filtro_elegido and col_a30:
+                        s_val = df_tabla[col_a30].fillna("").astype(str).str.strip().str.lower()
+                        df_tabla = df_tabla[~s_val.isin(["nan", "none", "", "0", "0.0", "false"])]
 
                 df_tabla_vista = filtrar_solo_columnas_amarillas_ai(df_tabla)
 
@@ -1639,9 +1655,9 @@ if entorno_activo == "Auditoría Interna":
                 st.dataframe(df_tabla_vista, use_container_width=True, column_config=col_config_dict, hide_index=False)
 
                 st.download_button(
-                    label=f"📥 Descargar Excel {vista_actual.capitalize()} (.xlsx)",
+                    label="📥 Descargar Excel (.xlsx)",
                     data=generar_excel_formateado_ai(df_tabla),
-                    file_name=f"Detalle_Compromisos_{vista_actual}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    file_name=f"Detalle_Compromisos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=False,
                 )
@@ -2710,7 +2726,7 @@ else:
 
     total_planes_c = abiertos_c + vencidos_c
 
-    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (CONTRALORÍA - INSTANCIACIÓN PROPIA Y SEGURA)
+    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (CONTRALORÍA)
     hoy_dt_c = pd.to_datetime(date.today())
     total_hist_c = len(df_raw_c)
     fin_c_cnt = df_raw_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado_c else 0
@@ -3023,22 +3039,16 @@ else:
 
                     st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
 
-                    # MÉTRICAS ESTRATÉGICAS CLICABLES (CONTRALORÍA)
-                    if "vista_tabla_filtro_c" not in st.session_state:
-                        st.session_state["vista_tabla_filtro_c"] = "PENDIENTES"
-
+                    # MÉTRICAS ESTRATÉGICAS ALINEADAS (CONTRALORÍA)
                     col_m_strat_c1, col_m_strat_c2 = st.columns(2)
                     with col_m_strat_c1:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">🎯 % Cumplimiento</div>', unsafe_allow_html=True)
-                        if st.button(f"✨ {pct_cumplimiento_c}%\n({fin_c_cnt} cerrados)", key="btn_card_cumplimiento_c", use_container_width=True):
-                            st.session_state["vista_tabla_filtro_c"] = "FINALIZADOS"
-                            st.rerun()
-
+                        st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:0.95rem; padding:4px;">{pct_cumplimiento_c}%</div>', unsafe_allow_html=True)
+                        st.caption(f"({fin_c_cnt} cerrados de {total_hist_c} totales)")
                     with col_m_strat_c2:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️ Prom. Días Mora</div>', unsafe_allow_html=True)
-                        if st.button(f"🔴 {prom_mora_c_val} días\n({len(df_raw_venc_c)} vencidos)", key="btn_card_mora_c", use_container_width=True):
-                            st.session_state["vista_tabla_filtro_c"] = "VENCIDOS"
-                            st.rerun()
+                        st.markdown(f'<div class="card-box" style="background-color:#C0392B; color:#FFFFFF; font-size:0.95rem; padding:4px;">{prom_mora_c_val} días</div>', unsafe_allow_html=True)
+                        st.caption(f"({len(df_raw_venc_c)} vencidos)")
 
                     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
@@ -3074,33 +3084,40 @@ else:
 
                 st.markdown("---")
                 
-                # CÁLCULO DINÁMICO DE LA TABLA SEGÚN LA TARJETA SELECCIONADA (CONTRALORÍA)
-                vista_actual_c = st.session_state.get("vista_tabla_filtro_c", "PENDIENTES")
-
-                col_c_sub, col_c_search, col_reset_view_c = st.columns([1.8, 1.3, 1])
+                col_c_sub, col_c_search, col_c_filtro_rapido = st.columns([1.8, 1.3, 1])
                 with col_c_sub:
-                    if vista_actual_c == "FINALIZADOS":
-                        st.subheader(f"📋 Detalle de Compromisos Contraloría Finalizados / Cerrados ({fin_c_cnt} totales)")
-                    elif vista_actual_c == "VENCIDOS":
-                        st.subheader(f"📋 Detalle de Compromisos Contraloría Vencidos ({len(df_raw_venc_c)} totales)")
-                    else:
-                        st.subheader("📋 Detalle de Compromisos Contraloría")
+                    st.subheader("📋 Detalle de Compromisos Contraloría")
                 
                 with col_c_search:
                     busqueda_texto_c = st.text_input("🔍 Buscar texto en la tabla:", placeholder="Escribe para filtrar...", key="search_tabla_contraloria").strip().lower()
 
-                with col_reset_view_c:
-                    if vista_actual_c != "PENDIENTES":
-                        if st.button("🔄 Ver Pendientes (General)", key="btn_reset_c", use_container_width=True):
-                            st.session_state["vista_tabla_filtro_c"] = "PENDIENTES"
-                            st.rerun()
+                with col_c_filtro_rapido:
+                    opciones_rapidas_c = ["(Mostrar Todos)", "Estado: Abiertos", "Estado: Vencidos"]
+                    if col_a5_c: opciones_rapidas_c.append("Alerta: Próximos a 5 días")
+                    if col_a10_c: opciones_rapidas_c.append("Alerta: Próximos a 10 días")
+                    if col_a20_c: opciones_rapidas_c.append("Alerta: Próximos a 20 días")
+                    if col_a30_c: opciones_rapidas_c.append("Alerta: Próximos a 30 días")
 
-                if vista_actual_c == "FINALIZADOS":
-                    df_c_tabla = df_raw_c[df_raw_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy()
-                elif vista_actual_c == "VENCIDOS":
-                    df_c_tabla = df_raw_c[df_raw_c[col_estado_c].astype(str).str.contains("Vencid", case=False, na=False)].copy()
-                else:
-                    df_c_tabla = df_activos_c.copy()
+                    filtro_elegido_c = st.selectbox("⚡ Filtrar por categoría:", options=opciones_rapidas_c, index=0, key="sel_categoria_c")
+
+                df_c_tabla = df_activos_c.copy()
+                if filtro_elegido_c != "(Mostrar Todos)":
+                    if "Estado: Abiertos" in filtro_elegido_c and col_estado_c:
+                        df_c_tabla = df_c_tabla[df_c_tabla[col_estado_c].astype(str).str.contains("Abiert", case=False, na=False)]
+                    elif "Estado: Vencidos" in filtro_elegido_c and col_estado_c:
+                        df_c_tabla = df_c_tabla[df_c_tabla[col_estado_c].astype(str).str.contains("Vencid", case=False, na=False)]
+                    elif "Alerta: Próximos a 5 días" in filtro_elegido_c and col_a5_c:
+                        s_val_c = df_c_tabla[col_a5_c].fillna("").astype(str).str.strip().str.lower()
+                        df_c_tabla = df_c_tabla[~s_val_c.isin(["nan", "none", "", "0", "0.0", "false"])]
+                    elif "Alerta: Próximos a 10 días" in filtro_elegido_c and col_a10_c:
+                        s_val_c = df_c_tabla[col_a10_c].fillna("").astype(str).str.strip().str.lower()
+                        df_c_tabla = df_c_tabla[~s_val_c.isin(["nan", "none", "", "0", "0.0", "false"])]
+                    elif "Alerta: Próximos a 20 días" in filtro_elegido_c and col_a20_c:
+                        s_val_c = df_c_tabla[col_a20_c].fillna("").astype(str).str.strip().str.lower()
+                        df_c_tabla = df_c_tabla[~s_val_c.isin(["nan", "none", "", "0", "0.0", "false"])]
+                    elif "Alerta: Próximos a 30 días" in filtro_elegido_c and col_a30_c:
+                        s_val_c = df_c_tabla[col_a30_c].fillna("").astype(str).str.strip().str.lower()
+                        df_c_tabla = df_c_tabla[~s_val_c.isin(["nan", "none", "", "0", "0.0", "false"])]
 
                 df_c_tabla_vista = filtrar_solo_columnas_amarillas_c(df_c_tabla)
 
@@ -3132,9 +3149,9 @@ else:
                 st.dataframe(df_c_tabla_vista, use_container_width=True, column_config=col_config_dict_c, hide_index=False)
 
                 st.download_button(
-                    label=f"📥 Descargar Excel Contraloría {vista_actual_c.capitalize()} (.xlsx)",
+                    label="📥 Descargar Excel Contraloría (.xlsx)",
                     data=generar_excel_formateado_c(df_c_tabla),
-                    file_name=f"Detalle_Contraloria_{vista_actual_c}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    file_name=f"Detalle_Contraloria_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=False,
                 )
@@ -3509,7 +3526,7 @@ else:
                             df_area_hall_c = df_hall_unicos_c.copy()
                             df_area_hall_c[col_responsable_c] = df_area_hall_c[col_responsable_c].astype(str).str.replace("\n", ",").str.split("/")
                             df_area_hall_exploded_c = df_area_hall_c.explode(col_responsable_c)
-                            df_area_hall_exploded_c[col_responsable_c] = df_area_hall_exploded_c[col_responsable_c].apply(limpiar_nombre_area)
+                            df_area_hall_exploded_c[col_responsable_c] = df_area_hall_exploded_c[col_responsable_c].astype(str).apply(limpiar_nombre_area)
                             df_area_hall_exploded_c = df_area_hall_exploded_c[~df_area_hall_exploded_c[col_responsable_c].isin(["", "NAN", "NONE", "NONE."])]
 
                             df_pivot_area_hall_c = pd.pivot_table(df_area_hall_exploded_c, index=col_responsable_c, columns="Vigencia_Limpia", aggfunc="size", fill_value=0)

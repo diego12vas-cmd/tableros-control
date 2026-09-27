@@ -15,13 +15,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-# IMPORTACIÓN PARA PDF
-from reportlab.lib.pagesizes import letter
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.pdfgen import canvas
-
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
@@ -2724,11 +2717,12 @@ else:
 
     total_planes_c = abiertos_c + vencidos_c
 
-    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (CONTRALORÍA)
+    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (CONTRALORÍA - PROTEGIDOS CONTRA NULL)
     total_hist_c = len(df_raw_c)
     fin_c_cnt = df_raw_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado_c else 0
     pct_cumplimiento_c = round((fin_c_cnt / total_hist_c) * 100, 1) if total_hist_c > 0 else 0.0
 
+    hoy_dt = pd.to_datetime(date.today())
     df_raw_venc_c = df_raw_c[df_raw_c[col_estado_c].astype(str).str.contains("Vencid", case=False, na=False)].copy() if col_estado_c else pd.DataFrame()
     if not df_raw_venc_c.empty and col_fecha_cierre_c in df_raw_venc_c.columns:
         fechas_c_parsed = df_raw_venc_c[col_fecha_cierre_c].apply(parsear_fecha_estricta)

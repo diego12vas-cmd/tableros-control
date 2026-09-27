@@ -15,6 +15,13 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+# IMPORTACIÓN PARA PDF
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.pdfgen import canvas
+
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
@@ -1302,6 +1309,21 @@ if entorno_activo == "Auditoría Interna":
     r_medio = df_activos[col_riesgo].astype(str).str.contains("Medio", case=False, na=False).sum() if col_riesgo else 0
     r_bajo = df_activos[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False).sum() if col_riesgo else 0
 
+    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (AI)
+    total_hist_ai = len(df_raw)
+    fin_ai_cnt = df_raw[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado else 0
+    pct_cumplimiento_ai = round((fin_ai_cnt / total_hist_ai) * 100, 1) if total_hist_ai > 0 else 0.0
+
+    hoy_dt = pd.to_datetime(date.today())
+    df_raw_venc_ai = df_raw[df_raw[col_estado].astype(str).str.contains("Vencid", case=False, na=False)].copy() if col_estado else pd.DataFrame()
+    if not df_raw_venc_ai.empty and col_fecha_cierre in df_raw_venc_ai.columns:
+        fechas_ai_parsed = df_raw_venc_ai[col_fecha_cierre].apply(parsear_fecha_estricta)
+        dias_mora_ai_series = (hoy_dt - fechas_ai_parsed).dt.days.dropna()
+        dias_mora_ai_series = dias_mora_ai_series[dias_mora_ai_series > 0]
+        prom_mora_ai_val = int(dias_mora_ai_series.mean()) if not dias_mora_ai_series.empty else 0
+    else:
+        prom_mora_ai_val = 0
+
     pct_abiertos = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
 
     # ---------------------------------------------------------
@@ -1362,7 +1384,7 @@ if entorno_activo == "Auditoría Interna":
     fig_tendencia.update_layout(
         template='plotly_dark',
         title=dict(text="📈 Tendencia Mensual de Planes (Vigencia 2026)", font=dict(size=14, color="white")),
-        height=270,
+        height=345,
         margin=dict(l=20, r=20, t=40, b=40),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
@@ -1394,13 +1416,13 @@ if entorno_activo == "Auditoría Interna":
                 color='Estado_Cat',
                 orientation='h',
                 title="🔥 Top 5 Responsables con Pendientes por Estado",
-                color_discrete_map={'Abiertos': '#F39C12', 'Vencidos': '#FF5252'},
+                color_discrete_map={'Abiertos': '#F39C12', 'Vencidos': '#FF5E5E'},
                 text='Cantidad'
             )
             fig_top5.update_traces(textposition='inside', insidetextanchor='middle')
             fig_top5.update_layout(
                 template='plotly_dark',
-                height=270,
+                height=345,
                 margin=dict(l=20, r=20, t=40, b=40),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
@@ -1479,7 +1501,7 @@ if entorno_activo == "Auditoría Interna":
     for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
         with tab_obj:
             if nombre_tab_real == "Tablero":
-                col_izq, col_der = st.columns([0.82, 1.5])
+                col_izq, col_der = st.columns([0.72, 1.6])
 
                 with col_izq:
                     st.markdown('<div class="block-header">Total Hallazgos Pendientes</div>', unsafe_allow_html=True)
@@ -1513,7 +1535,18 @@ if entorno_activo == "Auditoría Interna":
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Sin definir</div>', unsafe_allow_html=True)
                         st.markdown(f'<div class="card-box" style="background-color:#F8A583; font-size:1.05rem; padding:4px;">{sin_plan}</div>', unsafe_allow_html=True)
 
-                    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+                    st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+
+                    # MÉTRICAS ESTRATÉGICAS ALINEADAS
+                    col_m_strat1, col_m_strat2 = st.columns(2)
+                    with col_m_strat1:
+                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">🎯 % Cumplimiento</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:0.95rem; padding:4px;">{pct_cumplimiento_ai}%</div>', unsafe_allow_html=True)
+                    with col_m_strat2:
+                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️ Prom. Días Mora</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="card-box" style="background-color:#C0392B; color:#FFFFFF; font-size:0.95rem; padding:4px;">{prom_mora_ai_val} días</div>', unsafe_allow_html=True)
+
+                    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
                     st.markdown('<div class="block-header">Acciones próximas a vencer</div>', unsafe_allow_html=True)
 
@@ -2028,7 +2061,6 @@ if entorno_activo == "Auditoría Interna":
                             max_hist_st = df_hist_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().max() if not df_hist_grouped.empty else 10
                             sum_tot_g2 = df_hist_grouped["Cantidad"].sum() if not df_hist_grouped.empty else 0
 
-                            # Renderizado limpio sin texto apretado dentro de las barras para evitar distorsión
                             fig_hist_stack = px.bar(
                                 df_hist_grouped, x="Vigencia_Limpia", y="Cantidad", color=col_estado,
                                 title="Distribución de Estados por Vigencia", barmode="stack",
@@ -2080,7 +2112,6 @@ if entorno_activo == "Auditoría Interna":
                         df_hall_calc["Hallaz_Clean"] = df_hall_calc[col_hallazgo].astype(str).str.strip()
                         df_hall_calc["Vigencia_Limpia"] = df_hall_calc[col_plan_filtro].apply(limpiar_vigencia_str)
 
-                        # Desduplicar hallazgos dentro de cada vigencia
                         df_hall_unicos = df_hall_calc.groupby(["Vigencia_Limpia", "Hallaz_Clean"]).first().reset_index()
 
                         c_hu1, c_hu2 = st.columns(2)
@@ -2693,6 +2724,21 @@ else:
 
     total_planes_c = abiertos_c + vencidos_c
 
+    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (CONTRALORÍA - PROTEGIDOS CONTRA NULL)
+    total_hist_c = len(df_raw_c)
+    fin_c_cnt = df_raw_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado_c else 0
+    pct_cumplimiento_c = round((fin_c_cnt / total_hist_c) * 100, 1) if total_hist_c > 0 else 0.0
+
+    hoy_dt = pd.to_datetime(date.today())
+    df_raw_venc_c = df_raw_c[df_raw_c[col_estado_c].astype(str).str.contains("Vencid", case=False, na=False)].copy() if col_estado_c else pd.DataFrame()
+    if not df_raw_venc_c.empty and col_fecha_cierre_c in df_raw_venc_c.columns:
+        fechas_c_parsed = df_raw_venc_c[col_fecha_cierre_c].apply(parsear_fecha_estricta)
+        dias_mora_c_series = (hoy_dt - fechas_c_parsed).dt.days.dropna()
+        dias_mora_c_series = dias_mora_c_series[dias_mora_c_series > 0]
+        prom_mora_c_val = int(dias_mora_c_series.mean()) if not dias_mora_c_series.empty else 0
+    else:
+        prom_mora_c_val = 0
+
     # ---------------------------------------------------------
     # TENDENCIA MENSUAL CONTRALORÍA
     # ---------------------------------------------------------
@@ -2751,7 +2797,7 @@ else:
     fig_tendencia_c.update_layout(
         template='plotly_dark',
         title=dict(text="📈 Tendencia Mensual de Planes (Vigencia 2026)", font=dict(size=14, color="white")),
-        height=270,
+        height=345,
         margin=dict(l=20, r=20, t=40, b=40),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
@@ -2789,7 +2835,7 @@ else:
             fig_top5_c.update_traces(textposition='inside', insidetextanchor='middle')
             fig_top5_c.update_layout(
                 template='plotly_dark',
-                height=270,
+                height=345,
                 margin=dict(l=20, r=20, t=40, b=40),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
@@ -2970,7 +3016,7 @@ else:
     for nombre_tab_real_c, tab_obj_c in zip(pestañas_permitidas_c, tabs_objetos_c):
         with tab_obj_c:
             if nombre_tab_real_c == "Tablero":
-                col_izq_c, col_der_c = st.columns([0.82, 1.5])
+                col_izq_c, col_der_c = st.columns([0.72, 1.6])
 
                 with col_izq_c:
                     st.markdown('<div class="block-header">Total Hallazgos Pendientes</div>', unsafe_allow_html=True)
@@ -2989,7 +3035,18 @@ else:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Vencidos</div>', unsafe_allow_html=True)
                         st.markdown(f'<div class="card-box" style="background-color:#FF5252; color:#FFFFFF; font-size:1.05rem; padding:4px;">{vencidos_c}</div>', unsafe_allow_html=True)
 
-                    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+                    st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+
+                    # MÉTRICAS ESTRATÉGICAS ALINEADAS (CONTRALORÍA)
+                    col_m_strat_c1, col_m_strat_c2 = st.columns(2)
+                    with col_m_strat_c1:
+                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">🎯 % Cumplimiento</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:0.95rem; padding:4px;">{pct_cumplimiento_c}%</div>', unsafe_allow_html=True)
+                    with col_m_strat_c2:
+                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️ Prom. Días Mora</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="card-box" style="background-color:#C0392B; color:#FFFFFF; font-size:0.95rem; padding:4px;">{prom_mora_c_val} días</div>', unsafe_allow_html=True)
+
+                    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
                     st.markdown('<div class="block-header">Acciones próximas a vencer</div>', unsafe_allow_html=True)
 
@@ -3405,7 +3462,6 @@ else:
 
                         df_hall_calc_c["Vigencia_Limpia"] = df_hall_calc_c[col_auditoria_c].apply(limpiar_vigencia_str_c)
 
-                        # Desduplicar hallazgos dentro de cada vigencia
                         df_hall_unicos_c = df_hall_calc_c.groupby(["Vigencia_Limpia", "Hallaz_Clean"]).first().reset_index()
 
                         c_hu1_c, c_hu2_c = st.columns(2)

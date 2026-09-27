@@ -1302,6 +1302,20 @@ if entorno_activo == "Auditoría Interna":
     r_medio = df_activos[col_riesgo].astype(str).str.contains("Medio", case=False, na=False).sum() if col_riesgo else 0
     r_bajo = df_activos[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False).sum() if col_riesgo else 0
 
+    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (AI)
+    total_hist_ai = len(df_raw)
+    fin_ai_cnt = df_raw[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado else 0
+    pct_cumplimiento_ai = round((fin_ai_cnt / total_hist_ai) * 100, 1) if total_hist_ai > 0 else 0.0
+
+    hoy_dt = pd.to_datetime(date.today())
+    df_raw_venc_ai = df_raw[df_raw[col_estado].astype(str).str.contains("Vencid", case=False, na=False)].copy() if col_estado else pd.DataFrame()
+    if not df_raw_venc_ai.empty and col_fecha_cierre in df_raw_venc_ai.columns:
+        df_raw_venc_ai["Fecha_DT"] = pd.to_datetime(df_raw_venc_ai[col_fecha_cierre], errors="coerce", dayfirst=True)
+        df_raw_venc_ai["Dias_Mora"] = (hoy_dt - df_raw_venc_ai["Fecha_DT"]).dt.days
+        prom_mora_ai_val = int(df_raw_venc_ai["Dias_Mora"].mean()) if not df_raw_venc_ai["Dias_Mora"].dropna().empty else 0
+    else:
+        prom_mora_ai_val = 0
+
     pct_abiertos = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes > 0 else 0
 
     # ---------------------------------------------------------
@@ -1394,7 +1408,7 @@ if entorno_activo == "Auditoría Interna":
                 color='Estado_Cat',
                 orientation='h',
                 title="🔥 Top 5 Responsables con Pendientes por Estado",
-                color_discrete_map={'Abiertos': '#F39C12', 'Vencidos': '#FF5252'},
+                color_discrete_map={'Abiertos': '#F39C12', 'Vencidos': '#FF5E5E'},
                 text='Cantidad'
             )
             fig_top5.update_traces(textposition='inside', insidetextanchor='middle')
@@ -1512,6 +1526,17 @@ if entorno_activo == "Auditoría Interna":
                     with e3:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Sin definir</div>', unsafe_allow_html=True)
                         st.markdown(f'<div class="card-box" style="background-color:#F8A583; font-size:1.05rem; padding:4px;">{sin_plan}</div>', unsafe_allow_html=True)
+
+                    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+
+                    # NUEVAS MÉTRICAS ESTRATÉGICAS
+                    col_m_strat1, col_m_strat2 = st.columns(2)
+                    with col_m_strat1:
+                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">🎯 % Cumplimiento Global</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:1rem; padding:4px;">{pct_cumplimiento_ai}%</div>', unsafe_allow_html=True)
+                    with col_m_strat2:
+                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️ Prom. Días Mora</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="card-box" style="background-color:#C0392B; color:#FFFFFF; font-size:1rem; padding:4px;">{prom_mora_ai_val} días</div>', unsafe_allow_html=True)
 
                     st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
@@ -2028,7 +2053,6 @@ if entorno_activo == "Auditoría Interna":
                             max_hist_st = df_hist_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().max() if not df_hist_grouped.empty else 10
                             sum_tot_g2 = df_hist_grouped["Cantidad"].sum() if not df_hist_grouped.empty else 0
 
-                            # Renderizado limpio sin texto apretado dentro de las barras para evitar distorsión
                             fig_hist_stack = px.bar(
                                 df_hist_grouped, x="Vigencia_Limpia", y="Cantidad", color=col_estado,
                                 title="Distribución de Estados por Vigencia", barmode="stack",
@@ -2039,7 +2063,7 @@ if entorno_activo == "Auditoría Interna":
                             for _, row_v in df_totales_por_vigencia.iterrows():
                                 fig_hist_stack.add_annotation(
                                     x=row_v["Vigencia_Limpia"], 
-                                    y=row_v["Cantidad"] + max_hist_st * 0.08, 
+                                    y=row_v["Cantidad"] + max_hist_st * 0.15, 
                                     text=f"<b>{row_v['Cantidad']}</b>", 
                                     showarrow=False, 
                                     yanchor="bottom", 
@@ -2049,7 +2073,7 @@ if entorno_activo == "Auditoría Interna":
                             fig_hist_stack.update_layout(
                                 height=360, xaxis_title=None, yaxis_title=None,
                                 xaxis=dict(showgrid=False, zeroline=False),
-                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_st * 1.35]),
+                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_st * 1.38]),
                                 legend_title_text="Estado", margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
                             )
                             st.plotly_chart(fig_hist_stack, use_container_width=True, key="fig_hist_stack_key", config={'displayModeBar': False})
@@ -2119,7 +2143,7 @@ if entorno_activo == "Auditoría Interna":
                             for _, row_hv in df_totales_hall_vig.iterrows():
                                 fig_hist_hall_stack.add_annotation(
                                     x=row_hv["Vigencia_Limpia"], 
-                                    y=row_hv["Cantidad"] + max_hist_hu_st * 0.08, 
+                                    y=row_hv["Cantidad"] + max_hist_hu_st * 0.15, 
                                     text=f"<b>{row_hv['Cantidad']}</b>", 
                                     showarrow=False, 
                                     yanchor="bottom", 
@@ -2129,7 +2153,7 @@ if entorno_activo == "Auditoría Interna":
                             fig_hist_hall_stack.update_layout(
                                 height=360, xaxis_title=None, yaxis_title=None,
                                 xaxis=dict(showgrid=False, zeroline=False),
-                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_hu_st * 1.35]),
+                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_hu_st * 1.38]),
                                 legend_title_text="Estado", margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
                             )
                             st.plotly_chart(fig_hist_hall_stack, use_container_width=True, key="fig_hist_hall_stack_key", config={'displayModeBar': False})
@@ -2581,7 +2605,6 @@ else:
     if df_raw_c.empty:
         st.stop()
 
-    # LECTURA EXACTA POR COLUMNA
     col_fecha_cierre_c = df_raw_c.columns[22] if len(df_raw_c.columns) > 22 else "FECHA DE TERMINACIÓN"     # COLUMNA W
     col_estado_c = df_raw_c.columns[26] if len(df_raw_c.columns) > 26 else "ESTADO"                        # COLUMNA AA
     col_fecha_cierre_aud_c = df_raw_c.columns[34] if len(df_raw_c.columns) > 34 else "Fecha cierre x Auditoría" # COLUMNA AI
@@ -2692,6 +2715,19 @@ else:
     vencidos_c = df_filtrado_c[col_estado_c].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado_c else 0
 
     total_planes_c = abiertos_c + vencidos_c
+
+    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (CONTRALORÍA)
+    total_hist_c = len(df_raw_c)
+    fin_c_cnt = df_raw_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado_c else 0
+    pct_cumplimiento_c = round((fin_c_cnt / total_hist_c) * 100, 1) if total_hist_c > 0 else 0.0
+
+    df_raw_venc_c = df_raw_c[df_raw_c[col_estado_c].astype(str).str.contains("Vencid", case=False, na=False)].copy() if col_estado_c else pd.DataFrame()
+    if not df_raw_venc_c.empty and col_fecha_cierre_c in df_raw_venc_c.columns:
+        df_raw_venc_c["Fecha_DT"] = df_raw_venc_c[col_fecha_cierre_c].apply(parsear_fecha_estricta)
+        df_raw_venc_c["Dias_Mora"] = (hoy_dt - df_raw_venc_c["Fecha_DT"]).dt.days
+        prom_mora_c_val = int(df_raw_venc_c["Dias_Mora"].mean()) if not df_raw_venc_c["Dias_Mora"].dropna().empty else 0
+    else:
+        prom_mora_c_val = 0
 
     # ---------------------------------------------------------
     # TENDENCIA MENSUAL CONTRALORÍA
@@ -2988,6 +3024,17 @@ else:
                     with ce2:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Vencidos</div>', unsafe_allow_html=True)
                         st.markdown(f'<div class="card-box" style="background-color:#FF5252; color:#FFFFFF; font-size:1.05rem; padding:4px;">{vencidos_c}</div>', unsafe_allow_html=True)
+
+                    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+
+                    # NUEVAS MÉTRICAS ESTRATÉGICAS (CONTRALORÍA)
+                    col_m_strat_c1, col_m_strat_c2 = st.columns(2)
+                    with col_m_strat_c1:
+                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">🎯 % Cumplimiento Global</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:1rem; padding:4px;">{pct_cumplimiento_c}%</div>', unsafe_allow_html=True)
+                    with col_m_strat_c2:
+                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️ Prom. Días Mora</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="card-box" style="background-color:#C0392B; color:#FFFFFF; font-size:1rem; padding:4px;">{prom_mora_c_val} días</div>', unsafe_allow_html=True)
 
                     st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
@@ -3356,7 +3403,7 @@ else:
                             for _, row_v in df_totales_por_vigencia_c.iterrows():
                                 fig_hist_stack_c.add_annotation(
                                     x=row_v["Vigencia_Limpia"], 
-                                    y=row_v["Cantidad"] + max_hist_st_c * 0.08, 
+                                    y=row_v["Cantidad"] + max_hist_st_c * 0.15, 
                                     text=f"<b>{row_v['Cantidad']}</b>", 
                                     showarrow=False, 
                                     yanchor="bottom", 
@@ -3366,7 +3413,7 @@ else:
                             fig_hist_stack_c.update_layout(
                                 height=360, xaxis_title=None, yaxis_title=None,
                                 xaxis=dict(showgrid=False, zeroline=False),
-                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_st_c * 1.35]),
+                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_st_c * 1.38]),
                                 legend_title_text="Estado", margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
                             )
                             st.plotly_chart(fig_hist_stack_c, use_container_width=True, key="fig_hist_stack_c_key", config={'displayModeBar': False})
@@ -3444,7 +3491,7 @@ else:
                             for _, row_hv in df_totales_hall_vig_c.iterrows():
                                 fig_hist_hall_stack_c.add_annotation(
                                     x=row_hv["Vigencia_Limpia"], 
-                                    y=row_hv["Cantidad"] + max_hist_hu_st_c * 0.08, 
+                                    y=row_hv["Cantidad"] + max_hist_hu_st_c * 0.15, 
                                     text=f"<b>{row_hv['Cantidad']}</b>", 
                                     showarrow=False, 
                                     yanchor="bottom", 
@@ -3454,7 +3501,7 @@ else:
                             fig_hist_hall_stack_c.update_layout(
                                 height=360, xaxis_title=None, yaxis_title=None,
                                 xaxis=dict(showgrid=False, zeroline=False),
-                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_hu_st_c * 1.35]),
+                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_hu_st_c * 1.38]),
                                 legend_title_text="Estado", margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
                             )
                             st.plotly_chart(fig_hist_hall_stack_c, use_container_width=True, key="fig_hist_hall_stack_c_key", config={'displayModeBar': False})

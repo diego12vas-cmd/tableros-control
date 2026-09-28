@@ -10,11 +10,11 @@ import io
 import os
 import re
 import json
-import urllib.request
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+import urllib.request
 
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA
@@ -221,8 +221,14 @@ def init_db():
 init_db()
 
 # ---------------------------------------------------------
-# SISTEMA DE NOTIFICACIONES PARA DRIVE (EXCLUSIVO CLAVE)
+# SISTEMA DE NOTIFICACIONES Y RASTREO AUTOMÁTICO DE DRIVE
 # ---------------------------------------------------------
+def extraer_folder_id(url):
+    match = re.search(r'folders/([a-zA-Z0-9_-]+)', str(url))
+    if match:
+        return match.group(1)
+    return None
+
 def registrar_notificacion_drive(entorno, plan_hallazgo, link_drive):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -235,6 +241,33 @@ def registrar_notificacion_drive(entorno, plan_hallazgo, link_drive):
         ''', (entorno, str(plan_hallazgo)[:80], link_drive, fecha_str))
         conn.commit()
     conn.close()
+
+def escanear_enlaces_excel(df_ai, df_c):
+    # Escanear Auditoría Interna
+    if not df_ai.empty:
+        col_link_ai = buscar_columna_por_patron(df_ai, ["enlace para cargar evidencias", "cargar evidencias"])
+        col_plan_ai = buscar_columna_por_patron(df_ai, ["plan de accion", "compromiso"]) or df_ai.columns[0]
+        if col_link_ai and col_link_ai in df_ai.columns:
+            for _, row in df_ai.dropna(subset=[col_link_ai]).iterrows():
+                link_val = str(row[col_link_ai]).strip()
+                plan_val = str(row[col_plan_ai]).strip() if col_plan_ai in row else "Compromiso AI"
+                if "drive.google.com" in link_val.lower():
+                    fid = extraer_folder_id(link_val)
+                    if fid:
+                        registrar_notificacion_drive("Auditoría Interna", f"Evidencia en carpeta: {plan_val[:40]}", link_val)
+
+    # Escanear Contraloría de Bogotá
+    if not df_c.empty:
+        col_link_c = buscar_columna_por_patron(df_c, ["enlace para cargar evidencias", "evidencias"])
+        col_plan_c = buscar_columna_por_patron(df_c, ["descripcion accion", "compromiso"]) or df_c.columns[0]
+        if col_link_c and col_link_c in df_c.columns:
+            for _, row in df_c.dropna(subset=[col_link_c]).iterrows():
+                link_val = str(row[col_link_c]).strip()
+                plan_val = str(row[col_plan_c]).strip() if col_plan_c in row else "Compromiso Contraloría"
+                if "drive.google.com" in link_val.lower():
+                    fid = extraer_folder_id(link_val)
+                    if fid:
+                        registrar_notificacion_drive("Contraloría de Bogotá", f"Evidencia en carpeta: {plan_val[:40]}", link_val)
 
 def obtener_notificaciones_usuario(usuario_actual):
     if usuario_actual.lower() not in [u.lower() for u in USUARIOS_AMARILLOS]:
@@ -1192,6 +1225,11 @@ def cargar_datos_c_cached(path):
     df_informes = pd.read_excel(xls, sheet_name=sheet_inf) if sheet_inf else pd.DataFrame()
 
     return df_base, df_informes
+
+# EJECUCIÓN DEL ESCANEO AUTOMÁTICO DE RASTREO
+df_raw_ai_scan, _, _, _ = cargar_datos_ai_cached(EXCEL_PATH_AI)
+df_raw_c_scan, _ = cargar_datos_c_cached(EXCEL_PATH_C)
+escanear_enlaces_excel(df_raw_ai_scan, df_raw_c_scan)
 
 # =========================================================
 # VISTA 1: AUDITORÍA INTERNA
@@ -2688,36 +2726,10 @@ if entorno_activo == "Auditoría Interna":
 # VISTA 2: CONTRALORÍA DE BOGOTÁ (LECTURA ESTRICTA COLUMNA W Y AA EN ABIERTOS/VENCIDOS, COLUMNA AI EN FINALIZADOS)
 # =========================================================
 else:
-    def cargar_datos_c():
-        if not os.path.exists(EXCEL_PATH_C):
-            st.error(f"No se encontró el archivo Excel de Contraloría en la ruta: `{EXCEL_PATH_C}`")
-            return pd.DataFrame(), pd.DataFrame()
-
-        try:
-            xls = pd.ExcelFile(EXCEL_PATH_C)
-            sheet_b = (
-                "Base de Datos"
-                if "Base de Datos" in xls.sheet_names
-                else ("Base de datos" if "Base de datos" in xls.sheet_names else xls.sheet_names[0])
-            )
-            df_base = pd.read_excel(xls, sheet_name=sheet_b)
-            df_base.columns = [str(c).strip() for c in df_base.columns]
-
-            for col in df_base.columns:
-                if df_base[col].dtype == "object":
-                    df_base[col] = df_base[col].astype(str).str.strip()
-
-            sheet_inf = "Enlace PDF" if "Enlace PDF" in xls.sheet_names else ("Enlace pdf" if "Enlace pdf" in xls.sheet_names else None)
-            df_informes = pd.read_excel(xls, sheet_name=sheet_inf) if sheet_inf else pd.DataFrame()
-
-            return df_base, df_informes
-        except Exception as e:
-            st.error(f"Error al cargar el archivo Excel de Contraloría: {e}")
-            return pd.DataFrame(), pd.DataFrame()
-
-    df_raw_c, df_informes_raw_c = cargar_datos_c()
+    df_raw_c, df_informes_raw_c = cargar_datos_c_cached(EXCEL_PATH_C)
 
     if df_raw_c.empty:
+        st.error(f"No se encontró el archivo Excel de Contraloría en la ruta: `{EXCEL_PATH_C}`")
         st.stop()
 
     # LECTURA EXACTA POR COLUMNA

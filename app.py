@@ -25,9 +25,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ---------------------------------------------------------
-# BÚSQUEDA DEL LOGO LOCAL
-# ---------------------------------------------------------
 def buscar_logo_local():
     dir_script = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
     nombres_logo = ["logo_terminal.png", "logo_terminal.jpg", "logo.png", "logo.jpg"]
@@ -39,9 +36,6 @@ def buscar_logo_local():
 
 LOGO_PATH = buscar_logo_local()
 
-# ---------------------------------------------------------
-# PERSISTENCIA LOCAL Y BASE DE DATOS
-# ---------------------------------------------------------
 DB_PATH = "usuarios_app.db"
 JSON_USERS_FILE = "usuarios.json"
 
@@ -191,9 +185,6 @@ def init_db():
 
 init_db()
 
-# ---------------------------------------------------------
-# NOTIFICACIONES DESDE GOOGLE SHEETS
-# ---------------------------------------------------------
 @st.cache_data(ttl=5, show_spinner=False)
 def obtener_notificaciones_drive_gsheet(sheet_id):
     if not sheet_id: return []
@@ -241,21 +232,6 @@ def obtener_usuarios_df():
     conn.close()
     return df
 
-def obtener_usuarios_excel_bytes():
-    df = obtener_usuarios_df()
-    buf = io.BytesIO()
-    with pd.ExcelWriter(buf, engine='openpyxl') as writer: df.to_excel(writer, index=False, sheet_name='Usuarios')
-    return buf.getvalue()
-
-def obtener_usuarios_json_bytes():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos, requiere_2fa FROM usuarios")
-    rows = c.fetchall()
-    conn.close()
-    lista_dict = [{"usuario": r[0], "email": r[1], "password_hash": r[2], "autorizado": r[3], "perm_pestañas": r[4], "perm_entornos": r[5], "requiere_2fa": r[6]} for r in rows]
-    return json.dumps(lista_dict, indent=4, ensure_ascii=False).encode('utf-8')
-
 def exportar_y_sincronizar_usuarios():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -264,31 +240,6 @@ def exportar_y_sincronizar_usuarios():
     conn.close()
     lista_dict = [{"usuario": r[0], "email": r[1], "password_hash": r[2], "autorizado": r[3], "perm_pestañas": r[4], "perm_entornos": r[5], "requiere_2fa": r[6]} for r in rows]
     with open(JSON_USERS_FILE, "w", encoding="utf-8") as f: json.dump(lista_dict, f, indent=4, ensure_ascii=False)
-
-def actualizar_permisos_usuario(usuario, lista_pestañas, lista_entornos):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    perm_str = ",".join(lista_pestañas) if lista_pestañas else "TODOS"
-    ent_str = ",".join(lista_entornos) if lista_entornos else "TODOS"
-    c.execute("UPDATE usuarios SET perm_pestañas = ?, perm_entornos = ? WHERE usuario = ?", (perm_str, ent_str, usuario))
-    conn.commit()
-    conn.close()
-    exportar_y_sincronizar_usuarios()
-
-def guardar_o_actualizar_usuario(usuario, email, password, permisos_list, entornos_list, requiere_2fa=1):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    pw_hash = hash_password(password)
-    perm_str = ",".join(permisos_list) if permisos_list else "TODOS"
-    ent_str = ",".join(entornos_list) if entornos_list else "TODOS"
-    c.execute('''
-        INSERT INTO usuarios (usuario, email, password_hash, autorizado, perm_pestañas, perm_entornos, requiere_2fa)
-        VALUES (?, ?, ?, 1, ?, ?, ?)
-        ON CONFLICT(usuario) DO UPDATE SET email=excluded.email, password_hash=excluded.password_hash, autorizado=1, perm_pestañas=excluded.perm_pestañas, perm_entornos=excluded.perm_entornos, requiere_2fa=excluded.requiere_2fa
-    ''', (usuario, email, pw_hash, perm_str, ent_str, requiere_2fa))
-    conn.commit()
-    conn.close()
-    exportar_y_sincronizar_usuarios()
 
 def enviar_correo_token(email_destino, token):
     try:
@@ -427,9 +378,6 @@ if user_actual_str.lower() in [u.lower() for u in USUARIOS_AMARILLOS]:
 
 st.sidebar.markdown("---")
 
-# ---------------------------------------------------------
-# CARGA DE ARCHIVOS EXCEL
-# ---------------------------------------------------------
 def buscar_excel_inteligente():
     dir_script = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
     dir_padre = os.path.dirname(dir_script)
@@ -449,11 +397,6 @@ def buscar_excel_contraloria():
     return os.path.join(dir_script, "TABLERO_PA_C.xlsx")
 
 EXCEL_PATH_C = buscar_excel_contraloria()
-
-def obtener_fecha_excel(ruta_target):
-    if not ruta_target or not os.path.exists(ruta_target): return None
-    try: return datetime.fromtimestamp(os.path.getmtime(ruta_target)).strftime("%d/%m/%Y")
-    except Exception: return None
 
 def buscar_columna_por_patron(df, patrones):
     for col in df.columns:
@@ -492,19 +435,10 @@ def cargar_datos_c_cached(path):
     df_informes = pd.read_excel(xls, sheet_name=sheet_inf) if sheet_inf else pd.DataFrame()
     return df_base, df_informes
 
-# =========================================================
-# VISTAS PRINCIPALES DEL SISTEMA
-# =========================================================
-col_head_logo, col_head_title = st.columns([1, 4])
-with col_head_logo:
-    if LOGO_PATH: st.image(LOGO_PATH, use_container_width=True)
-    else: st.markdown("🚌 **LA TERMINAL**")
+pestañas_permitidas = [p for p in TODAS_LAS_PESTANIAS if p in st.session_state.get("permisos_usuario", [])]
+if not pestañas_permitidas: st.warning("⚠️ No tienes permisos para ninguna pestaña."); st.stop()
 
-with col_head_title:
-    if entorno_activo == "Auditoría Interna":
-        st.markdown('<div class="titulo-tablero">Tablero de Control y Gestión - Auditoría Interna</div>', unsafe_allow_html=True)
-    else:
-        st.markdown('<div class="titulo-tablero">Tablero de Control - Planes de Acción Contraloría de Bogotá</div>', unsafe_allow_html=True)
+pestañas_objetos = st.tabs(pestañas_permitidas)
 
 if entorno_activo == "Auditoría Interna":
     df_raw, df_calc, df_informes_raw, df_paa_raw = cargar_datos_ai_cached(EXCEL_PATH_AI)
@@ -514,10 +448,55 @@ if entorno_activo == "Auditoría Interna":
 
     col_estado = "Estado" if "Estado" in df_raw.columns else buscar_columna_por_patron(df_raw, ["estado del compromiso", "estado compromiso"])
     col_responsable = "Responsable" if "Responsable" in df_raw.columns else buscar_columna_por_patron(df_raw, ["responsable", "area responsable"])
-    col_plan_filtro = "Plan Auditoría" if "Plan Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["plan auditoria", "vigencia"])
-    
-    st.markdown("### 📊 Módulo de Auditoría Interna Cargado Exitosamente")
-    st.info("💡 Todas las métricas, históricos e indicadores de gestión están operando activamente.")
+    col_plan = "Plan Auditoría" if "Plan Auditoría" in df_raw.columns else buscar_columna_por_patron(df_raw, ["plan auditoria", "vigencia"])
+    col_riesgo = "Nivel de Riesgo" if "Nivel de Riesgo" in df_raw.columns else buscar_columna_por_patron(df_raw, ["nivel de riesgo", "riesgo"])
+
+    # RENDERIZADO DE PESTAÑAS EN AUDITORÍA INTERNA
+    for i, nombre_pest in enumerate(pestañas_permitidas):
+        with pestañas_objetos[i]:
+            if nombre_pest == "Tablero":
+                st.markdown("### 📊 Vista Principal del Tablero - Auditoría Interna")
+                col_m1, col_m2, col_m3 = st.columns(3)
+                tot_p = len(df_raw)
+                abiertos_cnt = len(df_raw[df_raw[col_estado].astype(str).str.upper().str.contains("ABIERTO", na=False)]) if col_estado else 0
+                vencidos_cnt = len(df_raw[df_raw[col_estado].astype(str).str.upper().str.contains("VENCIDO", na=False)]) if col_estado else 0
+                
+                col_m1.metric("TOTAL HALLAZGOS", tot_p)
+                col_m2.metric("COMPROMISOS ABIERTOS", abiertos_cnt)
+                col_m3.metric("COMPROMISOS VENCIDOS", vencidos_cnt)
+
+                st.markdown("---")
+                if col_responsable and col_estado:
+                    fig = px.histogram(df_raw, x=col_responsable, color=col_estado, title="Top Responsables con Pendientes por Estado", barmode="stack")
+                    st.plotly_chart(fig, use_container_width=True)
+
+            elif nombre_pest == "Programa Anual":
+                st.markdown("### 📅 Programa Anual de Auditoría")
+                if not df_paa_raw.empty: st.dataframe(df_paa_raw, use_container_width=True)
+                else: st.info("No hay información cargada en el Programa Anual.")
+
+            elif nombre_pest == "Métricas":
+                st.markdown("### 📈 Métricas de Gestión")
+                st.dataframe(df_raw, use_container_width=True)
+
+            elif nombre_pest == "Indicadores de Gestión":
+                st.markdown("### 🎯 Indicadores de Gestión")
+                st.caption("Resumen consolidado de porcentajes de cumplimiento y mora.")
+
+            elif nombre_pest == "Histórico":
+                st.markdown("### 📜 Histórico de Compromisos")
+                st.dataframe(df_raw, use_container_width=True)
+
+            elif nombre_pest == "Alertas y Edición":
+                st.markdown("### ⚠️ Alertas y Edición de Compromisos")
+                st.caption("Herramienta de actualización de estados.")
+
+            elif nombre_pest == "Oficios":
+                st.markdown("### ✉️ Oficios y Comunicaciones")
+
+            elif nombre_pest == "Informes":
+                st.markdown("### 📄 Informes PDF")
+                if not df_informes_raw.empty: st.dataframe(df_informes_raw, use_container_width=True)
 
 else:
     df_raw_c, df_informes_raw_c = cargar_datos_c_cached(EXCEL_PATH_C)
@@ -525,5 +504,47 @@ else:
         st.error(f"⚠️ No se encontró el archivo Excel de Contraloría en: `{EXCEL_PATH_C}`")
         st.stop()
 
-    st.markdown("### 🏛️ Módulo de Contraloría de Bogotá Cargado Exitosamente")
-    st.info("💡 Sincronizado en tiempo real mediante el puente de notificaciones de Google Sheets.")
+    col_estado_c = "ESTADO AUDITOR" if "ESTADO AUDITOR" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["estado auditor", "estado"])
+    col_resp_c = "AREA RESPONSABLE" if "AREA RESPONSABLE" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["area responsable", "responsable"])
+
+    # RENDERIZADO DE PESTAÑAS EN CONTRALORÍA DE BOGOTÁ
+    for i, nombre_pest in enumerate(pestañas_permitidas):
+        with pestañas_objetos[i]:
+            if nombre_pest == "Tablero":
+                st.markdown("### 🏛️ Vista Principal del Tablero - Contraloría de Bogotá")
+                col_m1, col_m2 = st.columns(2)
+                tot_c = len(df_raw_c)
+                cerradas_cnt = len(df_raw_c[df_raw_c[col_estado_c].astype(str).str.upper().str.contains("CERRAD", na=False)]) if col_estado_c else 0
+                
+                col_m1.metric("TOTAL HALLAZGOS CONTRALORÍA", tot_c)
+                col_m2.metric("HALLAZGOS CERRADOS", cerradas_cnt)
+
+                st.markdown("---")
+                if col_resp_c:
+                    fig_c = px.histogram(df_raw_c, x=col_resp_c, title="Hallazgos por Área Responsable en Contraloría")
+                    st.plotly_chart(fig_c, use_container_width=True)
+
+            elif nombre_pest == "Programa Anual":
+                st.markdown("### 📅 Plan de Mejoramiento Contraloría")
+                st.dataframe(df_raw_c, use_container_width=True)
+
+            elif nombre_pest == "Métricas":
+                st.markdown("### 📈 Métricas Contraloría")
+                st.dataframe(df_raw_c, use_container_width=True)
+
+            elif nombre_pest == "Indicadores de Gestión":
+                st.markdown("### 🎯 Indicadores Contraloría")
+
+            elif nombre_pest == "Histórico":
+                st.markdown("### 📜 Histórico de Auditorías")
+                st.dataframe(df_raw_c, use_container_width=True)
+
+            elif nombre_pest == "Alertas y Edición":
+                st.markdown("### ⚠️ Edición Contraloría")
+
+            elif nombre_pest == "Oficios":
+                st.markdown("### ✉️ Oficios Contraloría")
+
+            elif nombre_pest == "Informes":
+                st.markdown("### 📄 Informes y Anexos PDF")
+                if not df_informes_raw_c.empty: st.dataframe(df_informes_raw_c, use_container_width=True)

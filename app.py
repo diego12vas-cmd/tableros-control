@@ -126,7 +126,6 @@ def init_db():
         )
     ''')
 
-    # TABLA PARA NOTIFICACIONES DE ARCHIVOS DE DRIVE
     c.execute('''
         CREATE TABLE IF NOT EXISTS notificaciones_drive (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -137,16 +136,13 @@ def init_db():
             leido_por TEXT DEFAULT ''
         )
     ''')
+    
+    # LIMPIEZA ABSOLUTA DE FALSOS POSITIVOS Y NOTIFICACIONES VIEJAS
+    c.execute("DELETE FROM notificaciones_drive")
     conn.commit()
 
     try:
         c.execute("ALTER TABLE usuarios ADD COLUMN requiere_2fa INTEGER DEFAULT 1")
-        conn.commit()
-    except sqlite3.OperationalError:
-        pass
-
-    try:
-        c.execute("ALTER TABLE notificaciones_drive ADD COLUMN archivo_nombre TEXT")
         conn.commit()
     except sqlite3.OperationalError:
         pass
@@ -226,24 +222,8 @@ def init_db():
 init_db()
 
 # ---------------------------------------------------------
-# GESTIÓN Y REGISTRO DE NOTIFICACIONES DE DRIVE
+# CONSULTA LIMPIA DE NOTIFICACIONES
 # ---------------------------------------------------------
-def registrar_notificacion_archivo(entorno, nombre_archivo, link_drive):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT id FROM notificaciones_drive WHERE entorno = ? AND link_drive = ?", (entorno, link_drive))
-    if not c.fetchone():
-        # Hora exacta Colombia (UTC - 5 Horas)
-        hora_col = datetime.utcnow() - timedelta(hours=5)
-        fecha_str = hora_col.strftime("%d/%m/%Y %H:%M")
-        
-        c.execute('''
-            INSERT INTO notificaciones_drive (entorno, archivo_nombre, link_drive, fecha_deteccion)
-            VALUES (?, ?, ?, ?)
-        ''', (entorno, str(nombre_archivo), link_drive, fecha_str))
-        conn.commit()
-    conn.close()
-
 def obtener_notificaciones_usuario(usuario_actual):
     if usuario_actual.lower() not in [u.lower() for u in USUARIOS_AMARILLOS]:
         return []
@@ -255,9 +235,9 @@ def obtener_notificaciones_usuario(usuario_actual):
     
     try:
         if es_dueno_contraloria:
-            c.execute("SELECT id, entorno, COALESCE(archivo_nombre, plan_hallazgo, 'Evidencia subida') as archivo_nom, link_drive, fecha_deteccion, leido_por FROM notificaciones_drive ORDER BY id DESC LIMIT 15")
+            c.execute("SELECT id, entorno, archivo_nombre, link_drive, fecha_deteccion, leido_por FROM notificaciones_drive ORDER BY id DESC LIMIT 15")
         else:
-            c.execute("SELECT id, entorno, COALESCE(archivo_nombre, plan_hallazgo, 'Evidencia subida') as archivo_nom, link_drive, fecha_deteccion, leido_por FROM notificaciones_drive WHERE entorno = 'Auditoría Interna' ORDER BY id DESC LIMIT 15")
+            c.execute("SELECT id, entorno, archivo_nombre, link_drive, fecha_deteccion, leido_por FROM notificaciones_drive WHERE entorno = 'Auditoría Interna' ORDER BY id DESC LIMIT 15")
             
         rows = c.fetchall()
     except sqlite3.OperationalError:
@@ -2375,7 +2355,7 @@ if entorno_activo == "Auditoría Interna":
                 if col_plan_filtro and col_plan_filtro in df_edicion_temp.columns:
                     opciones_plan_v += sorted([str(x) for x in df_edicion_temp[col_plan_filtro].dropna().unique() if str(x).strip()])
                 with col_f_plan:
-                    plan_v_seleccionado = st.selectbox("3. Filtrar por Plan / Vigencia:", options=opciones_plan_v, key="f_plan_edit")
+                    plan_v_seleccionado = st.selectbox("3. Filtrar por Plan / Vigencia:", options=plan_v_seleccionado if 'plan_v_seleccionado' in locals() else opciones_plan_v, key="f_plan_edit")
 
                 if plan_v_seleccionado != "(Todos)":
                     df_edicion_temp = df_edicion_temp[df_edicion_temp[col_plan_filtro].astype(str).str.strip().str.lower() == plan_v_seleccionado.strip().lower()]

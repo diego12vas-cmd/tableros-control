@@ -5,7 +5,7 @@ import smtplib
 from email.mime.text import MIMEText
 import random
 import string
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import io
 import os
 import re
@@ -14,7 +14,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-import urllib.request
 
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA
@@ -127,12 +126,12 @@ def init_db():
         )
     ''')
 
-    # TABLA PARA NOTIFICACIONES DE DRIVE
+    # TABLA PARA NOTIFICACIONES DE ARCHIVOS DE DRIVE
     c.execute('''
         CREATE TABLE IF NOT EXISTS notificaciones_drive (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             entorno TEXT,
-            plan_hallazgo TEXT,
+            archivo_nombre TEXT,
             link_drive TEXT,
             fecha_deteccion TEXT,
             leido_por TEXT DEFAULT ''
@@ -221,53 +220,23 @@ def init_db():
 init_db()
 
 # ---------------------------------------------------------
-# SISTEMA DE NOTIFICACIONES Y RASTREO AUTOMÁTICO DE DRIVE
+# GESTIÓN Y REGISTRO DE NOTIFICACIONES DE DRIVE
 # ---------------------------------------------------------
-def extraer_folder_id(url):
-    match = re.search(r'folders/([a-zA-Z0-9_-]+)', str(url))
-    if match:
-        return match.group(1)
-    return None
-
-def registrar_notificacion_drive(entorno, plan_hallazgo, link_drive):
+def registrar_notificacion_archivo(entorno, nombre_archivo, link_drive):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("SELECT id FROM notificaciones_drive WHERE entorno = ? AND link_drive = ?", (entorno, link_drive))
     if not c.fetchone():
-        fecha_str = datetime.now().strftime("%d/%m/%Y %H:%M")
+        # Hora exacta Colombia (UTC - 5 Horas)
+        hora_col = datetime.utcnow() - timedelta(hours=5)
+        fecha_str = hora_col.strftime("%d/%m/%Y %H:%M")
+        
         c.execute('''
-            INSERT INTO notificaciones_drive (entorno, plan_hallazgo, link_drive, fecha_deteccion)
+            INSERT INTO notificaciones_drive (entorno, archivo_nombre, link_drive, fecha_deteccion)
             VALUES (?, ?, ?, ?)
-        ''', (entorno, str(plan_hallazgo)[:80], link_drive, fecha_str))
+        ''', (entorno, str(nombre_archivo), link_drive, fecha_str))
         conn.commit()
     conn.close()
-
-def escanear_enlaces_excel(df_ai, df_c):
-    # Escanear Auditoría Interna
-    if not df_ai.empty:
-        col_link_ai = buscar_columna_por_patron(df_ai, ["enlace para cargar evidencias", "cargar evidencias"])
-        col_plan_ai = buscar_columna_por_patron(df_ai, ["plan de accion", "compromiso"]) or df_ai.columns[0]
-        if col_link_ai and col_link_ai in df_ai.columns:
-            for _, row in df_ai.dropna(subset=[col_link_ai]).iterrows():
-                link_val = str(row[col_link_ai]).strip()
-                plan_val = str(row[col_plan_ai]).strip() if col_plan_ai in row else "Compromiso AI"
-                if "drive.google.com" in link_val.lower():
-                    fid = extraer_folder_id(link_val)
-                    if fid:
-                        registrar_notificacion_drive("Auditoría Interna", f"Evidencia en carpeta: {plan_val[:40]}", link_val)
-
-    # Escanear Contraloría de Bogotá
-    if not df_c.empty:
-        col_link_c = buscar_columna_por_patron(df_c, ["enlace para cargar evidencias", "evidencias"])
-        col_plan_c = buscar_columna_por_patron(df_c, ["descripcion accion", "compromiso"]) or df_c.columns[0]
-        if col_link_c and col_link_c in df_c.columns:
-            for _, row in df_c.dropna(subset=[col_link_c]).iterrows():
-                link_val = str(row[col_link_c]).strip()
-                plan_val = str(row[col_plan_c]).strip() if col_plan_c in row else "Compromiso Contraloría"
-                if "drive.google.com" in link_val.lower():
-                    fid = extraer_folder_id(link_val)
-                    if fid:
-                        registrar_notificacion_drive("Contraloría de Bogotá", f"Evidencia en carpeta: {plan_val[:40]}", link_val)
 
 def obtener_notificaciones_usuario(usuario_actual):
     if usuario_actual.lower() not in [u.lower() for u in USUARIOS_AMARILLOS]:
@@ -279,22 +248,22 @@ def obtener_notificaciones_usuario(usuario_actual):
     es_dueno_contraloria = usuario_actual.lower() in [u.lower() for u in USUARIO_EXCLUSIVO_CONTRALORIA]
     
     if es_dueno_contraloria:
-        c.execute("SELECT id, entorno, plan_hallazgo, link_drive, fecha_deteccion, leido_por FROM notificaciones_drive ORDER BY id DESC LIMIT 15")
+        c.execute("SELECT id, entorno, archivo_nombre, link_drive, fecha_deteccion, leido_por FROM notificaciones_drive ORDER BY id DESC LIMIT 15")
     else:
-        c.execute("SELECT id, entorno, plan_hallazgo, link_drive, fecha_deteccion, leido_por FROM notificaciones_drive WHERE entorno = 'Auditoría Interna' ORDER BY id DESC LIMIT 15")
+        c.execute("SELECT id, entorno, archivo_nombre, link_drive, fecha_deteccion, leido_por FROM notificaciones_drive WHERE entorno = 'Auditoría Interna' ORDER BY id DESC LIMIT 15")
         
     rows = c.fetchall()
     conn.close()
     
     notifs = []
     for r in rows:
-        n_id, ent, plan, link, fecha, leido_str = r
+        n_id, ent, archivo_nom, link, fecha, leido_str = r
         leidos_lista = [x.strip().lower() for x in leido_str.split(",") if x.strip()]
         es_leido = usuario_actual.lower() in leidos_lista
         notifs.append({
             "id": n_id,
             "entorno": ent,
-            "plan_hallazgo": plan,
+            "archivo": archivo_nom,
             "link_drive": link,
             "fecha": fecha,
             "leido": es_leido
@@ -921,9 +890,10 @@ if user_actual_str.lower() in [u.lower() for u in USUARIOS_AMARILLOS]:
                 estilo_item = "font-weight: bold; color: #7AB800;" if not notif["leido"] else "color: #A0AEC0;"
                 st.markdown(
                     f'''
-                    <div style="border-bottom: 1px solid rgba(255,255,255,0.1); padding: 4px 0; font-size: 0.78rem;">
-                        <span style="{estilo_item}">[{notif['entorno']}]</span> {notif['plan_hallazgo']}<br>
-                        <a href="{notif['link_drive']}" target="_blank" style="color: #4B92DB;">📂 Abrir en Drive</a>
+                    <div style="border-bottom: 1px solid rgba(255,255,255,0.1); padding: 6px 0; font-size: 0.78rem;">
+                        <span style="{estilo_item}">[{notif['entorno']}]</span><br>
+                        📄 <b>{notif['archivo']}</b><br>
+                        <a href="{notif['link_drive']}" target="_blank" style="color: #4B92DB;">📂 Abrir evidencia en Drive</a>
                         <span style="float: right; color: #718096; font-size: 0.7rem;">{notif['fecha']}</span>
                     </div>
                     ''',
@@ -1225,11 +1195,6 @@ def cargar_datos_c_cached(path):
     df_informes = pd.read_excel(xls, sheet_name=sheet_inf) if sheet_inf else pd.DataFrame()
 
     return df_base, df_informes
-
-# EJECUCIÓN DEL ESCANEO AUTOMÁTICO DE RASTREO
-df_raw_ai_scan, _, _, _ = cargar_datos_ai_cached(EXCEL_PATH_AI)
-df_raw_c_scan, _ = cargar_datos_c_cached(EXCEL_PATH_C)
-escanear_enlaces_excel(df_raw_ai_scan, df_raw_c_scan)
 
 # =========================================================
 # VISTA 1: AUDITORÍA INTERNA

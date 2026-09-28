@@ -45,8 +45,6 @@ LOGO_PATH = buscar_logo_local()
 DB_PATH = "usuarios_app.db"
 JSON_USERS_FILE = "usuarios.json"
 
-SHEET_NOTIF_ID = "1jDD1qFgDMmf52wMue2VfdX3ls7EuZ4wV-ZrOZW3r0Os"
-
 TODAS_LAS_PESTANIAS = [
     "Tablero", 
     "Programa Anual", 
@@ -70,11 +68,6 @@ USUARIOS_AMARILLOS = [
     'manuel.gutierrez@terminaldetransporte.gov.co',
     'omar.diaz',
     'omar.diaz@terminaldetransporte.gov.co'
-]
-
-USUARIO_EXCLUSIVO_CONTRALORIA = [
-    'admin',
-    'diego.vasquez@terminaldetransporte.gov.co'
 ]
 
 def hash_password(password):
@@ -208,47 +201,6 @@ def init_db():
     conn.close()
 
 init_db()
-
-@st.cache_data(ttl=5, show_spinner=False)
-def obtener_notificaciones_drive_gsheet(sheet_id):
-    if not sheet_id: return []
-    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv"
-    try:
-        df = pd.read_csv(url)
-        df.columns = [str(c).strip().lower() for c in df.columns]
-        
-        col_ent = next((c for c in df.columns if "entorno" in c), df.columns[0])
-        col_arch = next((c for c in df.columns if "archivo" in c), df.columns[1])
-        col_link = next((c for c in df.columns if "link" in c or "enlace" in c), df.columns[2])
-        col_fec = next((c for c in df.columns if "fecha" in c), df.columns[3])
-        
-        notifs = []
-        for idx, r in df.iterrows():
-            arch_nom = str(r[col_arch]).strip()
-            if arch_nom and arch_nom.lower() not in ["nan", "none", "proyecto sin título"]:
-                notifs.append({
-                    "id": idx,
-                    "entorno": str(r[col_ent]).strip(),
-                    "archivo": arch_nom,
-                    "link_drive": str(r[col_link]).strip(),
-                    "fecha": str(r[col_fec]).strip(),
-                    "leido": False
-                })
-        return list(reversed(notifs))
-    except Exception:
-        return []
-
-def obtener_notificaciones_usuario(usuario_actual):
-    if usuario_actual.lower() not in [u.lower() for u in USUARIOS_AMARILLOS]:
-        return []
-    
-    todas = obtener_notificaciones_drive_gsheet(SHEET_NOTIF_ID)
-    es_dueno_contraloria = usuario_actual.lower() in [u.lower() for u in USUARIO_EXCLUSIVO_CONTRALORIA]
-    
-    if es_dueno_contraloria:
-        return todas[:15]
-    else:
-        return [n for n in todas if "auditor" in n["entorno"].lower()][:15]
 
 def obtener_usuarios_df():
     conn = sqlite3.connect(DB_PATH)
@@ -840,29 +792,6 @@ if len(entornos_permitidos) > 1:
 else:
     entorno_activo = entornos_permitidos[0]
 
-user_actual_str = st.session_state.get("usuario_actual", "")
-if user_actual_str.lower() in [u.lower() for u in USUARIOS_AMARILLOS]:
-    notifs_lista = obtener_notificaciones_usuario(user_actual_str)
-    sin_leer_cnt = len(notifs_lista)
-    label_campana = f"🔔 Notificaciones ({sin_leer_cnt})" if sin_leer_cnt > 0 else "🔔 Notificaciones (0)"
-    
-    with st.sidebar.expander(label_campana, expanded=False):
-        if notifs_lista:
-            for notif in notifs_lista:
-                st.markdown(
-                    f'''
-                    <div style="border-bottom: 1px solid rgba(255,255,255,0.1); padding: 6px 0; font-size: 0.78rem;">
-                        <span style="font-weight: bold; color: #7AB800;">[{notif['entorno']}]</span><br>
-                        📄 <b>{notif['archivo']}</b><br>
-                        <a href="{notif['link_drive']}" target="_blank" style="color: #4B92DB;">📂 Abrir evidencia en Drive</a>
-                        <span style="float: right; color: #718096; font-size: 0.7rem;">{notif['fecha']}</span>
-                    </div>
-                    ''',
-                    unsafe_allow_html=True
-                )
-        else:
-            st.caption("No hay notificaciones recientes de evidencias.")
-
 st.sidebar.markdown("---")
 
 col_head_logo, col_head_title = st.columns([1, 4])
@@ -921,6 +850,7 @@ def obtener_fecha_excel(ruta_target):
     if not ruta_target or not os.path.exists(ruta_target):
         return None
     try:
+        # Tomar estrictamente la fecha de última modificación del archivo de base de datos en disco
         timestamp_mod = os.path.getmtime(ruta_target)
         return datetime.fromtimestamp(timestamp_mod).strftime("%d/%m/%Y")
     except Exception:
@@ -1356,6 +1286,7 @@ if entorno_activo == "Auditoría Interna":
     r_medio = df_activos[col_riesgo].astype(str).str.contains("Medio", case=False, na=False).sum() if col_riesgo else 0
     r_bajo = df_activos[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False).sum() if col_riesgo else 0
 
+    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (AI - EN ENTEROS LIMPIOS)
     total_hist_ai = len(df_raw)
     fin_ai_cnt = df_raw[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado else 0
     pct_cumplimiento_ai = int(round((fin_ai_cnt / total_hist_ai) * 100)) if total_hist_ai > 0 else 0
@@ -1583,6 +1514,7 @@ if entorno_activo == "Auditoría Interna":
 
                     st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
 
+                    # MÉTRICAS ESTRATÉGICAS ALINEADAS (PRECISIÓN TEXTUAL GARANTIZADA)
                     col_m_strat1, col_m_strat2 = st.columns(2)
                     with col_m_strat1:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">🎯 % Cumplimiento</div>', unsafe_allow_html=True)
@@ -1887,6 +1819,9 @@ if entorno_activo == "Auditoría Interna":
                         else:
                             st.info("ℹ️ No hay acciones con estado 'Finalizado' para los filtros aplicados.")
 
+                # ---------------------------------------------------------
+                # SUB-PESTAÑA NUEVA: PROGRAMA ANUAL DE AUDITORÍA (PAA EN INDICADORES DE GESTIÓN)
+                # ---------------------------------------------------------
                 with subtab_ind_paa:
                     st.subheader("🗓️ Programa Anual de Auditoría - Programadas vs Finalizadas (Vigencia 2026)")
                     st.markdown("Comparativa mes a mes del número de auditorías del PAA **Programadas** (`Mes Programada`) frente a las **Finalizadas** (`Mes finalizada`) para la Vigencia 2026.")
@@ -1962,6 +1897,9 @@ if entorno_activo == "Auditoría Interna":
                         else:
                             st.info("ℹ️ No hay registros en el Programa Anual de Auditoría para 2026.")
 
+                # ---------------------------------------------------------
+                # SUB-PESTAÑA 4: COMPARACIÓN PROGRAMADOS VS FINALIZADOS (% HALLAZGO 2026) - AUDITORÍA INTERNA
+                # ---------------------------------------------------------
                 with subtab_ind3:
                     st.subheader("Programados vs Finalizados (% Hallazgo 2026)")
                     st.markdown("Comparativa mes a mes entre la suma del **`% Hallazgo` (Columna AB)** programado según la **Fecha de Cierre (Columna I)** y lo finalizado según la **Fecha de Cierre Auditoría (Columna S)**.")
@@ -2058,6 +1996,9 @@ if entorno_activo == "Auditoría Interna":
                     "🔍 Análisis por Hallazgos Únicos"
                 ])
 
+                # ---------------------------------------------------------
+                # SUBTAB 1: PLANES DE ACCIÓN (AI)
+                # ---------------------------------------------------------
                 with subtab_hist1:
                     st.markdown("Evolución del volumen de **Planes de Mejoramiento** por vigencia y distribución por Área Responsable.")
 
@@ -2139,6 +2080,9 @@ if entorno_activo == "Auditoría Interna":
                             df_pivot_area = df_pivot_area.sort_values(by="Total Histórico", ascending=False)
                             st.dataframe(df_pivot_area, use_container_width=True)
 
+                # ---------------------------------------------------------
+                # SUBTAB 2: HALLAZGOS ÚNICOS (AI)
+                # ---------------------------------------------------------
                 with subtab_hist2:
                     st.markdown("Evolución del volumen de **Hallazgos Únicos** (desduplicados) por vigencia y distribución por Área Responsable.")
 
@@ -2612,7 +2556,7 @@ if entorno_activo == "Auditoría Interna":
                 )
 
 # =========================================================
-# VISTA 2: CONTRALORÍA DE BOGOTÁ
+# VISTA 2: CONTRALORÍA DE BOGOTÁ (LECTURA ESTRICTA COLUMNA W Y AA EN ABIERTOS/VENCIDOS, COLUMNA AI EN FINALIZADOS)
 # =========================================================
 else:
     def cargar_datos_c():
@@ -2647,9 +2591,10 @@ else:
     if df_raw_c.empty:
         st.stop()
 
-    col_fecha_cierre_c = df_raw_c.columns[22] if len(df_raw_c.columns) > 22 else "FECHA DE TERMINACIÓN"
-    col_estado_c = df_raw_c.columns[26] if len(df_raw_c.columns) > 26 else "ESTADO"
-    col_fecha_cierre_aud_c = df_raw_c.columns[34] if len(df_raw_c.columns) > 34 else "Fecha cierre x Auditoría"
+    # LECTURA EXACTA POR COLUMNA
+    col_fecha_cierre_c = df_raw_c.columns[22] if len(df_raw_c.columns) > 22 else "FECHA DE TERMINACIÓN"     # COLUMNA W
+    col_estado_c = df_raw_c.columns[26] if len(df_raw_c.columns) > 26 else "ESTADO"                        # COLUMNA AA
+    col_fecha_cierre_aud_c = df_raw_c.columns[34] if len(df_raw_c.columns) > 34 else "Fecha cierre x Auditoría" # COLUMNA AI
     
     col_responsable_c = "AREA RESPONSABLE" if "AREA RESPONSABLE" in df_raw_c.columns else buscar_columna_por_patron(df_raw_c, ["area responsable", "responsable", "dependencia"])
     col_entidad_c = buscar_columna_por_patron(df_raw_c, ["nombre de la entidad", "entidad", "sectorial"])
@@ -2758,6 +2703,7 @@ else:
 
     total_planes_c = abiertos_c + vencidos_c
 
+    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (CONTRALORÍA)
     hoy_dt_c = pd.to_datetime(date.today())
     total_hist_c = len(df_raw_c)
     fin_c_cnt = df_raw_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado_c else 0
@@ -2772,6 +2718,9 @@ else:
     else:
         prom_mora_c_val = 0
 
+    # ---------------------------------------------------------
+    # TENDENCIA MENSUAL CONTRALORÍA
+    # ---------------------------------------------------------
     meses_orden_c = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
     map_m_num_c = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
 
@@ -3067,6 +3016,7 @@ else:
 
                     st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
 
+                    # MÉTRICAS ESTRATÉGICAS CONTRALORÍA (TARJETAS ORIGINALES CON LEYENDA EXTERNA ABAJO)
                     col_m_strat_c1, col_m_strat_c2 = st.columns(2)
                     with col_m_strat_c1:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">🎯 % Cumplimiento</div>', unsafe_allow_html=True)
@@ -3294,6 +3244,9 @@ else:
                         else:
                             st.info("ℹ️ No hay acciones finalizadas en Contraloría.")
 
+                # ---------------------------------------------------------
+                # SUB-PESTAÑA 3: COMPARACIÓN PROGRAMADOS VS FINALIZADOS (% HALLAZGO 2026) - CONTRALORÍA (ESTRICTO AÑO 2026)
+                # ---------------------------------------------------------
                 with subtab_ind_c3:
                     st.subheader("Programados vs Finalizados (% Hallazgo 2026)")
                     st.markdown("Comparativa mes a mes entre la suma del **`% Hallazgos` (Columna AJ)** programado según la **FECHA DE TERMINACIÓN (Columna W)** y lo finalizado según la **Fecha cierre x Auditoría (Columna AI)**.")
@@ -3391,6 +3344,9 @@ else:
                     "🔍 Análisis por Hallazgos Únicos"
                 ])
 
+                # ---------------------------------------------------------
+                # SUBTAB 1: PLANES DE ACCIÓN (CONTRALORÍA)
+                # ---------------------------------------------------------
                 with subtab_hist_c1:
                     st.markdown("Evolución del volumen de **Planes de Mejoramiento** por vigencia y distribución por Área Responsable.")
 
@@ -3472,6 +3428,9 @@ else:
                             df_pivot_area_c = df_pivot_area_c.sort_values(by="Total Histórico", ascending=False)
                             st.dataframe(df_pivot_area_c, use_container_width=True)
 
+                # ---------------------------------------------------------
+                # SUBTAB 2: HALLAZGOS ÚNICOS (CONTRALORÍA)
+                # ---------------------------------------------------------
                 with subtab_hist_c2:
                     st.markdown("Evolución del volumen de **Hallazgos Únicos** (desduplicados) por vigencia y distribución por Área Responsable.")
 

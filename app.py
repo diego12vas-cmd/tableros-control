@@ -145,6 +145,12 @@ def init_db():
     except sqlite3.OperationalError:
         pass
 
+    try:
+        c.execute("ALTER TABLE notificaciones_drive ADD COLUMN archivo_nombre TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
     pw_defecto = hash_password("123456")
 
     usuarios_base_raw = [
@@ -247,18 +253,23 @@ def obtener_notificaciones_usuario(usuario_actual):
     
     es_dueno_contraloria = usuario_actual.lower() in [u.lower() for u in USUARIO_EXCLUSIVO_CONTRALORIA]
     
-    if es_dueno_contraloria:
-        c.execute("SELECT id, entorno, archivo_nombre, link_drive, fecha_deteccion, leido_por FROM notificaciones_drive ORDER BY id DESC LIMIT 15")
-    else:
-        c.execute("SELECT id, entorno, archivo_nombre, link_drive, fecha_deteccion, leido_por FROM notificaciones_drive WHERE entorno = 'Auditoría Interna' ORDER BY id DESC LIMIT 15")
+    try:
+        if es_dueno_contraloria:
+            c.execute("SELECT id, entorno, COALESCE(archivo_nombre, plan_hallazgo, 'Evidencia subida') as archivo_nom, link_drive, fecha_deteccion, leido_por FROM notificaciones_drive ORDER BY id DESC LIMIT 15")
+        else:
+            c.execute("SELECT id, entorno, COALESCE(archivo_nombre, plan_hallazgo, 'Evidencia subida') as archivo_nom, link_drive, fecha_deteccion, leido_por FROM notificaciones_drive WHERE entorno = 'Auditoría Interna' ORDER BY id DESC LIMIT 15")
+            
+        rows = c.fetchall()
+    except sqlite3.OperationalError:
+        rows = []
         
-    rows = c.fetchall()
     conn.close()
     
     notifs = []
     for r in rows:
         n_id, ent, archivo_nom, link, fecha, leido_str = r
-        leidos_lista = [x.strip().lower() for x in leido_str.split(",") if x.strip()]
+        leido_str_safe = str(leido_str) if leido_str else ""
+        leidos_lista = [x.strip().lower() for x in leido_str_safe.split(",") if x.strip()]
         es_leido = usuario_actual.lower() in leidos_lista
         notifs.append({
             "id": n_id,
@@ -273,15 +284,19 @@ def obtener_notificaciones_usuario(usuario_actual):
 def marcar_notificaciones_leidas(usuario_actual):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("SELECT id, leido_por FROM notificaciones_drive")
-    rows = c.fetchall()
-    for n_id, leido_str in rows:
-        leidos_lista = [x.strip() for x in leido_str.split(",") if x.strip()]
-        if usuario_actual not in leidos_lista:
-            leidos_lista.append(usuario_actual)
-            nuevo_str = ",".join(leidos_lista)
-            c.execute("UPDATE notificaciones_drive SET leido_por = ? WHERE id = ?", (nuevo_str, n_id))
-    conn.commit()
+    try:
+        c.execute("SELECT id, leido_por FROM notificaciones_drive")
+        rows = c.fetchall()
+        for n_id, leido_str in rows:
+            leido_str_safe = str(leido_str) if leido_str else ""
+            leidos_lista = [x.strip() for x in leido_str_safe.split(",") if x.strip()]
+            if usuario_actual not in leidos_lista:
+                leidos_lista.append(usuario_actual)
+                nuevo_str = ",".join(leidos_lista)
+                c.execute("UPDATE notificaciones_drive SET leido_por = ? WHERE id = ?", (nuevo_str, n_id))
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
     conn.close()
 
 def obtener_usuarios_df():

@@ -1,0 +1,281 @@
+[
+    {
+        "usuario": "edgar.ortiz",
+        "email": "edgar.ortiz@terminaldetransporte.gov",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "manuel.cifuentes",
+        "email": "manuel.cifuentes@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "eduardo.gonzalez",
+        "email": "eduardo.gonzalez@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "oscar.garzon",
+        "email": "oscar.garzon@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "manuel.santamaria",
+        "email": "manuel.santamaria@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "carlos.salcedo",
+        "email": "carlos.salcedo@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "juan.alviz",
+        "email": "juan.alviz@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "julio.mosquera",
+        "email": "julio.mosquera@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "marcela.angarita",
+        "email": "marcela.angarita@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "roberto.bermudez",
+        "email": "roberto.bermudez@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "miguel.salina",
+        "email": "miguel.salina@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "oscar.castañeda",
+        "email": "oscar.castaneda@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "andres.panqueva",
+        "email": "andres.panqueva@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "christian.pardo",
+        "email": "christian.pardo@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "diana.ortiz",
+        "email": "diana.ortiz@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "andrea.lievano",
+        "email": "andrea.lievano@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "william.camargo",
+        "email": "william.camargo@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "gerson.lugo",
+        "email": "gerson.lugo@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "leonardo.vasquez",
+        "email": "leonardo.vasquez@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "javier.veloza",
+        "email": "javier.veloza@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "manuel.salgado",
+        "email": "manuel.salgado@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "edgar.guzman",
+        "email": "edgar.guzman@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "carolina.bueno",
+        "email": "carolina.bueno@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "jenny.gomez",
+        "email": "jenny.gomez@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "paola.copete",
+        "email": "paola.copete@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "hugo.montoya",
+        "email": "hugo.montoya@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "admin",
+        "email": "diego.vasquez@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 0
+    },
+    {
+        "usuario": "diego.12",
+        "email": "diego12vas@gmail.com",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Oficios,Informes",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "fabian.silva",
+        "email": "fabian.silva@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 1
+    },
+    {
+        "usuario": "manuel.gutierrez",
+        "email": "manuel.gutierrez@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 0
+    },
+    {
+        "usuario": "omar.diaz",
+        "email": "omar.diaz@terminaldetransporte.gov.co",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "autorizado": 1,
+        "perm_pestañas": "TODOS",
+        "perm_entornos": "TODOS",
+        "requiere_2fa": 0
+    }
+]

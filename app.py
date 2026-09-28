@@ -808,7 +808,7 @@ with col_head_title:
         st.markdown('<div class="titulo-tablero">Tablero de Control - Planes de Acción Contraloría de Bogotá</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# BÚSQUEDA Y CARGA DE EXCEL DE AUDITORÍA INTERNA
+# BÚSQUEDA Y CARGA EN CACHÉ DE EXCEL DE AUDITORÍA INTERNA
 # ---------------------------------------------------------
 def buscar_excel_inteligente():
     dir_script = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
@@ -850,7 +850,6 @@ def obtener_fecha_excel(ruta_target):
     if not ruta_target or not os.path.exists(ruta_target):
         return None
     try:
-        # Tomar estrictamente la fecha de última modificación del archivo de base de datos en disco
         timestamp_mod = os.path.getmtime(ruta_target)
         return datetime.fromtimestamp(timestamp_mod).strftime("%d/%m/%Y")
     except Exception:
@@ -1036,42 +1035,61 @@ def generar_excel_formateado_c(df):
         worksheet.hide_gridlines(2)
     return output.getvalue()
 
+# CÓDIGO OPTIMIZADO: Carga en Caché para eliminar retraso visual
+@st.cache_data(ttl=600, show_spinner=False)
+def cargar_datos_ai_cached(path):
+    if not os.path.exists(path):
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+    xls = pd.ExcelFile(path)
+    sheet_b = "Base de datos" if "Base de datos" in xls.sheet_names else ("Base de Datos" if "Base de Datos" in xls.sheet_names else xls.sheet_names[0])
+    df_base = pd.read_excel(xls, sheet_name=sheet_b)
+    df_base.columns = [str(c).strip() for c in df_base.columns]
+
+    for col in df_base.columns:
+        if df_base[col].dtype == "object":
+            df_base[col] = df_base[col].astype(str).str.strip()
+
+    sheet_c = "Calculos" if "Calculos" in xls.sheet_names else ("Cálculos" if "Cálculos" in xls.sheet_names else None)
+    df_calc = pd.read_excel(xls, sheet_name=sheet_c, header=None) if sheet_c else pd.DataFrame()
+
+    sheet_inf = "Informes PDF" if "Informes PDF" in xls.sheet_names else ("INFORMES PDF" if "INFORMES PDF" in xls.sheet_names else None)
+    df_informes = pd.read_excel(xls, sheet_name=sheet_inf) if sheet_inf else pd.DataFrame()
+
+    sheet_paa = "Programa Anual de Auditoría" if "Programa Anual de Auditoría" in xls.sheet_names else ("Programa Anual de Auditoria" if "Programa Anual de Auditoria" in xls.sheet_names else None)
+    df_paa = pd.read_excel(xls, sheet_name=sheet_paa) if sheet_paa else pd.DataFrame()
+
+    return df_base, df_calc, df_informes, df_paa
+
+@st.cache_data(ttl=600, show_spinner=False)
+def cargar_datos_c_cached(path):
+    if not os.path.exists(path):
+        return pd.DataFrame(), pd.DataFrame()
+    xls = pd.ExcelFile(path)
+    sheet_b = (
+        "Base de Datos"
+        if "Base de Datos" in xls.sheet_names
+        else ("Base de datos" if "Base de datos" in xls.sheet_names else xls.sheet_names[0])
+    )
+    df_base = pd.read_excel(xls, sheet_name=sheet_b)
+    df_base.columns = [str(c).strip() for c in df_base.columns]
+
+    for col in df_base.columns:
+        if df_base[col].dtype == "object":
+            df_base[col] = df_base[col].astype(str).str.strip()
+
+    sheet_inf = "Enlace PDF" if "Enlace PDF" in xls.sheet_names else ("Enlace pdf" if "Enlace pdf" in xls.sheet_names else None)
+    df_informes = pd.read_excel(xls, sheet_name=sheet_inf) if sheet_inf else pd.DataFrame()
+
+    return df_base, df_informes
+
 # =========================================================
 # VISTA 1: AUDITORÍA INTERNA
 # =========================================================
 if entorno_activo == "Auditoría Interna":
-    def cargar_datos_ai():
-        if not os.path.exists(EXCEL_PATH_AI):
-            st.error(f"⚠️ No se encontró el archivo Excel en: `{EXCEL_PATH_AI}`")
-            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
-
-        try:
-            xls = pd.ExcelFile(EXCEL_PATH_AI)
-            sheet_b = "Base de datos" if "Base de datos" in xls.sheet_names else ("Base de Datos" if "Base de Datos" in xls.sheet_names else xls.sheet_names[0])
-            df_base = pd.read_excel(xls, sheet_name=sheet_b)
-            df_base.columns = [str(c).strip() for c in df_base.columns]
-
-            for col in df_base.columns:
-                if df_base[col].dtype == "object":
-                    df_base[col] = df_base[col].astype(str).str.strip()
-
-            sheet_c = "Calculos" if "Calculos" in xls.sheet_names else ("Cálculos" if "Cálculos" in xls.sheet_names else None)
-            df_calc = pd.read_excel(xls, sheet_name=sheet_c, header=None) if sheet_c else pd.DataFrame()
-
-            sheet_inf = "Informes PDF" if "Informes PDF" in xls.sheet_names else ("INFORMES PDF" if "INFORMES PDF" in xls.sheet_names else None)
-            df_informes = pd.read_excel(xls, sheet_name=sheet_inf) if sheet_inf else pd.DataFrame()
-
-            sheet_paa = "Programa Anual de Auditoría" if "Programa Anual de Auditoría" in xls.sheet_names else ("Programa Anual de Auditoria" if "Programa Anual de Auditoria" in xls.sheet_names else None)
-            df_paa = pd.read_excel(xls, sheet_name=sheet_paa) if sheet_paa else pd.DataFrame()
-
-            return df_base, df_calc, df_informes, df_paa
-        except Exception as e:
-            st.error(f"Error al cargar el archivo Excel: {e}")
-            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
-
-    df_raw, df_calc, df_informes_raw, df_paa_raw = cargar_datos_ai()
+    df_raw, df_calc, df_informes_raw, df_paa_raw = cargar_datos_ai_cached(EXCEL_PATH_AI)
 
     if df_raw.empty:
+        st.error(f"⚠️ No se encontró el archivo Excel en: `{EXCEL_PATH_AI}`")
         st.stop()
 
     col_estado = "Estado" if "Estado" in df_raw.columns else buscar_columna_por_patron(df_raw, ["estado del compromiso", "estado compromiso"])
@@ -1286,7 +1304,7 @@ if entorno_activo == "Auditoría Interna":
     r_medio = df_activos[col_riesgo].astype(str).str.contains("Medio", case=False, na=False).sum() if col_riesgo else 0
     r_bajo = df_activos[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False).sum() if col_riesgo else 0
 
-    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (AI - EN ENTEROS LIMPIOS)
+    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (AI)
     total_hist_ai = len(df_raw)
     fin_ai_cnt = df_raw[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado else 0
     pct_cumplimiento_ai = int(round((fin_ai_cnt / total_hist_ai) * 100)) if total_hist_ai > 0 else 0
@@ -1514,7 +1532,7 @@ if entorno_activo == "Auditoría Interna":
 
                     st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
 
-                    # MÉTRICAS ESTRATÉGICAS ALINEADAS (PRECISIÓN TEXTUAL GARANTIZADA)
+                    # MÉTRICAS ESTRATÉGICAS - ESTRUCTURA LIMPIA Y ORIGINAL RESTAURADA
                     col_m_strat1, col_m_strat2 = st.columns(2)
                     with col_m_strat1:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">🎯 % Cumplimiento</div>', unsafe_allow_html=True)
@@ -2559,36 +2577,10 @@ if entorno_activo == "Auditoría Interna":
 # VISTA 2: CONTRALORÍA DE BOGOTÁ (LECTURA ESTRICTA COLUMNA W Y AA EN ABIERTOS/VENCIDOS, COLUMNA AI EN FINALIZADOS)
 # =========================================================
 else:
-    def cargar_datos_c():
-        if not os.path.exists(EXCEL_PATH_C):
-            st.error(f"No se encontró el archivo Excel de Contraloría en la ruta: `{EXCEL_PATH_C}`")
-            return pd.DataFrame(), pd.DataFrame()
-
-        try:
-            xls = pd.ExcelFile(EXCEL_PATH_C)
-            sheet_b = (
-                "Base de Datos"
-                if "Base de Datos" in xls.sheet_names
-                else ("Base de datos" if "Base de datos" in xls.sheet_names else xls.sheet_names[0])
-            )
-            df_base = pd.read_excel(xls, sheet_name=sheet_b)
-            df_base.columns = [str(c).strip() for c in df_base.columns]
-
-            for col in df_base.columns:
-                if df_base[col].dtype == "object":
-                    df_base[col] = df_base[col].astype(str).str.strip()
-
-            sheet_inf = "Enlace PDF" if "Enlace PDF" in xls.sheet_names else ("Enlace pdf" if "Enlace pdf" in xls.sheet_names else None)
-            df_informes = pd.read_excel(xls, sheet_name=sheet_inf) if sheet_inf else pd.DataFrame()
-
-            return df_base, df_informes
-        except Exception as e:
-            st.error(f"Error al cargar el archivo Excel de Contraloría: {e}")
-            return pd.DataFrame(), pd.DataFrame()
-
-    df_raw_c, df_informes_raw_c = cargar_datos_c()
+    df_raw_c, df_informes_raw_c = cargar_datos_c_cached(EXCEL_PATH_C)
 
     if df_raw_c.empty:
+        st.error(f"No se encontró el archivo Excel de Contraloría en la ruta: `{EXCEL_PATH_C}`")
         st.stop()
 
     # LECTURA EXACTA POR COLUMNA
@@ -2703,18 +2695,18 @@ else:
 
     total_planes_c = abiertos_c + vencidos_c
 
-    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (CONTRALORÍA)
+    # CÁLCULOS ESTRATÉGICOS DE CUMPLIMIENTO Y MORA (CONTRALORÍA - ENTEROS LIMPIOS)
     hoy_dt_c = pd.to_datetime(date.today())
     total_hist_c = len(df_raw_c)
     fin_c_cnt = df_raw_c[col_estado_c].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado_c else 0
-    pct_cumplimiento_c = round((fin_c_cnt / total_hist_c) * 100, 1) if total_hist_c > 0 else 0.0
+    pct_cumplimiento_c = int(round((fin_c_cnt / total_hist_c) * 100)) if total_hist_c > 0 else 0
 
     df_raw_venc_c = df_raw_c[df_raw_c[col_estado_c].astype(str).str.contains("Vencid", case=False, na=False)].copy() if col_estado_c else pd.DataFrame()
     if not df_raw_venc_c.empty and col_fecha_cierre_c in df_raw_venc_c.columns:
         fechas_c_parsed = df_raw_venc_c[col_fecha_cierre_c].apply(parsear_fecha_estricta)
         dias_mora_c_series = (hoy_dt_c - fechas_c_parsed).dt.days.dropna()
         dias_mora_c_series = dias_mora_c_series[dias_mora_c_series > 0]
-        prom_mora_c_val = int(dias_mora_c_series.mean()) if not dias_mora_c_series.empty else 0
+        prom_mora_c_val = int(round(dias_mora_c_series.mean())) if not dias_mora_c_series.empty else 0
     else:
         prom_mora_c_val = 0
 
@@ -3016,16 +3008,16 @@ else:
 
                     st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
 
-                    # MÉTRICAS ESTRATÉGICAS CONTRALORÍA (TARJETAS ORIGINALES CON LEYENDA EXTERNA ABAJO)
+                    # MÉTRICAS ESTRATÉGICAS CONTRALORÍA (RESTAURO COMPLETO)
                     col_m_strat_c1, col_m_strat_c2 = st.columns(2)
                     with col_m_strat_c1:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">🎯 % Cumplimiento</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:0.95rem; padding:4px;">{int(round(pct_cumplimiento_c))}%</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div style="text-align:center; font-size:0.72rem; color:#A0AEC0; margin-top:2px;">({fin_c_cnt} cerrados de {total_hist_c} totales)</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:0.95rem; padding:4px;">{pct_cumplimiento_c}%</div>', unsafe_allow_html=True)
+                        st.caption(f"({fin_c_cnt} cerrados de {total_hist_c} totales)")
                     with col_m_strat_c2:
                         st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️ Prom. Días Mora</div>', unsafe_allow_html=True)
                         st.markdown(f'<div class="card-box" style="background-color:#C0392B; color:#FFFFFF; font-size:0.95rem; padding:4px;">{prom_mora_c_val} días</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div style="text-align:center; font-size:0.72rem; color:#A0AEC0; margin-top:2px;">({len(df_raw_venc_c)} vencidos)</div>', unsafe_allow_html=True)
+                        st.caption(f"({len(df_raw_venc_c)} vencidos)")
 
                     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
@@ -3141,7 +3133,7 @@ else:
                 m_c1.metric("Planes de Acción Pendientes", total_planes_c)
                 m_c2.metric("🔴 Compromisos Vencidos", vencidos_c)
                 m_c3.metric("🟢 Compromisos Abiertos", abiertos_c)
-
+                
                 st.markdown("---")
                 st.subheader("👥 Distribución de Compromisos Pendientes por Área / Dependencia")
                 st.caption("Distribución por estado de los compromisos no finalizados asignados a cada área responsable.")

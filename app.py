@@ -79,6 +79,22 @@ USUARIOS_AMARILLOS = [
     'omar.diaz@terminaldetransporte.gov.co'
 ]
 
+# CATÁLOGO OFICIAL DE ÁREAS RESPONSABLES DE LA TERMINAL
+CATALOGO_OFICIAL_AREAS = [
+    "DIRECCIÓN DE GESTIÓN FINANCIERA",
+    "DIRECCIÓN DE RECURSOS FÍSICOS Y NEGOCIOS",
+    "DIRECCIÓN DE GESTIÓN HUMANA",
+    "DIRECCIÓN DE RECURSOS TECNOLÓGICOS",
+    "DIRECCIÓN DE SEGURIDAD OPERACIONAL",
+    "DIRECCIÓN DE SERVICIO AL TRANSPORTADOR",
+    "DIRECCIÓN DE INFRAESTRUCTURA",
+    "SUBGERENCIA JURÍDICA",
+    "SUBGERENCIA CORPORATIVA",
+    "SUBGERENCIA DE SERVICIOS OPERACIONALES E INFRAESTRUCTURA",
+    "SUBGERENCIA DE PLANEACIÓN Y PROYECTOS",
+    "OFICINA DE AUDITORÍA INTERNA"
+]
+
 def hash_password(password):
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
@@ -347,9 +363,9 @@ def limpiar_nombre_area(texto):
     txt = str(texto).upper().strip()
 
     txt = re.sub(r"(SUBGERENCIA\s*DE\s*PLANEACIÓNYPROYECTOS|SUBGERENCIADEPLANEACIÓNYPROYECTOS)", "SUBGERENCIA DE PLANEACIÓN Y PROYECTOS", txt)
-    txt = re.sub(r"(SUBGERENCIA\s*DE\s*SERVICIOS\s*OPERA\w*|SUBGERENCIADESERVICIOSOPERA\w*)", "SUBGERENCIA DE SERVICIOS OPERACIONALES", txt)
+    txt = re.sub(r"(SUBGERENCIA\s*DE\s*SERVICIOS\s*OPERA\w*|SUBGERENCIADESERVICIOSOPERA\w*)", "SUBGERENCIA DE SERVICIOS OPERACIONALES E INFRAESTRUCTURA", txt)
     txt = re.sub(r"(SUBGERENCIACORPORATIVA|SUBGERENCIA\s*CORPORATIVADIRECC\w*)", "SUBGERENCIA CORPORATIVA", txt)
-    txt = re.sub(r"(SUBGERENCIAJURÍDICA|SUBGERENCIA\s*JURÍDICADIRECCIÓN\w*)", "SUBGERENCIA JURÍDICA", txt)
+    txt = re.sub(r"(SUBGERENCIAJURÍDICA|SUBGERENCIA\s*JURÍDICADIRECCIÓN\w*|SUBGERENCIAJ\s*URÍDICA)", "SUBGERENCIA JURÍDICA", txt)
 
     reemplazos = [
         (r"DIRECCIÓNDE", "DIRECCIÓN DE "),
@@ -379,14 +395,40 @@ def limpiar_nombre_area(texto):
 def extraer_sub_areas_individuales(val):
     if pd.isna(val):
         return []
-    txt = str(val).strip()
-    partes = re.split(r"[/,\n\r]+", txt)
-    resultado = []
-    for p in partes:
-        p_limp = limpiar_nombre_area(p)
-        if p_limp and p_limp.lower() not in ["nan", "none"]:
-            resultado.append(p_limp)
-    return list(set(resultado))
+    txt = str(val).upper().strip()
+    
+    # Estandarizar errores tipográficos conocidos antes de comparar
+    txt = re.sub(r"SUBGERENCIAJ\s*URÍDICA|SUBGERENCIAJURIDICA", "SUBGERENCIA JURÍDICA", txt)
+    txt = re.sub(r"SUB GERENCIA", "SUBGERENCIA", txt)
+    
+    txt_normalizado = txt.replace("Á","A").replace("É","E").replace("Í","I").replace("Ó","O").replace("Ú","U")
+    
+    areas_encontradas = []
+    # Escanear el catálogo oficial para extraer únicamente áreas limpias e individuales
+    for area in sorted(CATALOGO_OFICIAL_AREAS, key=len, reverse=True):
+        area_norm = area.replace("Á","A").replace("É","E").replace("Í","I").replace("Ó","O").replace("Ú","U")
+        if area_norm in txt_normalizado:
+            areas_encontradas.append(area)
+            
+    # Si no matcheó con el catálogo estricto, hacer split por divisores comunes
+    if not areas_encontradas:
+        partes = re.split(r"[/,\n\r]+", txt)
+        for p in partes:
+            p_limp = limpiar_nombre_area(p)
+            if p_limp and p_limp.lower() not in ["nan", "none"]:
+                areas_encontradas.append(p_limp)
+                
+    # Preservar el orden oficial de La Terminal eliminando duplicados
+    res = []
+    for a in CATALOGO_OFICIAL_AREAS:
+        if a in areas_encontradas:
+            res.append(a)
+            
+    for a in areas_encontradas:
+        if a not in res:
+            res.append(a)
+
+    return res
 
 # ---------------------------------------------------------
 # SISTEMA DE LOGIN
@@ -1559,7 +1601,7 @@ if entorno_activo == "Auditoría Interna":
     pestañas_permitidas = [p for p in TODAS_LAS_PESTANIAS if p in st.session_state.get("permisos_usuario", [])]
 
     if not pestañas_permitidas:
-        st.warning("⚠️️ No tienes permisos asignados para ver ninguna sección. Contacta al administrador.")
+        st.warning("⚠️ No tienes permisos asignados para ver ninguna sección. Contacta al administrador.")
         st.stop()
 
     titulos_tabs = [dict_pestanias[p] for p in pestañas_permitidas]
@@ -1999,7 +2041,7 @@ if entorno_activo == "Auditoría Interna":
                                     use_container_width=False,
                                 )
                             else:
-                                st.info("ℹ️️ No hay registros en el Programa Anual de Auditoría para 2026.")
+                                st.info("ℹ️ No hay registros en el Programa Anual de Auditoría para 2026.")
 
                 with subtab_ind3:
                     if not (sub_names_ind[3] in subp_usuario or "TODOS" in [x.upper() for x in subp_usuario]):
@@ -2420,7 +2462,7 @@ if entorno_activo == "Auditoría Interna":
                             if fecha_antigua_str != nueva_fecha_str:
                                 nuevo_registro_historial += f"• Fecha Cierre Anterior: {fecha_antigua_str} ➡️ Nueva: {nueva_fecha_str}\n"
                             if est_actual_val != nuevo_estado:
-                                nuevo_registro_historial += f"• Estado Anterior: {est_actual_val} ➡️️ Nuevo: {nuevo_estado}\n"
+                                nuevo_registro_historial += f"• Estado Anterior: {est_actual_val} ➡️ Nuevo: {nuevo_estado}\n"
                             if resp_actual_val != nuevo_responsable:
                                 nuevo_registro_historial += f"• Responsable Anterior: {resp_actual_val} ➡️ Nuevo: {nuevo_responsable}\n"
                             if plan_actual_val != nuevo_plan_accion:

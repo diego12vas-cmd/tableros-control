@@ -346,6 +346,11 @@ def limpiar_nombre_area(texto):
         return ""
     txt = str(texto).upper().strip()
 
+    txt = re.sub(r"(SUBGERENCIA\s*DE\s*PLANEACIÓNYPROYECTOS|SUBGERENCIADEPLANEACIÓNYPROYECTOS)", "SUBGERENCIA DE PLANEACIÓN Y PROYECTOS", txt)
+    txt = re.sub(r"(SUBGERENCIA\s*DE\s*SERVICIOS\s*OPERA\w*|SUBGERENCIADESERVICIOSOPERA\w*)", "SUBGERENCIA DE SERVICIOS OPERACIONALES", txt)
+    txt = re.sub(r"(SUBGERENCIACORPORATIVA|SUBGERENCIA\s*CORPORATIVADIRECC\w*)", "SUBGERENCIA CORPORATIVA", txt)
+    txt = re.sub(r"(SUBGERENCIAJURÍDICA|SUBGERENCIA\s*JURÍDICADIRECCIÓN\w*)", "SUBGERENCIA JURÍDICA", txt)
+
     reemplazos = [
         (r"DIRECCIÓNDE", "DIRECCIÓN DE "),
         (r"DIRECCIONDE", "DIRECCIÓN DE "),
@@ -370,6 +375,18 @@ def limpiar_nombre_area(texto):
 
     txt = re.sub(r"\s+", " ", txt).strip()
     return txt
+
+def extraer_sub_areas_individuales(val):
+    if pd.isna(val):
+        return []
+    txt = str(val).strip()
+    partes = re.split(r"[/,\n\r]+", txt)
+    resultado = []
+    for p in partes:
+        p_limp = limpiar_nombre_area(p)
+        if p_limp and p_limp.lower() not in ["nan", "none"]:
+            resultado.append(p_limp)
+    return list(set(resultado))
 
 # ---------------------------------------------------------
 # SISTEMA DE LOGIN
@@ -1296,11 +1313,8 @@ if entorno_activo == "Auditoría Interna":
     if col_responsable:
         resp_unicos_set = set()
         for val in df_raw[col_responsable].dropna().unique():
-            sub_list = [s.strip() for s in str(val).replace("\n", ",").replace("/", ",").split(",") if s.strip()]
-            for item in sub_list:
-                item_limpio = limpiar_nombre_area(item)
-                if item_limpio and item_limpio.lower() not in ["nan", "none"]:
-                    resp_unicos_set.add(item_limpio)
+            for item in extraer_sub_areas_individuales(val):
+                resp_unicos_set.add(item)
         resp_vals = sorted(list(resp_unicos_set))
         
         with st.sidebar.expander("👤 Responsables", expanded=False):
@@ -1309,7 +1323,7 @@ if entorno_activo == "Auditoría Interna":
             def evaluar_resp_ai(cell_val):
                 if pd.isna(cell_val):
                     return False
-                sub_list = [limpiar_nombre_area(s) for s in str(cell_val).replace("\n", ",").replace("/", ",").split(",") if s.strip()]
+                sub_list = extraer_sub_areas_individuales(cell_val)
                 return any(sel in sub_list for sel in resp_sel)
                 
             mask_resp = df_filtrado[col_responsable].apply(evaluar_resp_ai)
@@ -1450,9 +1464,8 @@ if entorno_activo == "Auditoría Interna":
 
     df_pend_ai = df_activos.copy()
     if not df_pend_ai.empty and col_responsable in df_pend_ai.columns:
-        df_pend_ai['Resp_Clean'] = df_pend_ai[col_responsable].astype(str).str.replace("\n", ",").str.split(",")
+        df_pend_ai['Resp_Clean'] = df_pend_ai[col_responsable].astype(str).apply(extraer_sub_areas_individuales)
         df_exploded_ai = df_pend_ai.explode('Resp_Clean')
-        df_exploded_ai['Resp_Clean'] = df_exploded_ai['Resp_Clean'].apply(limpiar_nombre_area)
         df_exploded_ai = df_exploded_ai[~df_exploded_ai['Resp_Clean'].isin(["", "NAN", "NONE", "NONE."])]
 
         if not df_exploded_ai.empty:
@@ -1498,9 +1511,8 @@ if entorno_activo == "Auditoría Interna":
     if col_responsable in df_perf.columns:
         df_pend = df_perf[~df_perf["Estado_Normalizado"].str.contains("Finaliz|Cerrad", case=False, na=False)].copy()
         if not df_pend.empty:
-            df_pend[col_responsable] = df_pend[col_responsable].astype(str).str.replace("\n", ",").str.split(",")
+            df_pend[col_responsable] = df_pend[col_responsable].astype(str).apply(extraer_sub_areas_individuales)
             df_pend_exploded = df_pend.explode(col_responsable)
-            df_pend_exploded[col_responsable] = df_pend_exploded[col_responsable].astype(str).apply(limpiar_nombre_area)
             df_pend_exploded = df_pend_exploded[~df_pend_exploded[col_responsable].isin(["", "nan", "None", "None."])]
 
             total_acciones_area = len(df_pend_exploded)
@@ -1547,7 +1559,7 @@ if entorno_activo == "Auditoría Interna":
     pestañas_permitidas = [p for p in TODAS_LAS_PESTANIAS if p in st.session_state.get("permisos_usuario", [])]
 
     if not pestañas_permitidas:
-        st.warning("⚠️ No tienes permisos asignados para ver ninguna sección. Contacta al administrador.")
+        st.warning("⚠️️ No tienes permisos asignados para ver ninguna sección. Contacta al administrador.")
         st.stop()
 
     titulos_tabs = [dict_pestanias[p] for p in pestañas_permitidas]
@@ -1634,7 +1646,7 @@ if entorno_activo == "Auditoría Interna":
                     if fig_top5 is not None:
                         st.plotly_chart(fig_top5, use_container_width=True, key="fig_top5_tablero", config={'displayModeBar': False})
                     else:
-                        st.info("ℹ️️ No hay planes de acción pendientes registrados para generar el Top 5 Responsables.")
+                        st.info("ℹ️ No hay planes de acción pendientes registrados para generar el Top 5 Responsables.")
 
                 st.markdown("---")
 
@@ -1987,7 +1999,7 @@ if entorno_activo == "Auditoría Interna":
                                     use_container_width=False,
                                 )
                             else:
-                                st.info("ℹ️ No hay registros en el Programa Anual de Auditoría para 2026.")
+                                st.info("ℹ️️ No hay registros en el Programa Anual de Auditoría para 2026.")
 
                 with subtab_ind3:
                     if not (sub_names_ind[3] in subp_usuario or "TODOS" in [x.upper() for x in subp_usuario]):
@@ -2408,7 +2420,7 @@ if entorno_activo == "Auditoría Interna":
                             if fecha_antigua_str != nueva_fecha_str:
                                 nuevo_registro_historial += f"• Fecha Cierre Anterior: {fecha_antigua_str} ➡️ Nueva: {nueva_fecha_str}\n"
                             if est_actual_val != nuevo_estado:
-                                nuevo_registro_historial += f"• Estado Anterior: {est_actual_val} ➡️ Nuevo: {nuevo_estado}\n"
+                                nuevo_registro_historial += f"• Estado Anterior: {est_actual_val} ➡️️ Nuevo: {nuevo_estado}\n"
                             if resp_actual_val != nuevo_responsable:
                                 nuevo_registro_historial += f"• Responsable Anterior: {resp_actual_val} ➡️ Nuevo: {nuevo_responsable}\n"
                             if plan_actual_val != nuevo_plan_accion:
@@ -2756,11 +2768,8 @@ else:
     if col_responsable_c:
         resp_unicos_set_c = set()
         for val in df_raw_c[col_responsable_c].dropna().unique():
-            sub_list = [s.strip() for s in str(val).replace("\n", ",").replace("/", ",").split(",") if s.strip()]
-            for item in sub_list:
-                item_limpio = limpiar_nombre_area(item)
-                if item_limpio and item_limpio.lower() not in ["nan", "none"]:
-                    resp_unicos_set_c.add(item_limpio)
+            for item in extraer_sub_areas_individuales(val):
+                resp_unicos_set_c.add(item)
         resp_vals_c = sorted(list(resp_unicos_set_c))
         
         with st.sidebar.expander("👤 Responsables / Dependencias", expanded=False):
@@ -2769,7 +2778,7 @@ else:
             def evaluar_resp_c(cell_val):
                 if pd.isna(cell_val):
                     return False
-                sub_list = [limpiar_nombre_area(s) for s in str(cell_val).replace("\n", ",").replace("/", ",").split(",") if s.strip()]
+                sub_list = extraer_sub_areas_individuales(cell_val)
                 return any(sel in sub_list for sel in resp_sel_c)
                 
             mask_resp_c = df_filtrado_c[col_responsable_c].apply(evaluar_resp_c)
@@ -2898,9 +2907,8 @@ else:
 
     df_pend_c_top = df_activos_c.copy()
     if not df_pend_c_top.empty and col_responsable_c in df_pend_c_top.columns:
-        df_pend_c_top['Resp_Clean'] = df_pend_c_top[col_responsable_c].astype(str).str.replace("\n", ",").str.split("/")
+        df_pend_c_top['Resp_Clean'] = df_pend_c_top[col_responsable_c].astype(str).apply(extraer_sub_areas_individuales)
         df_exploded_c_top = df_pend_c_top.explode('Resp_Clean')
-        df_exploded_c_top['Resp_Clean'] = df_exploded_c_top['Resp_Clean'].apply(limpiar_nombre_area)
         df_exploded_c_top = df_exploded_c_top[~df_exploded_c_top['Resp_Clean'].isin(["", "NAN", "NONE", "NONE."])]
 
         if not df_exploded_c_top.empty:
@@ -2957,9 +2965,8 @@ else:
         df_pend_c = df_perf_c[~s_est_c.str.contains("Finaliz|Cerrad", case=False, na=False)].copy()
 
         if not df_pend_c.empty:
-            df_pend_c[col_responsable_c] = df_pend_c[col_responsable_c].astype(str).str.split("/")
+            df_pend_c[col_responsable_c] = df_pend_c[col_responsable_c].astype(str).apply(extraer_sub_areas_individuales)
             df_pend_exploded_c = df_pend_c.explode(col_responsable_c)
-            df_pend_exploded_c[col_responsable_c] = df_pend_exploded_c[col_responsable_c].apply(limpiar_nombre_area)
             df_pend_exploded_c = df_pend_exploded_c[~df_pend_exploded_c[col_responsable_c].isin(["", "NAN", "NONE", "NONE."])]
 
             total_acciones_area_c = len(df_pend_exploded_c)
@@ -3550,9 +3557,8 @@ else:
                         st.subheader("👥 Matriz Comparativa Interanual por Área Responsable (Planes de Acción)")
                         if col_responsable_c and col_responsable_c in df_hist_calc_c.columns:
                             df_area_hist_c = df_hist_calc_c.copy()
-                            df_area_hist_c[col_responsable_c] = df_area_hist_c[col_responsable_c].astype(str).str.replace("\n", ",").str.split("/")
+                            df_area_hist_c[col_responsable_c] = df_area_hist_c[col_responsable_c].astype(str).apply(extraer_sub_areas_individuales)
                             df_area_hist_exploded_c = df_area_hist_c.explode(col_responsable_c)
-                            df_area_hist_exploded_c[col_responsable_c] = df_area_hist_exploded_c[col_responsable_c].astype(str).apply(limpiar_nombre_area)
                             df_area_hist_exploded_c = df_area_hist_exploded_c[~df_area_hist_exploded_c[col_responsable_c].isin(["", "NAN", "NONE", "NONE."])]
 
                             df_pivot_area_c = pd.pivot_table(df_area_hist_exploded_c, index=col_responsable_c, columns="Vigencia_Limpia", aggfunc="size", fill_value=0)
@@ -3637,9 +3643,8 @@ else:
                         st.subheader("👥 Matriz Comparativa Interanual por Área Responsable (Hallazgos Únicos)")
                         if col_responsable_c and col_responsable_c in df_hall_unicos_c.columns:
                             df_area_hall_c = df_hall_unicos_c.copy()
-                            df_area_hall_c[col_responsable_c] = df_area_hall_c[col_responsable_c].astype(str).str.replace("\n", ",").str.split("/")
+                            df_area_hall_c[col_responsable_c] = df_area_hall_c[col_responsable_c].astype(str).apply(extraer_sub_areas_individuales)
                             df_area_hall_exploded_c = df_area_hall_c.explode(col_responsable_c)
-                            df_area_hall_exploded_c[col_responsable_c] = df_area_hall_exploded_c[col_responsable_c].astype(str).apply(limpiar_nombre_area)
                             df_area_hall_exploded_c = df_area_hall_exploded_c[~df_area_hall_exploded_c[col_responsable_c].isin(["", "NAN", "NONE", "NONE."])]
 
                             df_pivot_area_hall_c = pd.pivot_table(df_area_hall_exploded_c, index=col_responsable_c, columns="Vigencia_Limpia", aggfunc="size", fill_value=0)

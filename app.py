@@ -346,6 +346,12 @@ def limpiar_nombre_area(texto):
         return ""
     txt = str(texto).upper().strip()
 
+    # Separar palabras pegadas que vienen pegadas en la base de datos de Contraloría
+    txt = re.sub(r"(SUBGERENCIA\s*DE\s*PLANEACIÓNYPROYECTOS|SUBGERENCIADEPLANEACIÓNYPROYECTOS)", "SUBGERENCIA DE PLANEACIÓN Y PROYECTOS", txt)
+    txt = re.sub(r"(SUBGERENCIA\s*DE\s*SERVICIOS\s*OPERA\w*|SUBGERENCIADESERVICIOSOPERA\w*)", "SUBGERENCIA DE SERVICIOS OPERACIONALES", txt)
+    txt = re.sub(r"(SUBGERENCIACORPORATIVA|SUBGERENCIA\s*CORPORATIVADIRECC\w*)", "SUBGERENCIA CORPORATIVA", txt)
+    txt = re.sub(r"(SUBGERENCIAJURÍDICA|SUBGERENCIA\s*JURÍDICADIRECCIÓN\w*)", "SUBGERENCIA JURÍDICA", txt)
+
     reemplazos = [
         (r"DIRECCIÓNDE", "DIRECCIÓN DE "),
         (r"DIRECCIONDE", "DIRECCIÓN DE "),
@@ -370,6 +376,19 @@ def limpiar_nombre_area(texto):
 
     txt = re.sub(r"\s+", " ", txt).strip()
     return txt
+
+def extraer_sub_areas_individuales(val):
+    if pd.isna(val):
+        return []
+    txt = str(val).strip()
+    # Separar cuando vengan varias áreas juntas con barras, saltos o comas
+    partes = re.split(r"[/,\n\r]+", txt)
+    resultado = []
+    for p in partes:
+        p_limp = limpiar_nombre_area(p)
+        if p_limp and p_limp.lower() not in ["nan", "none"]:
+            resultado.append(p_limp)
+    return list(set(resultado))
 
 # ---------------------------------------------------------
 # SISTEMA DE LOGIN
@@ -1296,11 +1315,8 @@ if entorno_activo == "Auditoría Interna":
     if col_responsable:
         resp_unicos_set = set()
         for val in df_raw[col_responsable].dropna().unique():
-            sub_list = [s.strip() for s in str(val).replace("\n", ",").replace("/", ",").split(",") if s.strip()]
-            for item in sub_list:
-                item_limpio = limpiar_nombre_area(item)
-                if item_limpio and item_limpio.lower() not in ["nan", "none"]:
-                    resp_unicos_set.add(item_limpio)
+            for item in extraer_sub_areas_individuales(val):
+                resp_unicos_set.add(item)
         resp_vals = sorted(list(resp_unicos_set))
         
         with st.sidebar.expander("👤 Responsables", expanded=False):
@@ -1309,7 +1325,7 @@ if entorno_activo == "Auditoría Interna":
             def evaluar_resp_ai(cell_val):
                 if pd.isna(cell_val):
                     return False
-                sub_list = [limpiar_nombre_area(s) for s in str(cell_val).replace("\n", ",").replace("/", ",").split(",") if s.strip()]
+                sub_list = extraer_sub_areas_individuales(cell_val)
                 return any(sel in sub_list for sel in resp_sel)
                 
             mask_resp = df_filtrado[col_responsable].apply(evaluar_resp_ai)
@@ -1547,7 +1563,7 @@ if entorno_activo == "Auditoría Interna":
     pestañas_permitidas = [p for p in TODAS_LAS_PESTANIAS if p in st.session_state.get("permisos_usuario", [])]
 
     if not pestañas_permitidas:
-        st.warning("⚠️ No tienes permisos asignados para ver ninguna sección. Contacta al administrador.")
+        st.warning("⚠️️ No tienes permisos asignados para ver ninguna sección. Contacta al administrador.")
         st.stop()
 
     titulos_tabs = [dict_pestanias[p] for p in pestañas_permitidas]
@@ -1600,7 +1616,7 @@ if entorno_activo == "Auditoría Interna":
                         st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:0.95rem; padding:4px;">{pct_cumplimiento_ai}%</div>', unsafe_allow_html=True)
                         st.caption(f"({fin_ai_cnt} cerrados de {total_hist_ai} totales)")
                     with col_m_strat2:
-                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️ Prom. Días Mora</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱ Prom. Días Mora</div>', unsafe_allow_html=True)
                         st.markdown(f'<div class="card-box" style="background-color:#C0392B; color:#FFFFFF; font-size:0.95rem; padding:4px;">{prom_mora_ai_val} días</div>', unsafe_allow_html=True)
                         st.caption(f"({len(df_raw_venc_ai)} vencidos)")
 
@@ -1634,7 +1650,7 @@ if entorno_activo == "Auditoría Interna":
                     if fig_top5 is not None:
                         st.plotly_chart(fig_top5, use_container_width=True, key="fig_top5_tablero", config={'displayModeBar': False})
                     else:
-                        st.info("ℹ️️ No hay planes de acción pendientes registrados para generar el Top 5 Responsables.")
+                        st.info("ℹ No hay planes de acción pendientes registrados para generar el Top 5 Responsables.")
 
                 st.markdown("---")
 
@@ -1791,7 +1807,7 @@ if entorno_activo == "Auditoría Interna":
 
                 st.markdown("---")
                 st.subheader("👥 Distribución de Compromisos Pendientes por Área")
-                st.markdown('<div class="small-note"><b>ℹ️ Nota sobre Responsabilidad Compartida:</b> Los hallazgos con responsabilidad compartida se contabilizan en los compromisos de cada Área individualmente.</div>', unsafe_allow_html=True)
+                st.markdown('<div class="small-note"><b>ℹ Nota sobre Responsabilidad Compartida:</b> Los hallazgos con responsabilidad compartida se contabilizan en los compromisos de cada Área individualmente.</div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_area}</div>', unsafe_allow_html=True)
 
                 if fig_area_horiz is not None:
@@ -2756,11 +2772,8 @@ else:
     if col_responsable_c:
         resp_unicos_set_c = set()
         for val in df_raw_c[col_responsable_c].dropna().unique():
-            sub_list = [s.strip() for s in str(val).replace("\n", ",").replace("/", ",").split(",") if s.strip()]
-            for item in sub_list:
-                item_limpio = limpiar_nombre_area(item)
-                if item_limpio and item_limpio.lower() not in ["nan", "none"]:
-                    resp_unicos_set_c.add(item_limpio)
+            for item in extraer_sub_areas_individuales(val):
+                resp_unicos_set_c.add(item)
         resp_vals_c = sorted(list(resp_unicos_set_c))
         
         with st.sidebar.expander("👤 Responsables / Dependencias", expanded=False):
@@ -2769,7 +2782,7 @@ else:
             def evaluar_resp_c(cell_val):
                 if pd.isna(cell_val):
                     return False
-                sub_list = [limpiar_nombre_area(s) for s in str(cell_val).replace("\n", ",").replace("/", ",").split(",") if s.strip()]
+                sub_list = extraer_sub_areas_individuales(cell_val)
                 return any(sel in sub_list for sel in resp_sel_c)
                 
             mask_resp_c = df_filtrado_c[col_responsable_c].apply(evaluar_resp_c)

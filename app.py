@@ -1294,11 +1294,26 @@ if entorno_activo == "Auditoría Interna":
             df_filtrado = df_filtrado[df_filtrado[col_estado].isin(estado_sel)]
 
     if col_responsable:
-        resp_vals = sorted(list(set([r for r in df_raw[col_responsable].dropna().unique() if str(r).lower() not in ["nan", "none", ""]])))
+        resp_unicos_set = set()
+        for val in df_raw[col_responsable].dropna().unique():
+            sub_list = [s.strip() for s in str(val).replace("\n", ",").replace("/", ",").split(",") if s.strip()]
+            for item in sub_list:
+                item_limpio = limpiar_nombre_area(item)
+                if item_limpio and item_limpio.lower() not in ["nan", "none"]:
+                    resp_unicos_set.add(item_limpio)
+        resp_vals = sorted(list(resp_unicos_set))
+        
         with st.sidebar.expander("👤 Responsables", expanded=False):
             resp_sel = st.multiselect("Seleccione Responsables:", options=resp_vals, default=[], key="multi_resp")
         if resp_sel:
-            df_filtrado = df_filtrado[df_filtrado[col_responsable].isin(resp_sel)]
+            def evaluar_resp_ai(cell_val):
+                if pd.isna(cell_val):
+                    return False
+                sub_list = [limpiar_nombre_area(s) for s in str(cell_val).replace("\n", ",").replace("/", ",").split(",") if s.strip()]
+                return any(sel in sub_list for sel in resp_sel)
+                
+            mask_resp = df_filtrado[col_responsable].apply(evaluar_resp_ai)
+            df_filtrado = df_filtrado[mask_resp]
 
     if col_auditor_resp:
         aud_resp_vals = sorted(list(set([ar for ar in df_raw[col_auditor_resp].dropna().unique() if str(ar).lower() not in ["nan", "none", ""]])))
@@ -1585,7 +1600,7 @@ if entorno_activo == "Auditoría Interna":
                         st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:0.95rem; padding:4px;">{pct_cumplimiento_ai}%</div>', unsafe_allow_html=True)
                         st.caption(f"({fin_ai_cnt} cerrados de {total_hist_ai} totales)")
                     with col_m_strat2:
-                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️️ Prom. Días Mora</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️ Prom. Días Mora</div>', unsafe_allow_html=True)
                         st.markdown(f'<div class="card-box" style="background-color:#C0392B; color:#FFFFFF; font-size:0.95rem; padding:4px;">{prom_mora_ai_val} días</div>', unsafe_allow_html=True)
                         st.caption(f"({len(df_raw_venc_ai)} vencidos)")
 
@@ -1619,7 +1634,7 @@ if entorno_activo == "Auditoría Interna":
                     if fig_top5 is not None:
                         st.plotly_chart(fig_top5, use_container_width=True, key="fig_top5_tablero", config={'displayModeBar': False})
                     else:
-                        st.info("ℹ️ No hay planes de acción pendientes registrados para generar el Top 5 Responsables.")
+                        st.info("ℹ️️ No hay planes de acción pendientes registrados para generar el Top 5 Responsables.")
 
                 st.markdown("---")
 
@@ -1776,7 +1791,7 @@ if entorno_activo == "Auditoría Interna":
 
                 st.markdown("---")
                 st.subheader("👥 Distribución de Compromisos Pendientes por Área")
-                st.markdown('<div class="small-note"><b>ℹ️️ Nota sobre Responsabilidad Compartida:</b> Los hallazgos con responsabilidad compartida se contabilizan en los compromisos de cada Área individualmente.</div>', unsafe_allow_html=True)
+                st.markdown('<div class="small-note"><b>ℹ️ Nota sobre Responsabilidad Compartida:</b> Los hallazgos con responsabilidad compartida se contabilizan en los compromisos de cada Área individualmente.</div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_area}</div>', unsafe_allow_html=True)
 
                 if fig_area_horiz is not None:
@@ -2739,11 +2754,26 @@ else:
             df_filtrado_c = df_filtrado_c[df_filtrado_c[col_estado_c].isin(estado_sel_c)]
 
     if col_responsable_c:
-        resp_vals_c = sorted(list(set([r for r in df_raw_c[col_responsable_c].dropna().unique() if str(r).lower() not in ["nan", "none", ""]])))
+        resp_unicos_set_c = set()
+        for val in df_raw_c[col_responsable_c].dropna().unique():
+            sub_list = [s.strip() for s in str(val).replace("\n", ",").replace("/", ",").split(",") if s.strip()]
+            for item in sub_list:
+                item_limpio = limpiar_nombre_area(item)
+                if item_limpio and item_limpio.lower() not in ["nan", "none"]:
+                    resp_unicos_set_c.add(item_limpio)
+        resp_vals_c = sorted(list(resp_unicos_set_c))
+        
         with st.sidebar.expander("👤 Responsables / Dependencias", expanded=False):
             resp_sel_c = st.multiselect("Seleccione uno o varios Responsables:", options=resp_vals_c, default=[], key="multi_resp_c")
         if resp_sel_c:
-            df_filtrado_c = df_filtrado_c[df_filtrado_c[col_responsable_c].isin(resp_sel_c)]
+            def evaluar_resp_c(cell_val):
+                if pd.isna(cell_val):
+                    return False
+                sub_list = [limpiar_nombre_area(s) for s in str(cell_val).replace("\n", ",").replace("/", ",").split(",") if s.strip()]
+                return any(sel in sub_list for sel in resp_sel_c)
+                
+            mask_resp_c = df_filtrado_c[col_responsable_c].apply(evaluar_resp_c)
+            df_filtrado_c = df_filtrado_c[mask_resp_c]
 
     if col_entidad_c:
         ent_vals_c = sorted(list(set([e for e in df_raw_c[col_entidad_c].dropna().unique() if str(e).lower() not in ["nan", "none", ""]])))
@@ -2799,6 +2829,9 @@ else:
     else:
         prom_mora_c_val = 0
 
+    # ---------------------------------------------------------
+    # TENDENCIA MENSUAL CONTRALORÍA
+    # ---------------------------------------------------------
     meses_orden_c = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
     map_m_num_c = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
 

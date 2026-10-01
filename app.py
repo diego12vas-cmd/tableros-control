@@ -630,6 +630,31 @@ st.markdown(
             padding-top: 0px !important;
         }
 
+        /* PERMITIR QUE LOS DESPLEGABLES DEL SIDEBAR MUESTREN EL TEXTO COMPLETO SIN CORTARSE */
+        [data-testid="stSidebar"] div[role="listbox"] {
+            width: max-content !important;
+            min-width: 100% !important;
+            max-width: 480px !important;
+            white-space: normal !important;
+        }
+        [data-testid="stSidebar"] div[role="option"] {
+            white-space: normal !important;
+            word-break: break-word !important;
+        }
+
+        /* PERMITIR SALTO DE LÍNEA EN LAS ETIQUETAS SELECCIONADAS DEL MULTISELECT */
+        [data-testid="stSidebar"] div[data-baseweb="tag"] {
+            max-width: 100% !important;
+            height: auto !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+        }
+        [data-testid="stSidebar"] div[data-baseweb="tag"] span {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+        }
+
         header[data-testid="stHeader"] {
             background: transparent !important;
         }
@@ -1560,7 +1585,7 @@ if entorno_activo == "Auditoría Interna":
                         st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:0.95rem; padding:4px;">{pct_cumplimiento_ai}%</div>', unsafe_allow_html=True)
                         st.caption(f"({fin_ai_cnt} cerrados de {total_hist_ai} totales)")
                     with col_m_strat2:
-                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️ Prom. Días Mora</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️️ Prom. Días Mora</div>', unsafe_allow_html=True)
                         st.markdown(f'<div class="card-box" style="background-color:#C0392B; color:#FFFFFF; font-size:0.95rem; padding:4px;">{prom_mora_ai_val} días</div>', unsafe_allow_html=True)
                         st.caption(f"({len(df_raw_venc_ai)} vencidos)")
 
@@ -1751,7 +1776,7 @@ if entorno_activo == "Auditoría Interna":
 
                 st.markdown("---")
                 st.subheader("👥 Distribución de Compromisos Pendientes por Área")
-                st.markdown('<div class="small-note"><b>ℹ️ Nota sobre Responsabilidad Compartida:</b> Los hallazgos con responsabilidad compartida se contabilizan en los compromisos de cada Área individualmente.</div>', unsafe_allow_html=True)
+                st.markdown('<div class="small-note"><b>ℹ️️ Nota sobre Responsabilidad Compartida:</b> Los hallazgos con responsabilidad compartida se contabilizan en los compromisos de cada Área individualmente.</div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="total-acciones-box">📌 Total acciones: {total_acciones_area}</div>', unsafe_allow_html=True)
 
                 if fig_area_horiz is not None:
@@ -2125,19 +2150,19 @@ if entorno_activo == "Auditoría Interna":
                                 st.plotly_chart(fig_hist_stack, use_container_width=True, key="fig_hist_stack_key", config={'displayModeBar': False})
                                 st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Evaluados: <b>{sum_tot_g2}</b></div>', unsafe_allow_html=True)
 
-                            st.markdown("---")
-                            st.subheader("👥 Matriz Comparativa Interanual por Área Responsable (Planes de Acción)")
-                            if col_responsable and col_responsable in df_hist_calc.columns:
-                                df_area_hist = df_hist_calc.copy()
-                                df_area_hist[col_responsable] = df_area_hist[col_responsable].astype(str).str.replace("\n", ",").str.split(",")
-                                df_area_hist_exploded = df_area_hist.explode(col_responsable)
-                                df_area_hist_exploded[col_responsable] = df_area_hist_exploded[col_responsable].astype(str).apply(limpiar_nombre_area)
-                                df_area_hist_exploded = df_area_hist_exploded[~df_area_hist_exploded[col_responsable].isin(["", "NAN", "NONE", "NONE."])]
+                        st.markdown("---")
+                        st.subheader("👥 Matriz Comparativa Interanual por Área Responsable (Planes de Acción)")
+                        if col_responsable and col_responsable in df_hist_calc.columns:
+                            df_area_hist = df_hist_calc.copy()
+                            df_area_hist[col_responsable] = df_area_hist[col_responsable].astype(str).str.replace("\n", ",").str.split(",")
+                            df_area_hist_exploded = df_area_hist.explode(col_responsable)
+                            df_area_hist_exploded[col_responsable] = df_area_hist_exploded[col_responsable].astype(str).apply(limpiar_nombre_area)
+                            df_area_hist_exploded = df_area_hist_exploded[~df_area_hist_exploded[col_responsable].isin(["", "NAN", "NONE", "NONE."])]
 
-                                df_pivot_area = pd.pivot_table(df_area_hist_exploded, index=col_responsable, columns="Vigencia_Limpia", aggfunc="size", fill_value=0)
-                                df_pivot_area["Total Histórico"] = df_pivot_area.sum(axis=1)
-                                df_pivot_area = df_pivot_area.sort_values(by="Total Histórico", ascending=False)
-                                st.dataframe(df_pivot_area, use_container_width=True)
+                            df_pivot_area = pd.pivot_table(df_area_hist_exploded, index=col_responsable, columns="Vigencia_Limpia", aggfunc="size", fill_value=0)
+                            df_pivot_area["Total Histórico"] = df_pivot_area.sum(axis=1)
+                            df_pivot_area = df_pivot_area.sort_values(by="Total Histórico", ascending=False)
+                            st.dataframe(df_pivot_area, use_container_width=True)
 
                 with subtab_hist2:
                     if not (sub_names_hist[1] in subp_usuario or "TODOS" in [x.upper() for x in subp_usuario]):
@@ -2204,19 +2229,19 @@ if entorno_activo == "Auditoría Interna":
                                 st.plotly_chart(fig_hist_hall_stack, use_container_width=True, key="fig_hist_hall_stack_key", config={'displayModeBar': False})
                                 st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Hallazgos Evaluados: <b>{sum_tot_hu2}</b></div>', unsafe_allow_html=True)
 
-                            st.markdown("---")
-                            st.subheader("👥 Matriz Comparativa Interanual por Área Responsable (Hallazgos Únicos)")
-                            if col_responsable and col_responsable in df_hall_unicos.columns:
-                                df_area_hall = df_hall_unicos.copy()
-                                df_area_hall[col_responsable] = df_area_hall[col_responsable].astype(str).str.replace("\n", ",").str.split(",")
-                                df_area_hall_exploded = df_area_hall.explode(col_responsable)
-                                df_area_hall_exploded[col_responsable] = df_area_hall_exploded[col_responsable].astype(str).apply(limpiar_nombre_area)
-                                df_area_hall_exploded = df_area_hall_exploded[~df_area_hall_exploded[col_responsable].isin(["", "NAN", "NONE", "NONE."])]
+                        st.markdown("---")
+                        st.subheader("👥 Matriz Comparativa Interanual por Área Responsable (Hallazgos Únicos)")
+                        if col_responsable and col_responsable in df_hall_unicos.columns:
+                            df_area_hall = df_hall_unicos.copy()
+                            df_area_hall[col_responsable] = df_area_hall[col_responsable].astype(str).str.replace("\n", ",").str.split(",")
+                            df_area_hall_exploded = df_area_hall.explode(col_responsable)
+                            df_area_hall_exploded[col_responsable] = df_area_hall_exploded[col_responsable].astype(str).apply(limpiar_nombre_area)
+                            df_area_hall_exploded = df_area_hall_exploded[~df_area_hall_exploded[col_responsable].isin(["", "NAN", "NONE", "NONE."])]
 
-                                df_pivot_area_hall = pd.pivot_table(df_area_hall_exploded, index=col_responsable, columns="Vigencia_Limpia", aggfunc="size", fill_value=0)
-                                df_pivot_area_hall["Total Histórico"] = df_pivot_area_hall.sum(axis=1)
-                                df_pivot_area_hall = df_pivot_area_hall.sort_values(by="Total Histórico", ascending=False)
-                                st.dataframe(df_pivot_area_hall, use_container_width=True)
+                            df_pivot_area_hall = pd.pivot_table(df_area_hall_exploded, index=col_responsable, columns="Vigencia_Limpia", aggfunc="size", fill_value=0)
+                            df_pivot_area_hall["Total Histórico"] = df_pivot_area_hall.sum(axis=1)
+                            df_pivot_area_hall = df_pivot_area_hall.sort_values(by="Total Histórico", ascending=False)
+                            st.dataframe(df_pivot_area_hall, use_container_width=True)
 
             elif nombre_tab_real == "Alertas y Edición":
                 st.header("🚨 Alertas Críticas y Edición Directa")
@@ -2774,9 +2799,6 @@ else:
     else:
         prom_mora_c_val = 0
 
-    # ---------------------------------------------------------
-    # TENDENCIA MENSUAL CONTRALORÍA
-    # ---------------------------------------------------------
     meses_orden_c = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
     map_m_num_c = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
 
@@ -3491,19 +3513,19 @@ else:
                                 st.plotly_chart(fig_hist_stack_c, use_container_width=True, key="fig_hist_stack_c_key", config={'displayModeBar': False})
                                 st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Evaluados: <b>{sum_tot_g2_c}</b></div>', unsafe_allow_html=True)
 
-                            st.markdown("---")
-                            st.subheader("👥 Matriz Comparativa Interanual por Área Responsable (Planes de Acción)")
-                            if col_responsable_c and col_responsable_c in df_hist_calc_c.columns:
-                                df_area_hist_c = df_hist_calc_c.copy()
-                                df_area_hist_c[col_responsable_c] = df_area_hist_c[col_responsable_c].astype(str).str.replace("\n", ",").str.split("/")
-                                df_area_hist_exploded_c = df_area_hist_c.explode(col_responsable_c)
-                                df_area_hist_exploded_c[col_responsable_c] = df_area_hist_exploded_c[col_responsable_c].astype(str).apply(limpiar_nombre_area)
-                                df_area_hist_exploded_c = df_area_hist_exploded_c[~df_area_hist_exploded_c[col_responsable_c].isin(["", "NAN", "NONE", "NONE."])]
+                        st.markdown("---")
+                        st.subheader("👥 Matriz Comparativa Interanual por Área Responsable (Planes de Acción)")
+                        if col_responsable_c and col_responsable_c in df_hist_calc_c.columns:
+                            df_area_hist_c = df_hist_calc_c.copy()
+                            df_area_hist_c[col_responsable_c] = df_area_hist_c[col_responsable_c].astype(str).str.replace("\n", ",").str.split("/")
+                            df_area_hist_exploded_c = df_area_hist_c.explode(col_responsable_c)
+                            df_area_hist_exploded_c[col_responsable_c] = df_area_hist_exploded_c[col_responsable_c].astype(str).apply(limpiar_nombre_area)
+                            df_area_hist_exploded_c = df_area_hist_exploded_c[~df_area_hist_exploded_c[col_responsable_c].isin(["", "NAN", "NONE", "NONE."])]
 
-                                df_pivot_area_c = pd.pivot_table(df_area_hist_exploded_c, index=col_responsable_c, columns="Vigencia_Limpia", aggfunc="size", fill_value=0)
-                                df_pivot_area_c["Total Histórico"] = df_pivot_area_c.sum(axis=1)
-                                df_pivot_area_c = df_pivot_area_c.sort_values(by="Total Histórico", ascending=False)
-                                st.dataframe(df_pivot_area_c, use_container_width=True)
+                            df_pivot_area_c = pd.pivot_table(df_area_hist_exploded_c, index=col_responsable_c, columns="Vigencia_Limpia", aggfunc="size", fill_value=0)
+                            df_pivot_area_c["Total Histórico"] = df_pivot_area_c.sum(axis=1)
+                            df_pivot_area_c = df_pivot_area_c.sort_values(by="Total Histórico", ascending=False)
+                            st.dataframe(df_pivot_area_c, use_container_width=True)
 
                 with subtab_hist_c2:
                     if not (sub_names_hist_c[1] in subp_usuario_c or "TODOS" in [x.upper() for x in subp_usuario_c]):
@@ -3578,19 +3600,19 @@ else:
                                 st.plotly_chart(fig_hist_hall_stack_c, use_container_width=True, key="fig_hist_hall_stack_c_key", config={'displayModeBar': False})
                                 st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Hallazgos Evaluados: <b>{sum_tot_hu2_c}</b></div>', unsafe_allow_html=True)
 
-                            st.markdown("---")
-                            st.subheader("👥 Matriz Comparativa Interanual por Área Responsable (Hallazgos Únicos)")
-                            if col_responsable_c and col_responsable_c in df_hall_unicos_c.columns:
-                                df_area_hall_c = df_hall_unicos_c.copy()
-                                df_area_hall_c[col_responsable_c] = df_area_hall_c[col_responsable_c].astype(str).str.replace("\n", ",").str.split("/")
-                                df_area_hall_exploded_c = df_area_hall_c.explode(col_responsable_c)
-                                df_area_hall_exploded_c[col_responsable_c] = df_area_hall_exploded_c[col_responsable_c].astype(str).apply(limpiar_nombre_area)
-                                df_area_hall_exploded_c = df_area_hall_exploded_c[~df_area_hall_exploded_c[col_responsable_c].isin(["", "NAN", "NONE", "NONE."])]
+                        st.markdown("---")
+                        st.subheader("👥 Matriz Comparativa Interanual por Área Responsable (Hallazgos Únicos)")
+                        if col_responsable_c and col_responsable_c in df_hall_unicos_c.columns:
+                            df_area_hall_c = df_hall_unicos_c.copy()
+                            df_area_hall_c[col_responsable_c] = df_area_hall_c[col_responsable_c].astype(str).str.replace("\n", ",").str.split("/")
+                            df_area_hall_exploded_c = df_area_hall_c.explode(col_responsable_c)
+                            df_area_hall_exploded_c[col_responsable_c] = df_area_hall_exploded_c[col_responsable_c].astype(str).apply(limpiar_nombre_area)
+                            df_area_hall_exploded_c = df_area_hall_exploded_c[~df_area_hall_exploded_c[col_responsable_c].isin(["", "NAN", "NONE", "NONE."])]
 
-                                df_pivot_area_hall_c = pd.pivot_table(df_area_hall_exploded_c, index=col_responsable_c, columns="Vigencia_Limpia", aggfunc="size", fill_value=0)
-                                df_pivot_area_hall_c["Total Histórico"] = df_pivot_area_hall_c.sum(axis=1)
-                                df_pivot_area_hall_c = df_pivot_area_hall_c.sort_values(by="Total Histórico", ascending=False)
-                                st.dataframe(df_pivot_area_hall_c, use_container_width=True)
+                            df_pivot_area_hall_c = pd.pivot_table(df_area_hall_exploded_c, index=col_responsable_c, columns="Vigencia_Limpia", aggfunc="size", fill_value=0)
+                            df_pivot_area_hall_c["Total Histórico"] = df_pivot_area_hall_c.sum(axis=1)
+                            df_pivot_area_hall_c = df_pivot_area_hall_c.sort_values(by="Total Histórico", ascending=False)
+                            st.dataframe(df_pivot_area_hall_c, use_container_width=True)
 
             elif nombre_tab_real_c == "Informes":
                 st.header("📑 Consulta Histórica de Informes de la Contraloría")

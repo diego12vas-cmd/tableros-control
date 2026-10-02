@@ -361,35 +361,33 @@ def limpiar_nombre_area(texto):
     if not texto or pd.isna(texto):
         return ""
     txt = str(texto).upper().strip()
-
-    txt = re.sub(r"(SUBGERENCIA\s*DE\s*PLANEACIÓNYPROYECTOS|SUBGERENCIADEPLANEACIÓNYPROYECTOS)", "SUBGERENCIA DE PLANEACIÓN Y PROYECTOS", txt)
-    txt = re.sub(r"(SUBGERENCIA\s*DE\s*SERVICIOS\s*OPERA\w*|SUBGERENCIADESERVICIOSOPERA\w*)", "SUBGERENCIA DE SERVICIOS OPERACIONALES E INFRAESTRUCTURA", txt)
-    txt = re.sub(r"(SUBGERENCIACORPORATIVA|SUBGERENCIA\s*CORPORATIVADIRECC\w*)", "SUBGERENCIA CORPORATIVA", txt)
-    txt = re.sub(r"(SUBGERENCIAJURÍDICA|SUBGERENCIA\s*JURÍDICADIRECCIÓN\w*|SUBGERENCIAJ\s*URÍDICA)", "SUBGERENCIA JURÍDICA", txt)
-
-    reemplazos = [
-        (r"DIRECCIÓNDE", "DIRECCIÓN DE "),
-        (r"DIRECCIONDE", "DIRECCIÓN DE "),
-        (r"DEGESTIÓN", "DE GESTIÓN "),
-        (r"DEGESTION", "DE GESTIÓN "),
-        (r"DERECURSOS", "DE RECURSOS "),
-        (r"FÍSICOSY", "FÍSICOS Y "),
-        (r"FISICOSY", "FÍSICOS Y "),
-        (r"FÍSICOSNEGOCIOS", "FÍSICOS Y NEGOCIOS "),
-        (r"FISICOSNEGOCIOS", "FÍSICOS Y NEGOCIOS "),
-        (r"TECNOLÓGICOS", "TECNOLÓGICOS"),
-        (r"TECNOLOGICOS", "TECNOLÓGICOS"),
-        (r"SUBGERENCIAJURÍDICA", "SUBGERENCIA JURÍDICA"),
-        (r"SUBGERENCIACORPORATIVA", "SUBGERENCIA CORPORATIVA"),
-        (r"SUBGERENCIADESERVICIOS", "SUBGERENCIA DE SERVICIOS "),
-        (r"OPERACIONALESEINFRAESTRUCTURA", "OPERACIONALES E INFRAESTRUCTURA"),
-        (r"SUB GERENCIA", "SUBGERENCIA"),
-    ]
-
-    for pat, rep in reemplazos:
-        txt = re.sub(pat, rep, txt)
-
     txt = re.sub(r"\s+", " ", txt).strip()
+
+    if "SERVICIOS OPERACIONALES" in txt or "SERVICIOS OPERA" in txt:
+        return "SUBGERENCIA DE SERVICIOS OPERACIONALES E INFRAESTRUCTURA"
+    if "PLANEACIÓN Y PROYECTOS" in txt or "PLANEACIONYPROYECTOS" in txt or "PLANEACION Y PROYECTOS" in txt:
+        return "SUBGERENCIA DE PLANEACIÓN Y PROYECTOS"
+    if "CORPORATIVA" in txt and ("SUBGERENCIA" in txt or "SUB GERENCIA" in txt):
+        return "SUBGERENCIA CORPORATIVA"
+    if "JURÍDICA" in txt or "JURIDICA" in txt:
+        return "SUBGERENCIA JURÍDICA"
+    if "GESTIÓN HUMANA" in txt or "GESTION HUMANA" in txt:
+        return "DIRECCIÓN DE GESTIÓN HUMANA"
+    if "RECURSOS TECNOLÓGICOS" in txt or "RECURSOS TECNOLOGICOS" in txt:
+        return "DIRECCIÓN DE RECURSOS TECNOLÓGICOS"
+    if "GESTIÓN FINANCIERA" in txt or "GESTION FINANCIERA" in txt:
+        return "DIRECCIÓN DE GESTIÓN FINANCIERA"
+    if "RECURSOS FÍSICOS" in txt or "RECURSOS FISICOS" in txt:
+        return "DIRECCIÓN DE RECURSOS FÍSICOS Y NEGOCIOS"
+    if "SEGURIDAD OPERACIONAL" in txt:
+        return "DIRECCIÓN DE SEGURIDAD OPERACIONAL"
+    if "SERVICIO AL TRANSPORTADOR" in txt:
+        return "DIRECCIÓN DE SERVICIO AL TRANSPORTADOR"
+    if "INFRAESTRUCTURA" in txt and ("DIRECCIÓN" in txt or "DIRECCION" in txt):
+        return "DIRECCIÓN DE INFRAESTRUCTURA"
+    if "AUDITORÍA INTERNA" in txt or "AUDITORIA INTERNA" in txt:
+        return "OFICINA DE AUDITORÍA INTERNA"
+
     return txt
 
 def extraer_sub_areas_individuales(val):
@@ -397,20 +395,17 @@ def extraer_sub_areas_individuales(val):
         return []
     txt = str(val).upper().strip()
     
-    # Estandarizar errores tipográficos conocidos antes de comparar
     txt = re.sub(r"SUBGERENCIAJ\s*URÍDICA|SUBGERENCIAJURIDICA", "SUBGERENCIA JURÍDICA", txt)
     txt = re.sub(r"SUB GERENCIA", "SUBGERENCIA", txt)
     
     txt_normalizado = txt.replace("Á","A").replace("É","E").replace("Í","I").replace("Ó","O").replace("Ú","U")
     
     areas_encontradas = []
-    # Escanear el catálogo oficial para extraer únicamente áreas limpias e individuales
     for area in sorted(CATALOGO_OFICIAL_AREAS, key=len, reverse=True):
         area_norm = area.replace("Á","A").replace("É","E").replace("Í","I").replace("Ó","O").replace("Ú","U")
         if area_norm in txt_normalizado:
             areas_encontradas.append(area)
             
-    # Si no matcheó con el catálogo estricto, hacer split por divisores comunes
     if not areas_encontradas:
         partes = re.split(r"[/,\n\r]+", txt)
         for p in partes:
@@ -418,7 +413,6 @@ def extraer_sub_areas_individuales(val):
             if p_limp and p_limp.lower() not in ["nan", "none"]:
                 areas_encontradas.append(p_limp)
                 
-    # Preservar el orden oficial de La Terminal eliminando duplicados
     res = []
     for a in CATALOGO_OFICIAL_AREAS:
         if a in areas_encontradas:
@@ -1692,7 +1686,7 @@ if entorno_activo == "Auditoría Interna":
                     if fig_top5 is not None:
                         st.plotly_chart(fig_top5, use_container_width=True, key="fig_top5_tablero", config={'displayModeBar': False})
                     else:
-                        st.info("ℹ️️ No hay planes de acción pendientes registrados para generar el Top 5 Responsables.")
+                        st.info("ℹ️ No hay planes de acción pendientes registrados para generar el Top 5 Responsables.")
 
                 st.markdown("---")
 
@@ -2643,7 +2637,7 @@ if entorno_activo == "Auditoría Interna":
                             use_container_width=False,
                         )
                     else:
-                        st.info("ℹ️ No se han encontrado registros con número de radicado válidos en el archivo.")
+                        st.info("ℹ️️ No se han encontrado registros con número de radicado válidos en el archivo.")
                 else:
                     st.warning("⚠️ No se detectó la columna 'Radicado' en la hoja Base de datos.")
 

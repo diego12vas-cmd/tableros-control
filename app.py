@@ -306,22 +306,6 @@ def actualizar_permisos_usuario(usuario, lista_pestañas, lista_subpestañas, li
     conn.close()
     exportar_y_sincronizar_usuarios()
 
-def actualizar_permisos_multiples_usuarios(lista_usuarios, lista_pestañas, lista_subpestañas, lista_entornos):
-    if not lista_usuarios:
-        return
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    perm_str = ",".join(lista_pestañas) if lista_pestañas else "TODOS"
-    sub_str = ",".join(lista_subpestañas) if lista_subpestañas else "TODOS"
-    ent_str = ",".join(lista_entornos) if lista_entornos else "TODOS"
-    
-    for u in lista_usuarios:
-        c.execute("UPDATE usuarios SET perm_pestañas = ?, perm_subpestañas = ?, perm_entornos = ? WHERE usuario = ?", (perm_str, sub_str, ent_str, u))
-    
-    conn.commit()
-    conn.close()
-    exportar_y_sincronizar_usuarios()
-
 def guardar_o_actualizar_usuario(usuario, email, password, permisos_list, subpermisos_list, entornos_list, requiere_2fa=1):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -1285,46 +1269,62 @@ if entorno_activo == "Auditoría Interna":
                     st.warning("Completa todos los campos.")
                     
             st.divider()
-            st.caption("2. Modificar Permisos Existentes (Múltiples Usuarios)")
+            st.caption("2. Modificar Permisos Existentes a Múltiples Usuarios")
             df_users = obtener_usuarios_df()
             if not df_users.empty and 'usuario' in df_users.columns:
-                lista_usuarios_registrados = df_users['usuario'].tolist()
-                
-                chk_todos_usuarios = st.checkbox("☑️ Seleccionar Todos los Usuarios Registrados", value=False, key="chk_all_users_mod")
-                
-                default_users = lista_usuarios_registrados if chk_todos_usuarios else []
+                lista_usuarios = df_users['usuario'].tolist()
+
+                col_sel_all, col_clear_all = st.columns(2)
+                with col_sel_all:
+                    if st.button("✅ Seleccionar Todos", use_container_width=True, key="btn_sel_all_users_bulk"):
+                        st.session_state["sel_mod_users_list"] = lista_usuarios
+                        st.rerun()
+                with col_clear_all:
+                    if st.button("❌ Quitar Todos", use_container_width=True, key="btn_clear_all_users_bulk"):
+                        st.session_state["sel_mod_users_list"] = []
+                        st.rerun()
+
+                if "sel_mod_users_list" not in st.session_state:
+                    st.session_state["sel_mod_users_list"] = []
+
                 users_sel = st.multiselect(
-                    "Seleccionar Usuario(s):", 
-                    options=lista_usuarios_registrados, 
-                    default=default_users, 
-                    key="sel_mod_users_multi"
+                    "Seleccionar usuario(s) a modificar:",
+                    options=lista_usuarios,
+                    default=st.session_state["sel_mod_users_list"],
+                    key="sel_mod_users_multiselect"
                 )
-                
+
                 if users_sel:
+                    st.info(f"👥 Modificando permisos para **{len(users_sel)}** usuario(s).")
+
                     st.markdown("**Modificar Entornos Permitidos:**")
-                    nuevos_ents = []
-                    for e in TODOS_LOS_ENTORNOS:
-                        chk_e = st.checkbox(f"Acceso a {e}", value=True, key=f"edit_ent_multi_{e}")
-                        if chk_e:
-                            nuevos_ents.append(e)
+                    nuevos_ents = st.multiselect(
+                        "Entornos:",
+                        options=TODOS_LOS_ENTORNOS,
+                        default=TODOS_LOS_ENTORNOS,
+                        key="edit_ents_bulk"
+                    )
 
                     st.markdown("**Modificar Pestañas Permitidas:**")
-                    nuevos_perms = []
-                    for p in TODAS_LAS_PESTANIAS:
-                        chk_p = st.checkbox(f"Acceso a {p}", value=True, key=f"edit_perm_multi_{p}")
-                        if chk_p:
-                            nuevos_perms.append(p)
+                    nuevos_perms = st.multiselect(
+                        "Pestañas:",
+                        options=TODAS_LAS_PESTANIAS,
+                        default=TODAS_LAS_PESTANIAS,
+                        key="edit_perms_bulk"
+                    )
 
                     st.markdown("**Modificar Subpestañas Permitidas:**")
-                    nuevos_subperms = []
-                    for subp in TODAS_LAS_SUBPESTANIAS:
-                        chk_sub = st.checkbox(f"🔹 {subp}", value=True, key=f"edit_subperm_multi_{subp}")
-                        if chk_sub:
-                            nuevos_subperms.append(subp)
-                            
-                    if st.button(f"Actualizar Permisos de ({len(users_sel)}) Usuario(s)"):
-                        actualizar_permisos_multiples_usuarios(users_sel, nuevos_perms, nuevos_subperms, nuevos_ents)
-                        st.success(f"Permisos de {len(users_sel)} usuario(s) guardados con éxito.")
+                    nuevos_subperms = st.multiselect(
+                        "Subpestañas:",
+                        options=TODAS_LAS_SUBPESTANIAS,
+                        default=TODAS_LAS_SUBPESTANIAS,
+                        key="edit_subperms_bulk"
+                    )
+
+                    if st.button(f"💾 Aplicar Permisos a los {len(users_sel)} Usuarios", type="primary", use_container_width=True, key="btn_apply_bulk_perms"):
+                        for user in users_sel:
+                            actualizar_permisos_usuario(user, nuevos_perms, nuevos_subperms, nuevos_ents)
+                        st.success(f"¡Permisos actualizados con éxito para los {len(users_sel)} usuarios!")
                         st.rerun()
 
             st.divider()
@@ -1341,7 +1341,7 @@ if entorno_activo == "Auditoría Interna":
 
             json_bytes = obtener_usuarios_json_bytes()
             st.download_button(
-                label="☁️️ Descargar usuarios.json",
+                label="☁️ Descargar usuarios.json",
                 data=json_bytes,
                 file_name="usuarios.json",
                 mime="application/json",
@@ -2151,7 +2151,7 @@ if entorno_activo == "Auditoría Interna":
                                     use_container_width=False,
                                 )
                             else:
-                                st.info("ℹ️ No hay hallazgos finalizados registrados para la vigencia 2026.")
+                                st.info("ℹ️️ No hay hallazgos finalizados registrados para la vigencia 2026.")
 
             elif nombre_tab_real == "Histórico":
                 st.header("📊 Análisis Histórico e Interanual - Auditoría Interna")
@@ -2479,11 +2479,11 @@ if entorno_activo == "Auditoría Interna":
 
                             nuevo_registro_historial = f"--- Modificación el {fecha_hoy_str} ---\n"
                             if fecha_antigua_str != nueva_fecha_str:
-                                nuevo_registro_historial += f"• Fecha Cierre Anterior: {fecha_antigua_str} ➡️ Nueva: {nueva_fecha_str}\n"
+                                nuevo_registro_historial += f"• Fecha Cierre Anterior: {fecha_antigua_str} ➡️️ Nueva: {nueva_fecha_str}\n"
                             if est_actual_val != nuevo_estado:
-                                nuevo_registro_historial += f"• Estado Anterior: {est_actual_val} ➡️ Nuevo: {nuevo_estado}\n"
+                                nuevo_registro_historial += f"• Estado Anterior: {est_actual_val} ➡️️ Nuevo: {nuevo_estado}\n"
                             if resp_actual_val != nuevo_responsable:
-                                nuevo_registro_historial += f"• Responsable Anterior: {resp_actual_val} ➡️ Nuevo: {nuevo_responsable}\n"
+                                nuevo_registro_historial += f"• Responsable Anterior: {resp_actual_val} ➡️️ Nuevo: {nuevo_responsable}\n"
                             if plan_actual_val != nuevo_plan_accion:
                                 nuevo_registro_historial += f"• Plan Anterior: {plan_actual_val}\n• Plan Nuevo: {nuevo_plan_accion}\n"
                             if obs_usuario.strip():

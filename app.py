@@ -306,6 +306,22 @@ def actualizar_permisos_usuario(usuario, lista_pestañas, lista_subpestañas, li
     conn.close()
     exportar_y_sincronizar_usuarios()
 
+def actualizar_permisos_multiples_usuarios(lista_usuarios, lista_pestañas, lista_subpestañas, lista_entornos):
+    if not lista_usuarios:
+        return
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    perm_str = ",".join(lista_pestañas) if lista_pestañas else "TODOS"
+    sub_str = ",".join(lista_subpestañas) if lista_subpestañas else "TODOS"
+    ent_str = ",".join(lista_entornos) if lista_entornos else "TODOS"
+    
+    for u in lista_usuarios:
+        c.execute("UPDATE usuarios SET perm_pestañas = ?, perm_subpestañas = ?, perm_entornos = ? WHERE usuario = ?", (perm_str, sub_str, ent_str, u))
+    
+    conn.commit()
+    conn.close()
+    exportar_y_sincronizar_usuarios()
+
 def guardar_o_actualizar_usuario(usuario, email, password, permisos_list, subpermisos_list, entornos_list, requiere_2fa=1):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -1244,28 +1260,22 @@ if entorno_activo == "Auditoría Interna":
             new_p = st.text_input("Contraseña Inicial", type="password", key="new_p_adm")
             
             st.markdown("**Permisos de Acceso a Entornos:**")
-            u_entornos = st.multiselect(
-                "Selecciona los entornos:",
-                options=TODOS_LOS_ENTORNOS,
-                default=TODOS_LOS_ENTORNOS,
-                key="add_ent_multi"
-            )
+            u_entornos = []
+            for ent in TODOS_LOS_ENTORNOS:
+                if st.checkbox(f"🌐 Entorno: {ent}", value=True, key=f"chk_ent_{ent}"):
+                    u_entornos.append(ent)
 
             st.markdown("**Permisos de Acceso a Pestañas:**")
-            u_permisos = st.multiselect(
-                "Selecciona las pestañas:",
-                options=TODAS_LAS_PESTANIAS,
-                default=TODAS_LAS_PESTANIAS,
-                key="add_perm_multi"
-            )
+            u_permisos = []
+            for pestania in TODAS_LAS_PESTANIAS:
+                if st.checkbox(f"Ver {pestania}", value=True, key=f"chk_add_{pestania}"):
+                    u_permisos.append(pestania)
 
             st.markdown("**Permisos de Acceso a Subpestañas:**")
-            u_subpermisos = st.multiselect(
-                "Selecciona las subpestañas:",
-                options=TODAS_LAS_SUBPESTANIAS,
-                default=TODAS_LAS_SUBPESTANIAS,
-                key="add_subperm_multi"
-            )
+            u_subpermisos = []
+            for subp in TODAS_LAS_SUBPESTANIAS:
+                if st.checkbox(f"🔹 {subp}", value=True, key=f"chk_add_sub_{subp}"):
+                    u_subpermisos.append(subp)
 
             if st.button("Guardar / Autorizar Usuario"):
                 if new_u and new_e and new_p:
@@ -1275,49 +1285,46 @@ if entorno_activo == "Auditoría Interna":
                     st.warning("Completa todos los campos.")
                     
             st.divider()
-            st.caption("2. Modificar Permisos Existentes")
+            st.caption("2. Modificar Permisos Existentes (Múltiples Usuarios)")
             df_users = obtener_usuarios_df()
             if not df_users.empty and 'usuario' in df_users.columns:
-                user_sel = st.selectbox("Seleccionar usuario:", df_users['usuario'].tolist(), key="sel_mod_user")
+                lista_usuarios_registrados = df_users['usuario'].tolist()
                 
-                if user_sel:
-                    row_u = df_users[df_users['usuario'] == user_sel].iloc[0]
-                    
-                    p_raw = str(row_u.get('perm_pestañas', 'TODOS')).strip()
-                    s_raw = str(row_u.get('perm_subpestañas', 'TODOS')).strip()
-                    e_raw = str(row_u.get('perm_entornos', 'TODOS')).strip()
-
-                    p_defaults = TODAS_LAS_PESTANIAS if p_raw.upper() == "TODOS" else [p for p in TODAS_LAS_PESTANIAS if p in [x.strip() for x in p_raw.split(",")]]
-                    s_defaults = TODAS_LAS_SUBPESTANIAS if s_raw.upper() == "TODOS" else [subp for subp in TODAS_LAS_SUBPESTANIAS if subp in [x.strip() for x in s_raw.split(",")]]
-                    e_defaults = TODOS_LOS_ENTORNOS if e_raw.upper() == "TODOS" else [e for e in TODOS_LOS_ENTORNOS if e in [x.strip() for x in e_raw.split(",")]]
-
+                chk_todos_usuarios = st.checkbox("☑️ Seleccionar Todos los Usuarios Registrados", value=False, key="chk_all_users_mod")
+                
+                default_users = lista_usuarios_registrados if chk_todos_usuarios else []
+                users_sel = st.multiselect(
+                    "Seleccionar Usuario(s):", 
+                    options=lista_usuarios_registrados, 
+                    default=default_users, 
+                    key="sel_mod_users_multi"
+                )
+                
+                if users_sel:
                     st.markdown("**Modificar Entornos Permitidos:**")
-                    nuevos_ents = st.multiselect(
-                        "Selecciona los entornos permitidos:",
-                        options=TODOS_LOS_ENTORNOS,
-                        default=e_defaults,
-                        key=f"edit_ent_multi_{user_sel}"
-                    )
+                    nuevos_ents = []
+                    for e in TODOS_LOS_ENTORNOS:
+                        chk_e = st.checkbox(f"Acceso a {e}", value=True, key=f"edit_ent_multi_{e}")
+                        if chk_e:
+                            nuevos_ents.append(e)
 
                     st.markdown("**Modificar Pestañas Permitidas:**")
-                    nuevos_perms = st.multiselect(
-                        "Selecciona las pestañas permitidas:",
-                        options=TODAS_LAS_PESTANIAS,
-                        default=p_defaults,
-                        key=f"edit_perm_multi_{user_sel}"
-                    )
+                    nuevos_perms = []
+                    for p in TODAS_LAS_PESTANIAS:
+                        chk_p = st.checkbox(f"Acceso a {p}", value=True, key=f"edit_perm_multi_{p}")
+                        if chk_p:
+                            nuevos_perms.append(p)
 
                     st.markdown("**Modificar Subpestañas Permitidas:**")
-                    nuevos_subperms = st.multiselect(
-                        "Selecciona las subpestañas permitidas:",
-                        options=TODAS_LAS_SUBPESTANIAS,
-                        default=s_defaults,
-                        key=f"edit_subperm_multi_{user_sel}"
-                    )
-
-                    if st.button(f"Actualizar Permisos de {user_sel}"):
-                        actualizar_permisos_usuario(user_sel, nuevos_perms, nuevos_subperms, nuevos_ents)
-                        st.success(f"Permisos de `{user_sel}` guardados con éxito.")
+                    nuevos_subperms = []
+                    for subp in TODAS_LAS_SUBPESTANIAS:
+                        chk_sub = st.checkbox(f"🔹 {subp}", value=True, key=f"edit_subperm_multi_{subp}")
+                        if chk_sub:
+                            nuevos_subperms.append(subp)
+                            
+                    if st.button(f"Actualizar Permisos de ({len(users_sel)}) Usuario(s)"):
+                        actualizar_permisos_multiples_usuarios(users_sel, nuevos_perms, nuevos_subperms, nuevos_ents)
+                        st.success(f"Permisos de {len(users_sel)} usuario(s) guardados con éxito.")
                         st.rerun()
 
             st.divider()
@@ -1334,7 +1341,7 @@ if entorno_activo == "Auditoría Interna":
 
             json_bytes = obtener_usuarios_json_bytes()
             st.download_button(
-                label="☁️ Descargar usuarios.json",
+                label="☁️️ Descargar usuarios.json",
                 data=json_bytes,
                 file_name="usuarios.json",
                 mime="application/json",
@@ -1613,7 +1620,7 @@ if entorno_activo == "Auditoría Interna":
     pestañas_permitidas = [p for p in TODAS_LAS_PESTANIAS if p in st.session_state.get("permisos_usuario", [])]
 
     if not pestañas_permitidas:
-        st.warning("⚠️️ No tienes permisos asignados para ver ninguna sección. Contacta al administrador.")
+        st.warning("⚠️ No tienes permisos asignados para ver ninguna sección. Contacta al administrador.")
         st.stop()
 
     titulos_tabs = [dict_pestanias[p] for p in pestañas_permitidas]
@@ -2053,7 +2060,7 @@ if entorno_activo == "Auditoría Interna":
                                     use_container_width=False,
                                 )
                             else:
-                                st.info("ℹ️️ No hay registros en el Programa Anual de Auditoría para 2026.")
+                                st.info("ℹ️ No hay registros en el Programa Anual de Auditoría para 2026.")
 
                 with subtab_ind3:
                     if not (sub_names_ind[3] in subp_usuario or "TODOS" in [x.upper() for x in subp_usuario]):
@@ -2651,7 +2658,7 @@ if entorno_activo == "Auditoría Interna":
                             use_container_width=False,
                         )
                     else:
-                        st.info("ℹ️ No se han encontrado registros con número de radicado válidos en el archivo.")
+                        st.info("ℹ No se han encontrado registros con número de radicado válidos en el archivo.")
                 else:
                     st.warning("⚠️ No se detectó la columna 'Radicado' en la hoja Base de datos.")
 

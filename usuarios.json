@@ -4,9 +4,9 @@
         "email": "edgar.ortiz@terminaldetransporte.gov",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -14,9 +14,9 @@
         "email": "manuel.cifuentes@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -24,9 +24,9 @@
         "email": "eduardo.gonzalez@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -34,9 +34,9 @@
         "email": "oscar.garzon@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -44,9 +44,9 @@
         "email": "manuel.santamaria@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -54,9 +54,9 @@
         "email": "carlos.salcedo@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -64,9 +64,9 @@
         "email": "juan.alviz@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -74,9 +74,9 @@
         "email": "julio.mosquera@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -84,9 +84,9 @@
         "email": "marcela.angarita@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -94,9 +94,9 @@
         "email": "roberto.bermudez@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -104,9 +104,9 @@
         "email": "miguel.salina@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -114,9 +114,9 @@
         "email": "oscar.castaneda@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -124,9 +124,9 @@
         "email": "andres.panqueva@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -134,9 +134,9 @@
         "email": "christian.pardo@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -144,9 +144,9 @@
         "email": "diana.ortiz@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -154,9 +154,9 @@
         "email": "andrea.lievano@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -164,9 +164,9 @@
         "email": "william.camargo@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -174,9 +174,9 @@
         "email": "gerson.lugo@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -184,9 +184,9 @@
         "email": "leonardo.vasquez@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -194,9 +194,9 @@
         "email": "javier.veloza@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -204,9 +204,9 @@
         "email": "manuel.salgado@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -214,9 +214,9 @@
         "email": "edgar.guzman@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -224,9 +224,9 @@
         "email": "carolina.bueno@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -234,9 +234,9 @@
         "email": "jenny.gomez@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -244,9 +244,9 @@
         "email": "paola.copete@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -254,9 +254,9 @@
         "email": "hugo.montoya@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {
@@ -284,9 +284,9 @@
         "email": "fabian.silva@terminaldetransporte.gov.co",
         "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "autorizado": 1,
-        "perm_pestañas": "TODOS",
-        "perm_subpestañas": "TODOS",
-        "perm_entornos": "TODOS",
+        "perm_pestañas": "Tablero,Programa Anual,Métricas,Indicadores de Gestión,Histórico,Oficios,Informes",
+        "perm_subpestañas": "Planes Finalizados (Cierre Mensual + Histórico Completo),Análisis por Planes de Acción,Análisis por Hallazgos Únicos",
+        "perm_entornos": "Auditoría Interna,Contraloría de Bogotá",
         "requiere_2fa": 1
     },
     {

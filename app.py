@@ -1070,7 +1070,7 @@ def generar_excel_formateado_ai(df):
                     return val.strftime("%d/%m/%Y")
                 val_str = str(val).strip()
                 try:
-                    dt = pd.to_datetime(val_str, dayfirst=True, errors="coerce")
+                    dt = pd.to_datetime(val_str, errors="coerce")
                     if pd.notnull(dt):
                         return dt.strftime("%d/%m/%Y")
                 except Exception:
@@ -1112,7 +1112,7 @@ def generar_excel_formateado_c(df):
                     return val.strftime("%d/%m/%Y")
                 val_str = str(val).strip()
                 try:
-                    dt = pd.to_datetime(val_str, dayfirst=True, errors="coerce")
+                    dt = pd.to_datetime(val_str, errors="coerce")
                     if pd.notnull(dt):
                         return dt.strftime("%d/%m/%Y")
                 except Exception:
@@ -1214,7 +1214,7 @@ if entorno_activo == "Auditoría Interna":
                     return val.strftime("%d/%m/%Y")
                 val_str = str(val).strip()
                 try:
-                    dt = pd.to_datetime(val_str, dayfirst=True, errors="coerce")
+                    dt = pd.to_datetime(val_str, errors="coerce")
                     if pd.notnull(dt):
                         return dt.strftime("%d/%m/%Y")
                 except Exception:
@@ -2794,7 +2794,7 @@ else:
                     return val.strftime("%d/%m/%Y")
                 val_str = str(val).strip()
                 try:
-                    dt = pd.to_datetime(val_str, dayfirst=True, errors="coerce")
+                    dt = pd.to_datetime(val_str, errors="coerce")
                     if pd.notnull(dt):
                         return dt.strftime("%d/%m/%Y")
                 except Exception:

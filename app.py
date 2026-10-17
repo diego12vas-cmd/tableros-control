@@ -1066,10 +1066,16 @@ def generar_excel_formateado_ai(df):
             def formatear_fecha_limpia(val):
                 if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", ""]:
                     return ""
-                dt = parsear_fecha_estricta(val)
-                if pd.notnull(dt):
-                    return dt.strftime("%d/%m/%Y")
-                return str(val).strip()
+                if isinstance(val, (datetime, pd.Timestamp, date)):
+                    return val.strftime("%d/%m/%Y")
+                val_str = str(val).strip()
+                try:
+                    dt = pd.to_datetime(val_str, errors="coerce")
+                    if pd.notnull(dt):
+                        return dt.strftime("%d/%m/%Y")
+                except Exception:
+                    pass
+                return val_str
             df_export[col] = df_export[col].apply(formatear_fecha_limpia)
 
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
@@ -1078,7 +1084,7 @@ def generar_excel_formateado_ai(df):
         worksheet = writer.sheets["Detalle_Compromisos"]
         header_format = workbook.add_format({"bold": True, "text_wrap": True, "valign": "vcenter", "align": "center", "fg_color": "#1F4E78", "font_color": "#FFFFFF", "border": 1})
         cell_format = workbook.add_format({"valign": "vcenter", "border": 1})
-        date_cell_format = workbook.add_format({"valign": "vcenter", "align": "center", "border": 1, "num_format": "dd/mm/yyyy"})
+        date_cell_format = workbook.add_format({"valign": "vcenter", "align": "center", "border": 1})
 
         for col_num, value in enumerate(df_export.columns.values):
             worksheet.write(0, col_num, str(value), header_format)
@@ -1102,10 +1108,16 @@ def generar_excel_formateado_c(df):
             def formatear_fecha_limpia(val):
                 if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", ""]:
                     return ""
-                dt = parsear_fecha_estricta(val)
-                if pd.notnull(dt):
-                    return dt.strftime("%d/%m/%Y")
-                return str(val).strip()
+                if isinstance(val, (datetime, pd.Timestamp, date)):
+                    return val.strftime("%d/%m/%Y")
+                val_str = str(val).strip()
+                try:
+                    dt = pd.to_datetime(val_str, errors="coerce")
+                    if pd.notnull(dt):
+                        return dt.strftime("%d/%m/%Y")
+                except Exception:
+                    pass
+                return val_str
             df_export[col] = df_export[col].apply(formatear_fecha_limpia)
 
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
@@ -1114,7 +1126,7 @@ def generar_excel_formateado_c(df):
         worksheet = writer.sheets["Detalle_Contraloria"]
         header_format = workbook.add_format({"bold": True, "text_wrap": True, "valign": "vcenter", "align": "center", "fg_color": "#1F4E78", "font_color": "#FFFFFF", "border": 1})
         cell_format = workbook.add_format({"valign": "vcenter", "border": 1})
-        date_cell_format = workbook.add_format({"valign": "vcenter", "align": "center", "border": 1, "num_format": "dd/mm/yyyy"})
+        date_cell_format = workbook.add_format({"valign": "vcenter", "align": "center", "border": 1})
 
         for col_num, value in enumerate(df_export.columns.values):
             worksheet.write(0, col_num, str(value), header_format)
@@ -1198,10 +1210,16 @@ if entorno_activo == "Auditoría Interna":
             def formatear_fecha_corta(val):
                 if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", ""]:
                     return ""
-                dt = parsear_fecha_estricta(val)
-                if pd.notnull(dt):
-                    return dt.strftime("%d/%m/%Y")
-                return str(val).strip()
+                if isinstance(val, (datetime, pd.Timestamp, date)):
+                    return val.strftime("%d/%m/%Y")
+                val_str = str(val).strip()
+                try:
+                    dt = pd.to_datetime(val_str, errors="coerce")
+                    if pd.notnull(dt):
+                        return dt.strftime("%d/%m/%Y")
+                except Exception:
+                    pass
+                return val_str
             df_raw[col_f] = df_raw[col_f].apply(formatear_fecha_corta)
 
     meses_es = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
@@ -2133,7 +2151,7 @@ if entorno_activo == "Auditoría Interna":
                                     use_container_width=False,
                                 )
                             else:
-                                st.info("ℹ No hay hallazgos finalizados registrados para la vigencia 2026.")
+                                st.info("ℹ️️ No hay hallazgos finalizados registrados para la vigencia 2026.")
 
             elif nombre_tab_real == "Histórico":
                 st.header("📊 Análisis Histórico e Interanual - Auditoría Interna")
@@ -2431,12 +2449,8 @@ if entorno_activo == "Auditoría Interna":
                         fecha_antigua_str = ""
                         if registro is not None and col_fecha_cierre and pd.notnull(registro[col_fecha_cierre]):
                             try:
-                                dt_cierre = parsear_fecha_estricta(registro[col_fecha_cierre])
-                                if pd.notnull(dt_cierre):
-                                    fecha_def_obj = dt_cierre.date()
-                                    fecha_antigua_str = fecha_def_obj.strftime("%d/%m/%Y")
-                                else:
-                                    fecha_antigua_str = str(registro[col_fecha_cierre])
+                                fecha_def_obj = pd.to_datetime(registro[col_fecha_cierre], dayfirst=True).date()
+                                fecha_antigua_str = fecha_def_obj.strftime("%d/%m/%Y")
                             except Exception:
                                 fecha_antigua_str = str(registro[col_fecha_cierre])
 
@@ -2465,11 +2479,11 @@ if entorno_activo == "Auditoría Interna":
 
                             nuevo_registro_historial = f"--- Modificación el {fecha_hoy_str} ---\n"
                             if fecha_antigua_str != nueva_fecha_str:
-                                nuevo_registro_historial += f"• Fecha Cierre Anterior: {fecha_antigua_str} ➡ Nueva: {nueva_fecha_str}\n"
+                                nuevo_registro_historial += f"• Fecha Cierre Anterior: {fecha_antigua_str} ➡️️ Nueva: {nueva_fecha_str}\n"
                             if est_actual_val != nuevo_estado:
-                                nuevo_registro_historial += f"• Estado Anterior: {est_actual_val} ➡ Nuevo: {nuevo_estado}\n"
+                                nuevo_registro_historial += f"• Estado Anterior: {est_actual_val} ➡️️ Nuevo: {nuevo_estado}\n"
                             if resp_actual_val != nuevo_responsable:
-                                nuevo_registro_historial += f"• Responsable Anterior: {resp_actual_val} ➡ Nuevo: {nuevo_responsable}\n"
+                                nuevo_registro_historial += f"• Responsable Anterior: {resp_actual_val} ➡️️ Nuevo: {nuevo_responsable}\n"
                             if plan_actual_val != nuevo_plan_accion:
                                 nuevo_registro_historial += f"• Plan Anterior: {plan_actual_val}\n• Plan Nuevo: {nuevo_plan_accion}\n"
                             if obs_usuario.strip():
@@ -2569,11 +2583,17 @@ if entorno_activo == "Auditoría Interna":
                             fecha_val_str = ""
                             if col_fecha_target and col_fecha_target in row and pd.notnull(row[col_fecha_target]):
                                 f_val = row[col_fecha_target]
-                                dt = parsear_fecha_estricta(f_val)
-                                if pd.notnull(dt):
-                                    fecha_val_str = dt.strftime("%d/%m/%Y")
+                                if isinstance(f_val, (datetime, pd.Timestamp, date)):
+                                    fecha_val_str = f_val.strftime("%d/%m/%Y")
                                 else:
-                                    fecha_val_str = str(f_val).strip()
+                                    try:
+                                        dt = pd.to_datetime(str(f_val).strip(), errors="coerce")
+                                        if pd.notnull(dt):
+                                            fecha_val_str = dt.strftime("%d/%m/%Y")
+                                        else:
+                                            fecha_val_str = str(f_val).strip()
+                                    except Exception:
+                                        fecha_val_str = str(f_val).strip()
 
                             area_val = str(row[col_area_target]) if col_area_target and pd.notnull(row[col_area_target]) and str(row[col_area_target]).lower() != "none" else ""
                             asunto_val = str(row[col_asunto_target]) if col_asunto_target and pd.notnull(row[col_asunto_target]) and str(row[col_asunto_target]).lower() != "none" else ""
@@ -2770,10 +2790,16 @@ else:
             def formatear_fecha_corta(val):
                 if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", ""]:
                     return ""
-                dt = parsear_fecha_estricta(val)
-                if pd.notnull(dt):
-                    return dt.strftime("%d/%m/%Y")
-                return str(val).strip()
+                if isinstance(val, (datetime, pd.Timestamp, date)):
+                    return val.strftime("%d/%m/%Y")
+                val_str = str(val).strip()
+                try:
+                    dt = pd.to_datetime(val_str, errors="coerce")
+                    if pd.notnull(dt):
+                        return dt.strftime("%d/%m/%Y")
+                except Exception:
+                    pass
+                return val_str
             df_raw_c[col_f] = df_raw_c[col_f].apply(formatear_fecha_corta)
 
     st.sidebar.title("🔍 Filtros Contraloría")
@@ -3542,4 +3568,182 @@ else:
                             c_h1_c, c_h2_c = st.columns(2)
 
                             with c_h1_c:
-                                df_vigencia_totales_c = df
+                                df_vigencia_totales_c = df_hist_calc_c.groupby("Vigencia_Limpia").size().reset_index(name="Total_Planes").sort_values(by="Vigencia_Limpia")
+                                max_hall_v_c = df_vigencia_totales_c["Total_Planes"].max() if not df_vigencia_totales_c.empty else 10
+                                sum_tot_g1_c = df_vigencia_totales_c["Total_Planes"].sum() if not df_vigencia_totales_c.empty else 0
+                                
+                                fig_hist_line_c = px.bar(
+                                    df_vigencia_totales_c, x="Vigencia_Limpia", y="Total_Planes", text="Total_Planes",
+                                    title="Evolución Total de Planes de Mejoramiento por Vigencia", color_discrete_sequence=["#1F4E78"]
+                                )
+                                fig_hist_line_c.update_traces(textposition="outside", textfont=dict(size=13, color="var(--text-color)"))
+                                fig_hist_line_c.update_layout(
+                                    height=360, xaxis_title=None, yaxis_title=None,
+                                    xaxis=dict(showgrid=False, zeroline=False),
+                                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hall_v_c * 1.35]),
+                                    margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
+                                )
+                                st.plotly_chart(fig_hist_line_c, use_container_width=True, key="fig_hist_line_c_key", config={'displayModeBar': False})
+                                st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Planes de Mejoramiento Históricos: <b>{sum_tot_g1_c}</b></div>', unsafe_allow_html=True)
+
+                            with c_h2_c:
+                                df_hist_grouped_c = df_hist_calc_c.groupby(["Vigencia_Limpia", col_estado_c]).size().reset_index(name="Cantidad")
+                                max_hist_st_c = df_hist_grouped_c.groupby("Vigencia_Limpia")["Cantidad"].sum().max() if not df_hist_grouped_c.empty else 10
+                                sum_tot_g2_c = df_hist_grouped_c["Cantidad"].sum() if not df_hist_grouped_c.empty else 0
+
+                                fig_hist_stack_c = px.bar(
+                                    df_hist_grouped_c, x="Vigencia_Limpia", y="Cantidad", color=col_estado_c,
+                                    title="Distribución de Estados por Vigencia", barmode="stack",
+                                    color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB"}
+                                )
+                                
+                                df_totales_por_vigencia_c = df_hist_grouped_c.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
+                                for _, row_v in df_totales_por_vigencia_c.iterrows():
+                                    fig_hist_stack_c.add_annotation(
+                                        x=row_v["Vigencia_Limpia"], 
+                                        y=row_v["Cantidad"] + max_hist_st_c * 0.08, 
+                                        text=f"<b>{row_v['Cantidad']}</b>", 
+                                        showarrow=False, 
+                                        yanchor="bottom", 
+                                        font=dict(size=14, color="var(--text-color)", family="Arial Black")
+                                    )
+
+                                fig_hist_stack_c.update_layout(
+                                    height=360, xaxis_title=None, yaxis_title=None,
+                                    xaxis=dict(showgrid=False, zeroline=False),
+                                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_st_c * 1.35]),
+                                    legend_title_text="Estado", margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
+                                )
+                                st.plotly_chart(fig_hist_stack_c, use_container_width=True, key="fig_hist_stack_c_key", config={'displayModeBar': False})
+                                st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Evaluados: <b>{sum_tot_g2_c}</b></div>', unsafe_allow_html=True)
+
+                        st.markdown("---")
+                        st.subheader("👥 Matriz Comparativa Interanual por Área Responsable (Planes de Acción)")
+                        if col_responsable_c and col_responsable_c in df_hist_calc_c.columns:
+                            df_area_hist_c = df_hist_calc_c.copy()
+                            df_area_hist_c[col_responsable_c] = df_area_hist_c[col_responsable_c].astype(str).apply(extraer_sub_areas_individuales)
+                            df_area_hist_exploded_c = df_area_hist_c.explode(col_responsable_c)
+                            df_area_hist_exploded_c = df_area_hist_exploded_c[~df_area_hist_exploded_c[col_responsable_c].isin(["", "NAN", "NONE", "NONE."])]
+
+                            df_pivot_area_c = pd.pivot_table(df_area_hist_exploded_c, index=col_responsable_c, columns="Vigencia_Limpia", aggfunc="size", fill_value=0)
+                            df_pivot_area_c["Total Histórico"] = df_pivot_area_c.sum(axis=1)
+                            df_pivot_area_c = df_pivot_area_c.sort_values(by="Total Histórico", ascending=False)
+                            st.dataframe(df_pivot_area_c, use_container_width=True)
+
+                with subtab_hist_c2:
+                    if not (sub_names_hist_c[1] in subp_usuario_c or "TODOS" in [x.upper() for x in subp_usuario_c]):
+                        st.error("🔒 **Acceso Restringido:** No tienes permisos para consultar esta sub-pestaña.")
+                    else:
+                        st.markdown("Evolución del volumen de **Hallazgos Únicos** (desduplicados) por vigencia y distribución por Área Responsable.")
+
+                        if col_hallazgo_c and col_hallazgo_c in df_raw_c.columns and col_auditoria_c and col_auditoria_c in df_raw_c.columns:
+                            df_hall_calc_c = df_raw_c.dropna(subset=[col_hallazgo_c]).copy()
+                            df_hall_calc_c["Hallaz_Clean"] = df_hall_calc_c[col_hallazgo_c].astype(str).str.strip()
+                            
+                            def limpiar_vigencia_str_c(v_val):
+                                s = str(v_val).upper().replace(".0", "").strip()
+                                m = re.search(r"\b(20\d{2})\b", s)
+                                if m:
+                                    return f"PLAN DE MEJORAMIENTO VIGENCIA {m.group(1)}"
+                                return f"PLAN DE MEJORAMIENTO VIGENCIA {s}" if s.isdigit() else s
+
+                            df_hall_calc_c["Vigencia_Limpia"] = df_hall_calc_c[col_auditoria_c].apply(limpiar_vigencia_str_c)
+
+                            df_hall_unicos_c = df_hall_calc_c.groupby(["Vigencia_Limpia", "Hallaz_Clean"]).first().reset_index()
+
+                            c_hu1_c, c_hu2_c = st.columns(2)
+
+                            with c_hu1_c:
+                                df_vig_hall_totales_c = df_hall_unicos_c.groupby("Vigencia_Limpia").size().reset_index(name="Total_Hallazgos").sort_values(by="Vigencia_Limpia")
+                                max_h_v_c = df_vig_hall_totales_c["Total_Hallazgos"].max() if not df_vig_hall_totales_c.empty else 10
+                                sum_tot_hu1_c = df_vig_hall_totales_c["Total_Hallazgos"].sum() if not df_vig_hall_totales_c.empty else 0
+
+                                fig_hist_hall_line_c = px.bar(
+                                    df_vig_hall_totales_c, x="Vigencia_Limpia", y="Total_Hallazgos", text="Total_Hallazgos",
+                                    title="Evolución Total de Hallazgos Únicos por Vigencia", color_discrete_sequence=["#27AE60"]
+                                )
+                                fig_hist_hall_line_c.update_traces(textposition="outside", textfont=dict(size=13, color="var(--text-color)"))
+                                fig_hist_hall_line_c.update_layout(
+                                    height=360, xaxis_title=None, yaxis_title=None,
+                                    xaxis=dict(showgrid=False, zeroline=False),
+                                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_h_v_c * 1.35]),
+                                    margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
+                                )
+                                st.plotly_chart(fig_hist_hall_line_c, use_container_width=True, key="fig_hist_hall_line_c_key", config={'displayModeBar': False})
+                                st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Hallazgos Únicos Históricos: <b>{sum_tot_hu1_c}</b></div>', unsafe_allow_html=True)
+
+                            with c_hu2_c:
+                                df_hall_st_grouped_c = df_hall_unicos_c.groupby(["Vigencia_Limpia", col_estado_c]).size().reset_index(name="Cantidad")
+                                max_hist_hu_st_c = df_hall_st_grouped_c.groupby("Vigencia_Limpia")["Cantidad"].sum().max() if not df_hall_st_grouped_c.empty else 10
+                                sum_tot_hu2_c = df_hall_st_grouped_c["Cantidad"].sum() if not df_hall_st_grouped_c.empty else 0
+
+                                fig_hist_hall_stack_c = px.bar(
+                                    df_hall_st_grouped_c, x="Vigencia_Limpia", y="Cantidad", color=col_estado_c,
+                                    title="Distribución de Estados por Vigencia (Hallazgos Únicos)", barmode="stack",
+                                    color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB"}
+                                )
+
+                                df_totales_hall_vig_c = df_hall_st_grouped_c.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
+                                for _, row_hv in df_totales_hall_vig_c.iterrows():
+                                    fig_hist_hall_stack_c.add_annotation(
+                                        x=row_hv["Vigencia_Limpia"], 
+                                        y=row_hv["Cantidad"] + max_hist_hu_st_c * 0.08, 
+                                        text=f"<b>{row_hv['Cantidad']}</b>", 
+                                        showarrow=False, 
+                                        yanchor="bottom", 
+                                        font=dict(size=14, color="var(--text-color)", family="Arial Black")
+                                    )
+
+                                fig_hist_hall_stack_c.update_layout(
+                                    height=360, xaxis_title=None, yaxis_title=None,
+                                    xaxis=dict(showgrid=False, zeroline=False),
+                                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_hu_st_c * 1.35]),
+                                    legend_title_text="Estado", margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
+                                )
+                                st.plotly_chart(fig_hist_hall_stack_c, use_container_width=True, key="fig_hist_hall_stack_c_key", config={'displayModeBar': False})
+                                st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Hallazgos Evaluados: <b>{sum_tot_hu2_c}</b></div>', unsafe_allow_html=True)
+
+                        st.markdown("---")
+                        st.subheader("👥 Matriz Comparativa Interanual por Área Responsable (Hallazgos Únicos)")
+                        if col_responsable_c and col_responsable_c in df_hall_unicos_c.columns:
+                            df_area_hall_c = df_hall_unicos_c.copy()
+                            df_area_hall_c[col_responsable_c] = df_area_hall_c[col_responsable_c].astype(str).apply(extraer_sub_areas_individuales)
+                            df_area_hall_exploded_c = df_area_hall_c.explode(col_responsable_c)
+                            df_area_hall_exploded_c = df_area_hall_exploded_c[~df_area_hall_exploded_c[col_responsable_c].isin(["", "NAN", "NONE", "NONE."])]
+
+                            df_pivot_area_hall_c = pd.pivot_table(df_area_hall_exploded_c, index=col_responsable_c, columns="Vigencia_Limpia", aggfunc="size", fill_value=0)
+                            df_pivot_area_hall_c["Total Histórico"] = df_pivot_area_hall_c.sum(axis=1)
+                            df_pivot_area_hall_c = df_pivot_area_hall_c.sort_values(by="Total Histórico", ascending=False)
+                            st.dataframe(df_pivot_area_hall_c, use_container_width=True)
+
+            elif nombre_tab_real_c == "Informes":
+                st.header("📑 Consulta Histórica de Informes de la Contraloría")
+                st.markdown("Relación consolidada de los informes de auditoría dejados por la Contraloría de Bogotá agrupados por vigencia.")
+
+                if not df_informes_raw_c.empty:
+                    df_inf_c = df_informes_raw_c.copy()
+                    col_link_c = buscar_columna_por_patron(df_inf_c, ["enlace", "pdf", "link", "drive"]) or df_inf_c.columns[-1]
+                    
+                    def asegurar_link(u):
+                        val = str(u).strip()
+                        if val and val.lower() not in ["nan", "none", ""] and not val.startswith("http"):
+                            return f"https://{val}"
+                        return val
+
+                    df_inf_c[col_link_c] = df_inf_c[col_link_c].apply(asegurar_link)
+                    df_inf_c.index = range(1, len(df_inf_c) + 1)
+                    
+                    st.dataframe(
+                        df_inf_c,
+                        use_container_width=True,
+                        hide_index=False,
+                        column_config={
+                            col_link_c: st.column_config.LinkColumn(
+                                "Enlace PDF",
+                                help="Haz clic para abrir el informe en PDF",
+                                display_text="📄 Ver PDF"
+                            )
+                        }
+                    )
+                else:
+                    st.info("No hay informes registrados en la hoja 'Enlace PDF'.")

@@ -1066,16 +1066,10 @@ def generar_excel_formateado_ai(df):
             def formatear_fecha_limpia(val):
                 if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", ""]:
                     return ""
-                if isinstance(val, (datetime, pd.Timestamp, date)):
-                    return val.strftime("%d/%m/%Y")
-                val_str = str(val).strip()
-                try:
-                    dt = pd.to_datetime(val_str, errors="coerce")
-                    if pd.notnull(dt):
-                        return dt.strftime("%d/%m/%Y")
-                except Exception:
-                    pass
-                return val_str
+                dt = parsear_fecha_estricta(val)
+                if pd.notnull(dt):
+                    return dt.strftime("%d/%m/%Y")
+                return str(val).strip()
             df_export[col] = df_export[col].apply(formatear_fecha_limpia)
 
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
@@ -1084,7 +1078,7 @@ def generar_excel_formateado_ai(df):
         worksheet = writer.sheets["Detalle_Compromisos"]
         header_format = workbook.add_format({"bold": True, "text_wrap": True, "valign": "vcenter", "align": "center", "fg_color": "#1F4E78", "font_color": "#FFFFFF", "border": 1})
         cell_format = workbook.add_format({"valign": "vcenter", "border": 1})
-        date_cell_format = workbook.add_format({"valign": "vcenter", "align": "center", "border": 1})
+        date_cell_format = workbook.add_format({"valign": "vcenter", "align": "center", "border": 1, "num_format": "dd/mm/yyyy"})
 
         for col_num, value in enumerate(df_export.columns.values):
             worksheet.write(0, col_num, str(value), header_format)
@@ -1108,16 +1102,10 @@ def generar_excel_formateado_c(df):
             def formatear_fecha_limpia(val):
                 if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", ""]:
                     return ""
-                if isinstance(val, (datetime, pd.Timestamp, date)):
-                    return val.strftime("%d/%m/%Y")
-                val_str = str(val).strip()
-                try:
-                    dt = pd.to_datetime(val_str, errors="coerce")
-                    if pd.notnull(dt):
-                        return dt.strftime("%d/%m/%Y")
-                except Exception:
-                    pass
-                return val_str
+                dt = parsear_fecha_estricta(val)
+                if pd.notnull(dt):
+                    return dt.strftime("%d/%m/%Y")
+                return str(val).strip()
             df_export[col] = df_export[col].apply(formatear_fecha_limpia)
 
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
@@ -1126,7 +1114,7 @@ def generar_excel_formateado_c(df):
         worksheet = writer.sheets["Detalle_Contraloria"]
         header_format = workbook.add_format({"bold": True, "text_wrap": True, "valign": "vcenter", "align": "center", "fg_color": "#1F4E78", "font_color": "#FFFFFF", "border": 1})
         cell_format = workbook.add_format({"valign": "vcenter", "border": 1})
-        date_cell_format = workbook.add_format({"valign": "vcenter", "align": "center", "border": 1})
+        date_cell_format = workbook.add_format({"valign": "vcenter", "align": "center", "border": 1, "num_format": "dd/mm/yyyy"})
 
         for col_num, value in enumerate(df_export.columns.values):
             worksheet.write(0, col_num, str(value), header_format)
@@ -1210,16 +1198,10 @@ if entorno_activo == "Auditoría Interna":
             def formatear_fecha_corta(val):
                 if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", ""]:
                     return ""
-                if isinstance(val, (datetime, pd.Timestamp, date)):
-                    return val.strftime("%d/%m/%Y")
-                val_str = str(val).strip()
-                try:
-                    dt = pd.to_datetime(val_str, errors="coerce")
-                    if pd.notnull(dt):
-                        return dt.strftime("%d/%m/%Y")
-                except Exception:
-                    pass
-                return val_str
+                dt = parsear_fecha_estricta(val)
+                if pd.notnull(dt):
+                    return dt.strftime("%d/%m/%Y")
+                return str(val).strip()
             df_raw[col_f] = df_raw[col_f].apply(formatear_fecha_corta)
 
     meses_es = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
@@ -2151,7 +2133,7 @@ if entorno_activo == "Auditoría Interna":
                                     use_container_width=False,
                                 )
                             else:
-                                st.info("ℹ️️ No hay hallazgos finalizados registrados para la vigencia 2026.")
+                                st.info("ℹ No hay hallazgos finalizados registrados para la vigencia 2026.")
 
             elif nombre_tab_real == "Histórico":
                 st.header("📊 Análisis Histórico e Interanual - Auditoría Interna")
@@ -2338,7 +2320,7 @@ if entorno_activo == "Auditoría Interna":
                 hoy = pd.to_datetime(date.today())
 
                 if col_fecha_cierre and col_fecha_cierre in df_alertas.columns:
-                    df_alertas["Fecha_DT"] = pd.to_datetime(df_alertas[col_fecha_cierre], errors="coerce", dayfirst=True)
+                    df_alertas["Fecha_DT"] = df_alertas[col_fecha_cierre].apply(parsear_fecha_estricta)
                     df_alertas["Dias_Atraso"] = (hoy - df_alertas["Fecha_DT"]).dt.days
                     df_alertas["Dias_Atraso"] = df_alertas["Dias_Atraso"].apply(lambda x: x if pd.notnull(x) and x > 0 else 0)
                 else:
@@ -2449,8 +2431,12 @@ if entorno_activo == "Auditoría Interna":
                         fecha_antigua_str = ""
                         if registro is not None and col_fecha_cierre and pd.notnull(registro[col_fecha_cierre]):
                             try:
-                                fecha_def_obj = pd.to_datetime(registro[col_fecha_cierre], dayfirst=True).date()
-                                fecha_antigua_str = fecha_def_obj.strftime("%d/%m/%Y")
+                                dt_cierre = parsear_fecha_estricta(registro[col_fecha_cierre])
+                                if pd.notnull(dt_cierre):
+                                    fecha_def_obj = dt_cierre.date()
+                                    fecha_antigua_str = fecha_def_obj.strftime("%d/%m/%Y")
+                                else:
+                                    fecha_antigua_str = str(registro[col_fecha_cierre])
                             except Exception:
                                 fecha_antigua_str = str(registro[col_fecha_cierre])
 
@@ -2479,11 +2465,11 @@ if entorno_activo == "Auditoría Interna":
 
                             nuevo_registro_historial = f"--- Modificación el {fecha_hoy_str} ---\n"
                             if fecha_antigua_str != nueva_fecha_str:
-                                nuevo_registro_historial += f"• Fecha Cierre Anterior: {fecha_antigua_str} ➡️️ Nueva: {nueva_fecha_str}\n"
+                                nuevo_registro_historial += f"• Fecha Cierre Anterior: {fecha_antigua_str} ➡ Nueva: {nueva_fecha_str}\n"
                             if est_actual_val != nuevo_estado:
-                                nuevo_registro_historial += f"• Estado Anterior: {est_actual_val} ➡️️ Nuevo: {nuevo_estado}\n"
+                                nuevo_registro_historial += f"• Estado Anterior: {est_actual_val} ➡ Nuevo: {nuevo_estado}\n"
                             if resp_actual_val != nuevo_responsable:
-                                nuevo_registro_historial += f"• Responsable Anterior: {resp_actual_val} ➡️️ Nuevo: {nuevo_responsable}\n"
+                                nuevo_registro_historial += f"• Responsable Anterior: {resp_actual_val} ➡ Nuevo: {nuevo_responsable}\n"
                             if plan_actual_val != nuevo_plan_accion:
                                 nuevo_registro_historial += f"• Plan Anterior: {plan_actual_val}\n• Plan Nuevo: {nuevo_plan_accion}\n"
                             if obs_usuario.strip():
@@ -2583,17 +2569,11 @@ if entorno_activo == "Auditoría Interna":
                             fecha_val_str = ""
                             if col_fecha_target and col_fecha_target in row and pd.notnull(row[col_fecha_target]):
                                 f_val = row[col_fecha_target]
-                                if isinstance(f_val, (datetime, pd.Timestamp, date)):
-                                    fecha_val_str = f_val.strftime("%d/%m/%Y")
+                                dt = parsear_fecha_estricta(f_val)
+                                if pd.notnull(dt):
+                                    fecha_val_str = dt.strftime("%d/%m/%Y")
                                 else:
-                                    try:
-                                        dt = pd.to_datetime(str(f_val).strip(), errors="coerce")
-                                        if pd.notnull(dt):
-                                            fecha_val_str = dt.strftime("%d/%m/%Y")
-                                        else:
-                                            fecha_val_str = str(f_val).strip()
-                                    except Exception:
-                                        fecha_val_str = str(f_val).strip()
+                                    fecha_val_str = str(f_val).strip()
 
                             area_val = str(row[col_area_target]) if col_area_target and pd.notnull(row[col_area_target]) and str(row[col_area_target]).lower() != "none" else ""
                             asunto_val = str(row[col_asunto_target]) if col_asunto_target and pd.notnull(row[col_asunto_target]) and str(row[col_asunto_target]).lower() != "none" else ""
@@ -2790,16 +2770,10 @@ else:
             def formatear_fecha_corta(val):
                 if pd.isna(val) or str(val).strip().lower() in ["nan", "none", "nat", ""]:
                     return ""
-                if isinstance(val, (datetime, pd.Timestamp, date)):
-                    return val.strftime("%d/%m/%Y")
-                val_str = str(val).strip()
-                try:
-                    dt = pd.to_datetime(val_str, errors="coerce")
-                    if pd.notnull(dt):
-                        return dt.strftime("%d/%m/%Y")
-                except Exception:
-                    pass
-                return val_str
+                dt = parsear_fecha_estricta(val)
+                if pd.notnull(dt):
+                    return dt.strftime("%d/%m/%Y")
+                return str(val).strip()
             df_raw_c[col_f] = df_raw_c[col_f].apply(formatear_fecha_corta)
 
     st.sidebar.title("🔍 Filtros Contraloría")

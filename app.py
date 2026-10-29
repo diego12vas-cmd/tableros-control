@@ -945,15 +945,34 @@ EXCEL_PATH_AI = buscar_excel_inteligente()
 def buscar_excel_contraloria():
     dir_script = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
     dir_padre = os.path.dirname(dir_script)
-    nombres_posibles = ["TABLERO_PA_C.xlsx", "TABLERO_PA_C.xlsm"]
 
-    for nombre in nombres_posibles:
-        ruta = os.path.join(dir_script, nombre)
-        if os.path.exists(ruta):
-            return ruta
-    for nombre in nombres_posibles:
-        ruta = os.path.join(dir_padre, nombre)
-        if os.path.exists(ruta):
+    # Preferir el libro que realmente contiene la hoja del nuevo indicador.
+    # En despliegues anteriores puede existir TABLERO_PA_C.xlsx sin esa hoja.
+    nombres_posibles = [
+        "TABLERO_PA_C_actualizado.xlsx",
+        "TABLERO_PA_C(1).xlsx",
+        "TABLERO_PA_C.xlsx",
+        "TABLERO_PA_C.xlsm",
+    ]
+    rutas = []
+    for carpeta in (dir_script, dir_padre):
+        for nombre in nombres_posibles:
+            ruta = os.path.join(carpeta, nombre)
+            if os.path.isfile(ruta) and ruta not in rutas:
+                rutas.append(ruta)
+
+    for ruta in rutas:
+        try:
+            with pd.ExcelFile(ruta) as libro:
+                if any(str(hoja).strip().lower() == "seguimiento informes" for hoja in libro.sheet_names):
+                    return ruta
+        except Exception:
+            continue
+
+    # Si ningún archivo tiene la hoja, conserva el comportamiento anterior
+    # para que las demás secciones del entorno sigan usando el archivo habitual.
+    for ruta in rutas:
+        if os.path.basename(ruta).lower() in ("tablero_pa_c.xlsx", "tablero_pa_c.xlsm"):
             return ruta
 
     return os.path.join(dir_script, "TABLERO_PA_C.xlsx")
@@ -3361,7 +3380,8 @@ else:
                 if df_seguimiento_informes_c.empty:
                     st.warning(
                         "No se encontró la hoja **Seguimiento informes** o no contiene registros. "
-                        "Verifica que esté incluida en el archivo TABLERO_PA_C.xlsx."
+                        "El archivo cargado no contiene esa hoja. Sube al repositorio el Excel actualizado que incluye "
+                        "**Seguimiento informes** (puedes nombrarlo `TABLERO_PA_C_actualizado.xlsx` o reemplazar `TABLERO_PA_C.xlsx`)."
                     )
                 else:
                     df_inf_ctrl_c = df_seguimiento_informes_c.copy()
@@ -3632,5 +3652,4 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
-
 

@@ -1618,7 +1618,10 @@ if entorno_activo == "Auditoría Interna":
         "Informes": "📑 Informes"
     }
 
-    pestañas_permitidas = [p for p in TODAS_LAS_PESTANIAS if p in st.session_state.get("permisos_usuario", [])]
+    pestañas_permitidas = [
+        p for p in TODAS_LAS_PESTANIAS
+        if p in dict_pestanias and p in st.session_state.get("permisos_usuario", [])
+    ]
 
     if not pestañas_permitidas:
         st.warning("⚠️ No tienes permisos asignados para ver ninguna sección. Contacta al administrador.")

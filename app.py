@@ -3654,21 +3654,25 @@ else:
                                 ].copy()
 
                                 def _normalizar_estado_grafica_inf_c(valor):
-                                    if valor == "Publicado oportunamente":
-                                        return "Publicado oportunamente"
-                                    if valor == "Publicado extemporáneamente":
-                                        return "Publicado extemporáneamente"
-                                    if valor == "Próximo a vencer":
-                                        return "Próximo a vencer"
-                                    if valor == "Vencido sin publicar":
-                                        return "Vencido sin publicar"
-                                    if valor == "Pendiente":
-                                        return "Pendiente"
-                                    return "Fecha límite por configurar"
+                                    # Solo representar estados válidos del control.
+                                    # No inventar una categoría para estados sin configurar
+                                    # o valores que no estén en el catálogo del tablero.
+                                    estados_validos = {
+                                        "Publicado oportunamente",
+                                        "Publicado extemporáneamente",
+                                        "Próximo a vencer",
+                                        "Vencido sin publicar",
+                                        "Pendiente",
+                                    }
+                                    texto_estado = str(valor).strip()
+                                    return texto_estado if texto_estado in estados_validos else ""
 
                                 _df_periodicidad_estado_c["Estado_gráfica"] = _df_periodicidad_estado_c[
                                     "Estado calculado"
                                 ].apply(_normalizar_estado_grafica_inf_c)
+                                _df_periodicidad_estado_c = _df_periodicidad_estado_c[
+                                    _df_periodicidad_estado_c["Estado_gráfica"] != ""
+                                ].copy()
 
                                 orden_periodicidad_c = ["Mensual", "Anual", "Semestral", "Otra periodicidad"]
                                 orden_estados_grafica_c = [
@@ -3677,12 +3681,16 @@ else:
                                     "Próximo a vencer",
                                     "Vencido sin publicar",
                                     "Pendiente",
-                                    "Fecha límite por configurar",
                                 ]
-                                tabla_periodicidad_estado_c = pd.crosstab(
-                                    _df_periodicidad_estado_c["Periodicidad_gráfica"],
-                                    _df_periodicidad_estado_c["Estado_gráfica"],
-                                ).reindex(index=orden_periodicidad_c, columns=orden_estados_grafica_c, fill_value=0)
+                                if _df_periodicidad_estado_c.empty:
+                                    tabla_periodicidad_estado_c = pd.DataFrame(
+                                        index=[], columns=orden_estados_grafica_c, dtype=int
+                                    )
+                                else:
+                                    tabla_periodicidad_estado_c = pd.crosstab(
+                                        _df_periodicidad_estado_c["Periodicidad_gráfica"],
+                                        _df_periodicidad_estado_c["Estado_gráfica"],
+                                    ).reindex(index=orden_periodicidad_c, columns=orden_estados_grafica_c, fill_value=0)
                                 tabla_periodicidad_estado_c = tabla_periodicidad_estado_c.loc[
                                     tabla_periodicidad_estado_c.sum(axis=1) > 0
                                 ]
@@ -3694,7 +3702,6 @@ else:
                                         "Próximo a vencer": "#FACC15",
                                         "Vencido sin publicar": "#F87171",
                                         "Pendiente": "#60A5FA",
-                                        "Fecha límite por configurar": "#A78BFA",
                                     }
                                     fig_periodicidad_inf_c = go.Figure()
                                     for estado_grafica_c in orden_estados_grafica_c:

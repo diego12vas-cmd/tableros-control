@@ -1664,7 +1664,7 @@ if entorno_activo == "Auditoría Interna":
                     with k3:
                         st.markdown(f"""
                         <div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #10B981;border-radius:12px;padding:15px 13px;height:180px;box-sizing:border-box;margin-bottom:10px;">
-                          <div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Cumplimiento</div>
+                          <div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Cumplimiento global</div>
                           <div style="font-size:30px;font-weight:800;color:#34D399;margin:2px 0 10px;">{pct_cumplimiento_ai}%</div>
                           <div style="font-size:11px;color:#94A3B8;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;">{fin_ai_cnt} cerrados de {total_hist_ai}</div>
                         </div>""", unsafe_allow_html=True)
@@ -2984,7 +2984,7 @@ else:
                         st.markdown(f"""<div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #EF4444;border-radius:12px;padding:15px 13px;min-height:150px;box-sizing:border-box;margin-bottom:10px;"><div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Planes de acción por estado</div><div style="font-size:30px;font-weight:800;color:#fff;margin:2px 0 8px;">{total_planes_c}</div><div style="border-top:1px solid rgba(255,255,255,.1);padding-top:8px;display:flex;flex-wrap:wrap;gap:4px;font-size:11px;font-weight:700;"><span style="background:rgba(16,185,129,.16);color:#34D399;padding:4px 5px;border-radius:5px;">{abiertos_c} Abiertos</span><span style="background:rgba(239,68,68,.18);color:#F87171;padding:4px 5px;border-radius:5px;">{vencidos_c} Vencidos</span></div></div>""", unsafe_allow_html=True)
                     kc3, kc4 = st.columns(2, gap="small")
                     with kc3:
-                        st.markdown(f"""<div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #10B981;border-radius:12px;padding:15px 13px;height:180px;box-sizing:border-box;margin-bottom:10px;"><div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Cumplimiento</div><div style="font-size:30px;font-weight:800;color:#34D399;margin:2px 0 10px;">{int(round(pct_cumplimiento_c))}%</div><div style="font-size:11px;color:#94A3B8;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;">{fin_c_cnt} cerrados de {total_hist_c}</div></div>""", unsafe_allow_html=True)
+                        st.markdown(f"""<div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #10B981;border-radius:12px;padding:15px 13px;height:180px;box-sizing:border-box;margin-bottom:10px;"><div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Cumplimiento global</div><div style="font-size:30px;font-weight:800;color:#34D399;margin:2px 0 10px;">{int(round(pct_cumplimiento_c))}%</div><div style="font-size:11px;color:#94A3B8;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;">{fin_c_cnt} cerrados de {total_hist_c}</div></div>""", unsafe_allow_html=True)
                     with kc4:
                         pct_abiertos_c = round((abiertos_c / total_planes_c) * 100) if total_planes_c else 0
                         pct_vencidos_c = round((vencidos_c / total_planes_c) * 100) if total_planes_c else 0
@@ -3395,4 +3395,3 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
-

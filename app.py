@@ -3575,42 +3575,83 @@ else:
                             )
                             st.caption("Cuenta los informes publicados según la fecha real de publicación, separados entre oportunos y extemporáneos.")
 
-                        # Gráfica 2: volumen de obligaciones por periodicidad registrada en la hoja.
+                        # Gráfica 2: obligaciones agrupadas por periodicidad normalizada.
+                        # Se normalizan los textos para evitar que espacios/capitalización creen
+                        # categorías duplicadas que provoquen etiquetas superpuestas.
                         with col_chart_periodicidad_inf_c:
                             st.subheader("🗓️ Obligaciones por periodicidad")
                             if col_periodicidad_inf_c and col_periodicidad_inf_c in df_inf_ctrl_c.columns:
-                                df_periodicidad_ctrl_c = df_inf_ctrl_c[[col_periodicidad_inf_c]].copy()
-                                df_periodicidad_ctrl_c[col_periodicidad_inf_c] = (
-                                    df_periodicidad_ctrl_c[col_periodicidad_inf_c]
-                                    .fillna("").astype(str).str.strip()
+                                _periodicidad_raw_c = (
+                                    df_inf_ctrl_c[col_periodicidad_inf_c]
+                                    .fillna("").astype(str).str.strip().str.lower()
+                                    .str.replace(r"\s+", " ", regex=True)
                                 )
-                                df_periodicidad_ctrl_c = df_periodicidad_ctrl_c[
-                                    df_periodicidad_ctrl_c[col_periodicidad_inf_c].str.lower().isin(["", "nan", "none"]) == False
-                                ]
-                                df_periodicidad_ctrl_c[col_periodicidad_inf_c] = df_periodicidad_ctrl_c[col_periodicidad_inf_c].str.capitalize()
-                                df_periodicidad_ctrl_c = (
-                                    df_periodicidad_ctrl_c[col_periodicidad_inf_c]
-                                    .value_counts().rename_axis("Periodicidad").reset_index(name="Cantidad")
-                                    .sort_values("Cantidad", ascending=True)
-                                )
+
+                                def _normalizar_periodicidad_inf_c(valor):
+                                    valor = str(valor).strip().lower()
+                                    if valor == "mensual" or valor.startswith("mensual "):
+                                        return "Mensual"
+                                    if valor == "anual" or valor.startswith("anual "):
+                                        return "Anual"
+                                    if valor == "semestral" or valor.startswith("semestral "):
+                                        return "Semestral"
+                                    if valor in ("", "nan", "none", "nat"):
+                                        return ""
+                                    return "Otra periodicidad"
+
+                                _periodicidad_norm_c = _periodicidad_raw_c.apply(_normalizar_periodicidad_inf_c)
+                                orden_periodicidad_c = ["Mensual", "Anual", "Semestral", "Otra periodicidad"]
+                                conteo_periodicidad_c = _periodicidad_norm_c[_periodicidad_norm_c != ""].value_counts()
+                                df_periodicidad_ctrl_c = pd.DataFrame({
+                                    "Periodicidad": orden_periodicidad_c,
+                                    "Cantidad": [int(conteo_periodicidad_c.get(cat, 0)) for cat in orden_periodicidad_c],
+                                })
+                                df_periodicidad_ctrl_c = df_periodicidad_ctrl_c[df_periodicidad_ctrl_c["Cantidad"] > 0]
+
                                 if not df_periodicidad_ctrl_c.empty:
-                                    fig_periodicidad_inf_c = px.bar(
-                                        df_periodicidad_ctrl_c, x="Cantidad", y="Periodicidad", orientation="h",
-                                        text="Cantidad", color="Periodicidad",
-                                        color_discrete_sequence=["#60A5FA", "#34D399", "#A78BFA", "#FB923C", "#FACC15", "#38BDF8"]
-                                    )
-                                    fig_periodicidad_inf_c.update_traces(textposition="outside", cliponaxis=False, showlegend=False)
+                                    colores_periodicidad_c = {
+                                        "Mensual": "#60A5FA",
+                                        "Anual": "#34D399",
+                                        "Semestral": "#A78BFA",
+                                        "Otra periodicidad": "#FB923C",
+                                    }
+                                    fig_periodicidad_inf_c = go.Figure(go.Bar(
+                                        x=df_periodicidad_ctrl_c["Cantidad"],
+                                        y=df_periodicidad_ctrl_c["Periodicidad"],
+                                        orientation="h",
+                                        marker_color=[colores_periodicidad_c.get(v, "#60A5FA") for v in df_periodicidad_ctrl_c["Periodicidad"]],
+                                        text=df_periodicidad_ctrl_c["Cantidad"].astype(int).astype(str),
+                                        textposition="outside",
+                                        cliponaxis=False,
+                                        hovertemplate="Periodicidad: %{y}<br>Cantidad de obligaciones: %{x}<extra></extra>",
+                                    ))
                                     fig_periodicidad_inf_c.update_layout(
-                                        height=360, showlegend=False, margin=dict(l=10, r=25, t=15, b=35),
-                                        xaxis_title="Cantidad de obligaciones", yaxis_title=None,
-                                        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                                        font=dict(color="#E5E7EB"),
-                                        xaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.2)", rangemode="tozero", dtick=1),
-                                        yaxis=dict(showgrid=False, automargin=True)
+                                        height=320,
+                                        showlegend=False,
+                                        margin=dict(l=20, r=35, t=18, b=45),
+                                        xaxis_title="Cantidad de obligaciones",
+                                        yaxis_title=None,
+                                        paper_bgcolor="rgba(0,0,0,0)",
+                                        plot_bgcolor="rgba(0,0,0,0)",
+                                        font=dict(color="#E5E7EB", size=12),
+                                        xaxis=dict(
+                                            showgrid=True,
+                                            gridcolor="rgba(128,128,128,0.2)",
+                                            rangemode="tozero",
+                                            dtick=1,
+                                        ),
+                                        yaxis=dict(
+                                            showgrid=False,
+                                            automargin=True,
+                                            categoryorder="array",
+                                            categoryarray=list(reversed(df_periodicidad_ctrl_c["Periodicidad"].tolist())),
+                                        ),
                                     )
                                     st.plotly_chart(
-                                        fig_periodicidad_inf_c, use_container_width=True,
-                                        key="fig_obligaciones_periodicidad_control_c", config={"displayModeBar": False}
+                                        fig_periodicidad_inf_c,
+                                        use_container_width=True,
+                                        key="fig_obligaciones_periodicidad_control_c",
+                                        config={"displayModeBar": False},
                                     )
                                 else:
                                     st.info("No hay periodicidades registradas para graficar.")

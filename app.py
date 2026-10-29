@@ -1613,7 +1613,7 @@ if entorno_activo == "Auditoría Interna":
     for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
         with tab_obj:
             if nombre_tab_real == "Tablero":
-                col_izq, col_der = st.columns([1.0, 1.65])
+                col_izq, col_der = st.columns([1.15, 1.55], gap="large")
 
                 with col_izq:
                     # =========================================================
@@ -1623,12 +1623,12 @@ if entorno_activo == "Auditoría Interna":
 
                     with k1:
                         st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #3B82F6; padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 10px;">
+                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #3B82F6; padding: 20px 18px; min-height: 172px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px;">
                             <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">Hallazgos Pendientes</div>
                             <div style="font-size: 30px; font-weight: 800; color: #FFFFFF; font-family: monospace; margin: 4px 0;">{total_hallazgos_unicos_pendientes}</div>
-                            <div style="font-size: 10px; font-weight: 600; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-wrap: wrap; gap: 4px;">
+                            <div style="font-size: 11px; font-weight: 600; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-wrap: wrap; align-items: flex-start; gap: 5px;">
                                 <span style="background: rgba(244,63,94,0.15); color: #FB7185; padding: 2px 5px; border-radius: 4px;">● {r_alto} Alto</span>
-                                <span style="background: rgba(245,158,11,0.15); color: #FCD34D; padding: 2px 5px; border-radius: 4px;">● {r_medio} Med</span>
+                                <span style="background: rgba(245,158,11,0.15); color: #FCD34D; padding: 2px 5px; border-radius: 4px;">● {r_medio} Medio</span>
                                 <span style="background: rgba(16,185,129,0.15); color: #6EE7B7; padding: 2px 5px; border-radius: 4px;">● {r_bajo} Bajo</span>
                             </div>
                         </div>
@@ -1636,13 +1636,13 @@ if entorno_activo == "Auditoría Interna":
 
                     with k2:
                         st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #EF4444; padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 10px;">
+                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #EF4444; padding: 20px 18px; min-height: 172px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px;">
                             <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">Planes de Acción</div>
                             <div style="font-size: 30px; font-weight: 800; color: #FFFFFF; font-family: monospace; margin: 4px 0;">{total_planes_pendientes}</div>
-                            <div style="font-size: 10px; font-weight: 600; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
+                            <div style="font-size: 11px; font-weight: 600; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: flex-start; align-items: flex-start; flex-wrap: wrap; gap: 5px;">
                                 <span style="background: rgba(16,185,129,0.15); color: #34D399; padding: 2px 5px; border-radius: 4px;">{abiertos} Abiertos</span>
                                 <span style="background: rgba(239,68,68,0.2); color: #F87171; padding: 2px 5px; border-radius: 4px; font-weight: 700;">{vencidos} Vencidos</span>
-                                <span style="background: rgba(148,163,184,0.15); color: #CBD5E1; padding: 2px 5px; border-radius: 4px;">{sin_plan} S/D</span>
+                                <span style="background: rgba(148,163,184,0.15); color: #CBD5E1; padding: 2px 5px; border-radius: 4px;">{sin_plan} Sin definir</span>
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
@@ -1651,7 +1651,7 @@ if entorno_activo == "Auditoría Interna":
 
                     with k3:
                         st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #10B981; padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 10px;">
+                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #10B981; padding: 20px 18px; min-height: 172px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px;">
                             <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">Cumplimiento</div>
                             <div style="font-size: 30px; font-weight: 800; color: #34D399; font-family: monospace; margin: 4px 0;">{pct_cumplimiento_ai}%</div>
                             <div style="font-size: 10px; color: #94A3B8; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08);">{fin_ai_cnt} cerrados de {total_hist_ai}</div>
@@ -1660,7 +1660,7 @@ if entorno_activo == "Auditoría Interna":
 
                     with k4:
                         st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #F59E0B; padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 10px;">
+                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #F59E0B; padding: 20px 18px; min-height: 172px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px;">
                             <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">Prom. Días Mora</div>
                             <div style="font-size: 30px; font-weight: 800; color: #FBBF24; font-family: monospace; margin: 4px 0;">{prom_mora_ai_val} <span style="font-size: 12px; color: #94A3B8;">días</span></div>
                             <div style="font-size: 10px; color: #F87171; font-weight: 600; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08);">{len(df_raw_venc_ai)} atrasados</div>
@@ -1689,26 +1689,26 @@ if entorno_activo == "Auditoría Interna":
                     with a1:
                         color_5 = "#FB7185" if val_5 != "—" else "#64748B"
                         st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #24141E, #111827); border-top: 3.5px solid #EF4444; padding: 13px 14px; border-radius: 10px; border: 1px solid rgba(239,68,68,0.3); margin-bottom: 8px;">
+                        <div style="background: linear-gradient(145deg, #24141E, #111827); border-top: 3.5px solid #EF4444; padding: 19px 17px; min-height: 160px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(239,68,68,0.3); margin-bottom: 10px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                                <span style="font-size: 10.5px; font-weight: 800; color: #FDA4AF;">🔴 5 DÍAS</span>
-                                <span style="font-size: 9.5px; font-weight: 700; background: rgba(239,68,68,0.2); color: #FDA4AF; padding: 1px 5px; border-radius: 999px;">Crítico</span>
+                                <span style="font-size: 12px; font-weight: 800; color: #FDA4AF;">🔴 5 DÍAS</span>
+                                <span style="font-size: 11px; font-weight: 700; background: rgba(239,68,68,0.2); color: #FDA4AF; padding: 1px 5px; border-radius: 999px;">Crítico</span>
                             </div>
                             <div style="font-size: 27px; font-weight: 800; color: {color_5}; font-family: monospace;">{val_5}</div>
-                            <div style="font-size: 10px; color: #94A3B8; margin-top: 2px;">Vencimiento inmediato</div>
+                            <div style="font-size: 11px; color: #94A3B8; margin-top: 6px;">Vencimiento inmediato</div>
                         </div>
                         """, unsafe_allow_html=True)
 
                     with a2:
                         color_10 = "#FCD34D" if val_10 != "—" else "#64748B"
                         st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #1F1E16, #111827); border-top: 3.5px solid #F59E0B; padding: 13px 14px; border-radius: 10px; border: 1px solid rgba(245,158,11,0.25); margin-bottom: 8px;">
+                        <div style="background: linear-gradient(145deg, #1F1E16, #111827); border-top: 3.5px solid #F59E0B; padding: 19px 17px; min-height: 160px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(245,158,11,0.25); margin-bottom: 10px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                                <span style="font-size: 10.5px; font-weight: 800; color: #FDE68A;">🟡 10 DÍAS</span>
-                                <span style="font-size: 9.5px; font-weight: 700; background: rgba(245,158,11,0.2); color: #FDE68A; padding: 1px 5px; border-radius: 999px;">Atención</span>
+                                <span style="font-size: 12px; font-weight: 800; color: #FDE68A;">🟡 10 DÍAS</span>
+                                <span style="font-size: 11px; font-weight: 700; background: rgba(245,158,11,0.2); color: #FDE68A; padding: 1px 5px; border-radius: 999px;">Atención</span>
                             </div>
                             <div style="font-size: 27px; font-weight: 800; color: {color_10}; font-family: monospace;">{val_10}</div>
-                            <div style="font-size: 10px; color: #94A3B8; margin-top: 2px;">Ventana de precaución</div>
+                            <div style="font-size: 11px; color: #94A3B8; margin-top: 6px;">Ventana de precaución</div>
                         </div>
                         """, unsafe_allow_html=True)
 
@@ -1716,26 +1716,26 @@ if entorno_activo == "Auditoría Interna":
                     with a3:
                         color_20 = "#6EE7B7" if val_20 != "—" else "#64748B"
                         st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #13221C, #111827); border-top: 3.5px solid #10B981; padding: 13px 14px; border-radius: 10px; border: 1px solid rgba(16,185,129,0.25); margin-bottom: 8px;">
+                        <div style="background: linear-gradient(145deg, #13221C, #111827); border-top: 3.5px solid #10B981; padding: 19px 17px; min-height: 160px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(16,185,129,0.25); margin-bottom: 10px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                                <span style="font-size: 10.5px; font-weight: 800; color: #A7F3D0;">🟢 20 DÍAS</span>
-                                <span style="font-size: 9.5px; font-weight: 700; background: rgba(16,185,129,0.2); color: #A7F3D0; padding: 1px 5px; border-radius: 999px;">Control</span>
+                                <span style="font-size: 12px; font-weight: 800; color: #A7F3D0;">🟢 20 DÍAS</span>
+                                <span style="font-size: 11px; font-weight: 700; background: rgba(16,185,129,0.2); color: #A7F3D0; padding: 1px 5px; border-radius: 999px;">Control</span>
                             </div>
                             <div style="font-size: 27px; font-weight: 800; color: {color_20}; font-family: monospace;">{val_20}</div>
-                            <div style="font-size: 10px; color: #94A3B8; margin-top: 2px;">Seguimiento preventivo</div>
+                            <div style="font-size: 11px; color: #94A3B8; margin-top: 6px;">Seguimiento preventivo</div>
                         </div>
                         """, unsafe_allow_html=True)
 
                     with a4:
                         color_30 = "#93C5FD" if val_30 != "—" else "#64748B"
                         st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #141E2C, #111827); border-top: 3.5px solid #3B82F6; padding: 13px 14px; border-radius: 10px; border: 1px solid rgba(59,130,246,0.25); margin-bottom: 8px;">
+                        <div style="background: linear-gradient(145deg, #141E2C, #111827); border-top: 3.5px solid #3B82F6; padding: 19px 17px; min-height: 160px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(59,130,246,0.25); margin-bottom: 10px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                                <span style="font-size: 10.5px; font-weight: 800; color: #BFDBFE;">🔵 30 DÍAS</span>
-                                <span style="font-size: 9.5px; font-weight: 700; background: rgba(59,130,246,0.2); color: #BFDBFE; padding: 1px 5px; border-radius: 999px;">Planeación</span>
+                                <span style="font-size: 12px; font-weight: 800; color: #BFDBFE;">🔵 30 DÍAS</span>
+                                <span style="font-size: 11px; font-weight: 700; background: rgba(59,130,246,0.2); color: #BFDBFE; padding: 1px 5px; border-radius: 999px;">Planeación</span>
                             </div>
                             <div style="font-size: 27px; font-weight: 800; color: {color_30}; font-family: monospace;">{val_30}</div>
-                            <div style="font-size: 10px; color: #94A3B8; margin-top: 2px;">Alerta mensual anticipada</div>
+                            <div style="font-size: 11px; color: #94A3B8; margin-top: 6px;">Alerta mensual anticipada</div>
                         </div>
                         """, unsafe_allow_html=True)
 

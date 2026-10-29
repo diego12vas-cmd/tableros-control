@@ -2515,7 +2515,7 @@ else:
     def cargar_datos_c():
         if not os.path.exists(EXCEL_PATH_C):
             st.error(f"No se encontró el archivo Excel de Contraloría en la ruta: `{EXCEL_PATH_C}`")
-            return pd.DataFrame(), pd.DataFrame()
+            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
         try:
             xls = pd.ExcelFile(EXCEL_PATH_C)
@@ -2534,12 +2534,21 @@ else:
             sheet_inf = "Enlace PDF" if "Enlace PDF" in xls.sheet_names else ("Enlace pdf" if "Enlace pdf" in xls.sheet_names else None)
             df_informes = pd.read_excel(xls, sheet_name=sheet_inf) if sheet_inf else pd.DataFrame()
 
-            return df_base, df_informes
+            # Hoja adicional para el indicador de obligaciones de informes de Contraloría.
+            sheet_seguimiento = next(
+                (s for s in xls.sheet_names if str(s).strip().lower() == "seguimiento informes"),
+                None
+            )
+            df_seguimiento = pd.read_excel(xls, sheet_name=sheet_seguimiento) if sheet_seguimiento else pd.DataFrame()
+            if not df_seguimiento.empty:
+                df_seguimiento.columns = [str(c).strip() for c in df_seguimiento.columns]
+
+            return df_base, df_informes, df_seguimiento
         except Exception as e:
             st.error(f"Error al cargar el archivo Excel de Contraloría: {e}")
-            return pd.DataFrame(), pd.DataFrame()
+            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
-    df_raw_c, df_informes_raw_c = cargar_datos_c()
+    df_raw_c, df_informes_raw_c, df_seguimiento_informes_c = cargar_datos_c()
 
     if df_raw_c.empty:
         st.stop()
@@ -2950,10 +2959,19 @@ else:
         "Métricas": "📈 Métricas de Cumplimiento",
         "Indicadores de Gestión": "📌 Indicadores de Gestión",
         "Histórico": "📊 Histórico",
+        "Control de Informes": "📋 Control de Informes de Contraloría",
         "Informes": "📑 Informes de Auditoría"
     }
 
-    pestañas_permitidas_c = [p for p in TODAS_LAS_PESTANIAS if p in st.session_state.get("permisos_usuario", []) and p in dict_pestanias_c]
+    # Compatibilidad de permisos: quienes ya tienen acceso a "Informes" también
+    # podrán ver el indicador nuevo, sin cambiar los permisos guardados.
+    permisos_pestanas_c = st.session_state.get("permisos_usuario", [])
+    pestañas_permitidas_c = [
+        p for p in dict_pestanias_c
+        if p in permisos_pestanas_c
+        or (p == "Control de Informes" and "Informes" in permisos_pestanas_c)
+        or st.session_state.get("usuario_actual") == "admin"
+    ]
 
     if not pestañas_permitidas_c:
         st.warning("⚠️ No tienes permisos asignados para ver ninguna sección en Contraloría. Contacta al administrador.")
@@ -3333,6 +3351,232 @@ else:
                             df_pivot_area_hall = df_pivot_area_hall.sort_values(by="Total Histórico", ascending=False)
                             st.dataframe(df_pivot_area_hall, use_container_width=True)
 
+            elif nombre_tab_real_c == "Control de Informes":
+                st.header("📋 Control de Informes de Contraloría")
+                st.markdown(
+                    "Indicadores calculados directamente desde la hoja **Seguimiento informes** del Excel de Contraloría. "
+                    "Los estados se recalculan al abrir la aplicación usando las fechas registradas."
+                )
+
+                if df_seguimiento_informes_c.empty:
+                    st.warning(
+                        "No se encontró la hoja **Seguimiento informes** o no contiene registros. "
+                        "Verifica que esté incluida en el archivo TABLERO_PA_C.xlsx."
+                    )
+                else:
+                    df_inf_ctrl_c = df_seguimiento_informes_c.copy()
+                    col_nombre_inf_c = buscar_columna_por_patron(df_inf_ctrl_c, ["nombre del informe"]) or (
+                        "Nombre del informe" if "Nombre del informe" in df_inf_ctrl_c.columns else None
+                    )
+                    col_codigo_inf_c = buscar_columna_por_patron(df_inf_ctrl_c, ["codigo / formato", "código / formato", "codigo formato"])
+                    col_periodicidad_inf_c = buscar_columna_por_patron(df_inf_ctrl_c, ["periodicidad"])
+                    col_periodo_inf_c = buscar_columna_por_patron(df_inf_ctrl_c, ["periodo reportado"])
+                    col_limite_inf_c = buscar_columna_por_patron(df_inf_ctrl_c, ["fecha limite de publicacion", "fecha límite de publicación"])
+                    col_anticipacion_inf_c = buscar_columna_por_patron(df_inf_ctrl_c, ["dias de anticipacion", "días de anticipación"])
+                    col_real_inf_c = buscar_columna_por_patron(df_inf_ctrl_c, ["fecha real de publicacion", "fecha real de publicación"])
+                    col_resp_inf_c = buscar_columna_por_patron(df_inf_ctrl_c, ["responsable"])
+                    col_enlace_inf_c = buscar_columna_por_patron(df_inf_ctrl_c, ["enlace de publicacion", "enlace de publicación", "evidencia"])
+                    col_id_inf_c = "ID" if "ID" in df_inf_ctrl_c.columns else None
+
+                    if col_nombre_inf_c is None or col_limite_inf_c is None:
+                        st.error("La hoja 'Seguimiento informes' debe tener, como mínimo, las columnas 'Nombre del informe' y 'Fecha límite de publicación'.")
+                    else:
+                        df_inf_ctrl_c[col_limite_inf_c] = df_inf_ctrl_c[col_limite_inf_c].apply(parsear_fecha_estricta)
+                        if col_real_inf_c:
+                            df_inf_ctrl_c[col_real_inf_c] = df_inf_ctrl_c[col_real_inf_c].apply(parsear_fecha_estricta)
+                        else:
+                            df_inf_ctrl_c["_Fecha_real_publicacion"] = pd.NaT
+                            col_real_inf_c = "_Fecha_real_publicacion"
+
+                        if col_anticipacion_inf_c:
+                            df_inf_ctrl_c[col_anticipacion_inf_c] = pd.to_numeric(df_inf_ctrl_c[col_anticipacion_inf_c], errors="coerce").fillna(0)
+                        else:
+                            df_inf_ctrl_c["_Dias_anticipacion"] = 0
+                            col_anticipacion_inf_c = "_Dias_anticipacion"
+
+                        # Descarta filas realmente vacías y no depende de que Excel haya recalculado sus fórmulas.
+                        df_inf_ctrl_c[col_nombre_inf_c] = df_inf_ctrl_c[col_nombre_inf_c].fillna("").astype(str).str.strip()
+                        df_inf_ctrl_c = df_inf_ctrl_c[
+                            ~df_inf_ctrl_c[col_nombre_inf_c].str.lower().isin(["", "nan", "none"])
+                        ].copy()
+
+                        hoy_inf_c = pd.Timestamp(date.today()).normalize()
+
+                        # Recalcula IDs porque pandas no evalúa las fórmulas de Excel.
+                        if col_id_inf_c:
+                            ids_inf_c = df_inf_ctrl_c[col_id_inf_c].fillna("").astype(str).str.strip()
+                            vacios_id_inf_c = ids_inf_c.eq("") | ids_inf_c.str.startswith("=") | ids_inf_c.str.lower().isin(["nan", "none"])
+                            df_inf_ctrl_c.loc[vacios_id_inf_c, col_id_inf_c] = [
+                                f"INF-{i:03d}" for i in range(1, int(vacios_id_inf_c.sum()) + 1)
+                            ]
+
+                        def estado_informe_ctrl_c(fila):
+                            fecha_limite = fila[col_limite_inf_c]
+                            fecha_real = fila[col_real_inf_c]
+                            anticipacion = max(0, int(fila[col_anticipacion_inf_c] or 0))
+                            if pd.notna(fecha_real):
+                                if pd.isna(fecha_limite):
+                                    return "Fecha límite pendiente"
+                                return "Publicado oportunamente" if fecha_real.normalize() <= fecha_limite.normalize() else "Publicado extemporáneamente"
+                            if pd.isna(fecha_limite):
+                                return "Configurar fecha límite"
+                            dias_restantes = (fecha_limite.normalize() - hoy_inf_c).days
+                            if dias_restantes < 0:
+                                return "Vencido sin publicar"
+                            if dias_restantes <= anticipacion:
+                                return "Próximo a vencer"
+                            return "Pendiente"
+
+                        df_inf_ctrl_c["Estado calculado"] = df_inf_ctrl_c.apply(estado_informe_ctrl_c, axis=1)
+                        df_inf_ctrl_c["Días para vencer / días de mora"] = df_inf_ctrl_c.apply(
+                            lambda fila: (
+                                (fila[col_limite_inf_c].normalize() - hoy_inf_c).days
+                                if pd.notna(fila[col_limite_inf_c]) and pd.isna(fila[col_real_inf_c])
+                                else ((fila[col_real_inf_c].normalize() - fila[col_limite_inf_c].normalize()).days
+                                      if pd.notna(fila[col_real_inf_c]) and pd.notna(fila[col_limite_inf_c]) else None)
+                            ), axis=1
+                        )
+
+                        estados_inf_c = [
+                            "Publicado oportunamente",
+                            "Publicado extemporáneamente",
+                            "Próximo a vencer",
+                            "Vencido sin publicar",
+                            "Pendiente",
+                            "Fecha límite pendiente",
+                            "Configurar fecha límite"
+                        ]
+                        conteo_estados_inf_c = df_inf_ctrl_c["Estado calculado"].value_counts()
+                        total_obligaciones_inf_c = len(df_inf_ctrl_c)
+                        oportunos_inf_c = int(conteo_estados_inf_c.get("Publicado oportunamente", 0))
+                        extemporaneos_inf_c = int(conteo_estados_inf_c.get("Publicado extemporáneamente", 0))
+                        proximos_inf_c = int(conteo_estados_inf_c.get("Próximo a vencer", 0))
+                        vencidos_inf_c = int(conteo_estados_inf_c.get("Vencido sin publicar", 0))
+                        pendientes_inf_c = int(conteo_estados_inf_c.get("Pendiente", 0))
+                        base_oportunidad_inf_c = oportunos_inf_c + extemporaneos_inf_c
+                        pct_oportunidad_inf_c = (oportunos_inf_c / base_oportunidad_inf_c * 100) if base_oportunidad_inf_c else 0
+
+                        def tarjeta_indicador_inf_c(col, titulo, valor, color):
+                            col.markdown(
+                                f"""<div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid {color};border-radius:10px;padding:13px 12px;min-height:105px;box-sizing:border-box;">
+                                <div style="font-size:11px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">{titulo}</div>
+                                <div style="font-size:28px;font-weight:800;color:{color};margin-top:5px;">{valor}</div></div>""",
+                                unsafe_allow_html=True
+                            )
+
+                        k1, k2, k3, k4 = st.columns(4, gap="small")
+                        tarjeta_indicador_inf_c(k1, "Obligaciones registradas", f"{total_obligaciones_inf_c}", "#60A5FA")
+                        tarjeta_indicador_inf_c(k2, "Publicados oportunamente", f"{oportunos_inf_c}", "#34D399")
+                        tarjeta_indicador_inf_c(k3, "Publicados extemporáneamente", f"{extemporaneos_inf_c}", "#FB923C")
+                        tarjeta_indicador_inf_c(k4, "Oportunidad de publicación", f"{pct_oportunidad_inf_c:.1f}%", "#A78BFA")
+
+                        k5, k6, k7, k8 = st.columns(4, gap="small")
+                        tarjeta_indicador_inf_c(k5, "Próximos a vencer", f"{proximos_inf_c}", "#FACC15")
+                        tarjeta_indicador_inf_c(k6, "Vencidos sin publicar", f"{vencidos_inf_c}", "#F87171")
+                        tarjeta_indicador_inf_c(k7, "Pendientes", f"{pendientes_inf_c}", "#38BDF8")
+                        tarjeta_indicador_inf_c(k8, "Fecha por configurar", f"{int(conteo_estados_inf_c.get('Configurar fecha límite', 0) + conteo_estados_inf_c.get('Fecha límite pendiente', 0))}", "#CBD5E1")
+
+                        st.markdown("---")
+                        col_graf_inf_c, col_tab_inf_c = st.columns([1.25, 1], gap="large")
+                        with col_graf_inf_c:
+                            st.subheader("📊 Obligaciones por estado")
+                            df_graf_inf_c = pd.DataFrame({
+                                "Estado": ["Publicado oportunamente", "Publicado extemporáneamente", "Próximo a vencer", "Vencido sin publicar", "Pendiente"],
+                                "Cantidad": [oportunos_inf_c, extemporaneos_inf_c, proximos_inf_c, vencidos_inf_c, pendientes_inf_c]
+                            })
+                            fig_inf_ctrl_c = px.bar(
+                                df_graf_inf_c, x="Cantidad", y="Estado", orientation="h", text="Cantidad",
+                                color="Estado",
+                                color_discrete_map={
+                                    "Publicado oportunamente": "#2563EB",
+                                    "Publicado extemporáneamente": "#F97316",
+                                    "Próximo a vencer": "#84CC16",
+                                    "Vencido sin publicar": "#8B5CF6",
+                                    "Pendiente": "#06B6D4"
+                                }
+                            )
+                            fig_inf_ctrl_c.update_traces(textposition="outside", cliponaxis=False, showlegend=False)
+                            fig_inf_ctrl_c.update_layout(
+                                height=350, showlegend=False, xaxis_title="Cantidad", yaxis_title=None,
+                                margin=dict(l=10, r=20, t=15, b=35),
+                                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                                xaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.2)", rangemode="tozero"),
+                                yaxis=dict(showgrid=False, autorange="reversed")
+                            )
+                            st.plotly_chart(fig_inf_ctrl_c, use_container_width=True, key="fig_control_informes_contraloria", config={"displayModeBar": False})
+
+                        with col_tab_inf_c:
+                            st.subheader("📌 Resumen por estado")
+                            df_resumen_inf_c = df_graf_inf_c.rename(columns={"Estado": "Estado del control", "Cantidad": "Cantidad"})
+                            st.dataframe(df_resumen_inf_c, use_container_width=True, hide_index=True)
+
+                        st.markdown("---")
+                        st.subheader("🔎 Detalle de obligaciones")
+                        filtro_estado_inf_c = st.multiselect(
+                            "Filtrar por estado:",
+                            options=estados_inf_c,
+                            default=[],
+                            key="filtro_estado_control_informes_c"
+                        )
+                        filtro_periodo_inf_c = st.multiselect(
+                            "Filtrar por período reportado:",
+                            options=sorted(df_inf_ctrl_c[col_periodo_inf_c].dropna().astype(str).unique().tolist()) if col_periodo_inf_c else [],
+                            default=[],
+                            key="filtro_periodo_control_informes_c"
+                        )
+                        df_detalle_inf_c = df_inf_ctrl_c.copy()
+                        if filtro_estado_inf_c:
+                            df_detalle_inf_c = df_detalle_inf_c[df_detalle_inf_c["Estado calculado"].isin(filtro_estado_inf_c)]
+                        if filtro_periodo_inf_c and col_periodo_inf_c:
+                            df_detalle_inf_c = df_detalle_inf_c[df_detalle_inf_c[col_periodo_inf_c].astype(str).isin(filtro_periodo_inf_c)]
+
+                        cols_mostrar_inf_c = [
+                            c for c in [
+                                col_id_inf_c, col_nombre_inf_c, col_codigo_inf_c, col_periodicidad_inf_c,
+                                col_periodo_inf_c, col_limite_inf_c, col_anticipacion_inf_c, col_resp_inf_c,
+                                col_real_inf_c, col_enlace_inf_c, "Estado calculado", "Días para vencer / días de mora"
+                            ] if c and c in df_detalle_inf_c.columns and c not in ["_Fecha_real_publicacion", "_Dias_anticipacion"]
+                        ]
+                        df_detalle_inf_c = df_detalle_inf_c[cols_mostrar_inf_c].copy()
+                        if col_limite_inf_c in df_detalle_inf_c.columns:
+                            df_detalle_inf_c[col_limite_inf_c] = pd.to_datetime(df_detalle_inf_c[col_limite_inf_c], errors="coerce").dt.strftime("%d/%m/%Y")
+                        if col_real_inf_c in df_detalle_inf_c.columns:
+                            df_detalle_inf_c[col_real_inf_c] = pd.to_datetime(df_detalle_inf_c[col_real_inf_c], errors="coerce").dt.strftime("%d/%m/%Y")
+                        if col_enlace_inf_c and col_enlace_inf_c in df_detalle_inf_c.columns:
+                            df_detalle_inf_c[col_enlace_inf_c] = df_detalle_inf_c[col_enlace_inf_c].fillna("").astype(str).apply(
+                                lambda u: u if u.startswith(("http://", "https://")) or not u.strip() else f"https://{u}"
+                            )
+                            cfg_link_inf_c = {
+                                col_enlace_inf_c: st.column_config.LinkColumn(
+                                    "Enlace de publicación / evidencia",
+                                    display_text="📂 Abrir evidencia"
+                                )
+                            }
+                        else:
+                            cfg_link_inf_c = {}
+
+                        df_detalle_inf_c.index = range(1, len(df_detalle_inf_c) + 1)
+                        st.dataframe(
+                            df_detalle_inf_c, use_container_width=True, hide_index=False,
+                            column_config=cfg_link_inf_c
+                        )
+                        buffer_inf_c = io.BytesIO()
+                        with pd.ExcelWriter(buffer_inf_c, engine="xlsxwriter") as writer_inf_c:
+                            df_detalle_inf_c.to_excel(writer_inf_c, index=False, sheet_name="Control Informes")
+                            ws_inf_c = writer_inf_c.sheets["Control Informes"]
+                            ws_inf_c.freeze_panes(1, 0)
+                            ws_inf_c.autofilter(0, 0, len(df_detalle_inf_c), max(0, len(df_detalle_inf_c.columns) - 1))
+                            ws_inf_c.set_row(0, 30)
+                            for i_col, nombre_col in enumerate(df_detalle_inf_c.columns):
+                                ws_inf_c.set_column(i_col, i_col, min(max(len(str(nombre_col)) + 4, 16), 45))
+                        st.download_button(
+                            "📥 Descargar detalle de control de informes (.xlsx)",
+                            data=buffer_inf_c.getvalue(),
+                            file_name=f"Control_Informes_Contraloria_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            key="descargar_control_informes_contraloria"
+                        )
+
             elif nombre_tab_real_c == "Informes":
                 st.header("📑 Consulta Histórica de Informes de Contraloría")
                 st.markdown("Selecciona una vigencia para consultar los informes disponibles.")
@@ -3388,4 +3632,5 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
+
 

@@ -3489,19 +3489,22 @@ else:
 
                         def tarjeta_indicador_inf_c(col, titulo, valor, color):
                             col.markdown(
-                                f"""<div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid {color};border-radius:10px;padding:13px 12px;min-height:105px;box-sizing:border-box;">
-                                <div style="font-size:11px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">{titulo}</div>
-                                <div style="font-size:28px;font-weight:800;color:{color};margin-top:5px;">{valor}</div></div>""",
+                                f"""<div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid {color};border-radius:10px;padding:10px 12px;min-height:94px;box-sizing:border-box;margin:4px 0 6px 0;overflow-wrap:anywhere;">
+                                <div style="font-size:10.5px;font-weight:800;line-height:1.25;color:#CBD5E1;text-transform:uppercase;min-height:27px;">{titulo}</div>
+                                <div style="font-size:26px;line-height:1.15;font-weight:800;color:{color};margin-top:5px;">{valor}</div></div>""",
                                 unsafe_allow_html=True
                             )
 
-                        k1, k2, k3, k4 = st.columns(4, gap="small")
+                        # Dos filas con cuatro columnas iguales para evitar que las tarjetas
+                        # de la segunda fila sean más anchas que las de la primera.
+                        k1, k2, k3, k4 = st.columns(4, gap="medium")
                         tarjeta_indicador_inf_c(k1, "Obligaciones registradas", f"{total_obligaciones_inf_c}", "#60A5FA")
                         tarjeta_indicador_inf_c(k2, "Publicados oportunamente", f"{oportunos_inf_c}", "#34D399")
                         tarjeta_indicador_inf_c(k3, "Publicados extemporáneamente", f"{extemporaneos_inf_c}", "#FB923C")
                         tarjeta_indicador_inf_c(k4, "Oportunidad de publicación", f"{pct_oportunidad_inf_c:.1f}%", "#A78BFA")
 
-                        k5, k6, k7 = st.columns(3, gap="small")
+                        st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+                        k5, k6, k7, k8 = st.columns(4, gap="medium")
                         tarjeta_indicador_inf_c(k5, "Próximos a vencer", f"{proximos_inf_c}", "#FACC15")
                         tarjeta_indicador_inf_c(k6, "Vencidos sin publicar", f"{vencidos_inf_c}", "#F87171")
                         tarjeta_indicador_inf_c(k7, "Pendientes", f"{pendientes_inf_c}", "#38BDF8")

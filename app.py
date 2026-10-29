@@ -3564,4 +3564,4 @@ else:
                             c_h1_c, c_h2_c = st.columns(2)
 
                             with c_h1_c:
-                                df_vigencia_totales_c = df
+                                df_vigencia_totales_c = df_hist_calc_c.copy()

@@ -3618,7 +3618,7 @@ else:
                                 fig_publicaciones_mes_inf_c, use_container_width=True,
                                 key="fig_publicaciones_mensuales_control_c", config={"displayModeBar": False}
                             )
-                            st.caption("Cuenta los informes de periodicidad mensual según el período que reportan. Solo aparecen cuando tienen fecha real de publicación registrada; los informes de octubre se reflejarán en OCT cuando se publiquen, aunque se envíen en noviembre.")
+                            st.caption("Cuenta los informes de periodicidad mensual según el período que reportan. Solo aparecen cuando tienen fecha real de publicación registrada.")
 
                         # Gráfica 2: obligaciones agrupadas por periodicidad normalizada.
                         # Se normalizan los textos para evitar que espacios/capitalización creen

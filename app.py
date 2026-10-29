@@ -3510,38 +3510,112 @@ else:
                         tarjeta_indicador_inf_c(k7, "Pendientes", f"{pendientes_inf_c}", "#38BDF8")
 
                         st.markdown("---")
-                        col_graf_inf_c, col_tab_inf_c = st.columns([1.25, 1], gap="large")
-                        with col_graf_inf_c:
-                            st.subheader("📊 Obligaciones por estado")
-                            df_graf_inf_c = pd.DataFrame({
-                                "Estado": ["Publicado oportunamente", "Publicado extemporáneamente", "Próximo a vencer", "Vencido sin publicar", "Pendiente"],
-                                "Cantidad": [oportunos_inf_c, extemporaneos_inf_c, proximos_inf_c, vencidos_inf_c, pendientes_inf_c]
-                            })
-                            fig_inf_ctrl_c = px.bar(
-                                df_graf_inf_c, x="Cantidad", y="Estado", orientation="h", text="Cantidad",
-                                color="Estado",
-                                color_discrete_map={
-                                    "Publicado oportunamente": "#2563EB",
-                                    "Publicado extemporáneamente": "#F97316",
-                                    "Próximo a vencer": "#84CC16",
-                                    "Vencido sin publicar": "#8B5CF6",
-                                    "Pendiente": "#06B6D4"
-                                }
-                            )
-                            fig_inf_ctrl_c.update_traces(textposition="outside", cliponaxis=False, showlegend=False)
-                            fig_inf_ctrl_c.update_layout(
-                                height=350, showlegend=False, xaxis_title="Cantidad", yaxis_title=None,
-                                margin=dict(l=10, r=20, t=15, b=35),
-                                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                                xaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.2)", rangemode="tozero"),
-                                yaxis=dict(showgrid=False, autorange="reversed")
-                            )
-                            st.plotly_chart(fig_inf_ctrl_c, use_container_width=True, key="fig_control_informes_contraloria", config={"displayModeBar": False})
+                        col_mes_inf_c, col_chart_periodicidad_inf_c = st.columns([1.2, 1], gap="large")
 
-                        with col_tab_inf_c:
-                            st.subheader("📌 Resumen por estado")
-                            df_resumen_inf_c = df_graf_inf_c.rename(columns={"Estado": "Estado del control", "Cantidad": "Cantidad"})
-                            st.dataframe(df_resumen_inf_c, use_container_width=True, hide_index=True)
+                        # Gráfica 1: publicaciones por mes real de publicación.
+                        # Solo incluye informes ya publicados; compara oportunidad frente a extemporaneidad.
+                        with col_mes_inf_c:
+                            st.subheader("📈 Publicaciones por mes")
+                            meses_nombres_inf_c = [
+                                "ENE", "FEB", "MAR", "ABR", "MAY", "JUN",
+                                "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"
+                            ]
+                            df_publicados_mes_inf_c = df_inf_ctrl_c[
+                                df_inf_ctrl_c[col_real_inf_c].notna()
+                                & df_inf_ctrl_c["Estado calculado"].isin([
+                                    "Publicado oportunamente", "Publicado extemporáneamente"
+                                ])
+                            ].copy()
+                            if not df_publicados_mes_inf_c.empty:
+                                df_publicados_mes_inf_c["Mes_numero"] = df_publicados_mes_inf_c[col_real_inf_c].dt.month
+                                resumen_mes_inf_c = df_publicados_mes_inf_c.groupby(
+                                    ["Mes_numero", "Estado calculado"]
+                                ).size().unstack(fill_value=0)
+                            else:
+                                resumen_mes_inf_c = pd.DataFrame()
+
+                            meses_x_inf_c = list(range(1, 13))
+                            cantidades_oportunos_mes_inf_c = []
+                            cantidades_extemporaneos_mes_inf_c = []
+                            for mes_inf_c in meses_x_inf_c:
+                                if mes_inf_c in resumen_mes_inf_c.index:
+                                    cantidades_oportunos_mes_inf_c.append(int(resumen_mes_inf_c.loc[mes_inf_c].get("Publicado oportunamente", 0)))
+                                    cantidades_extemporaneos_mes_inf_c.append(int(resumen_mes_inf_c.loc[mes_inf_c].get("Publicado extemporáneamente", 0)))
+                                else:
+                                    cantidades_oportunos_mes_inf_c.append(0)
+                                    cantidades_extemporaneos_mes_inf_c.append(0)
+
+                            fig_publicaciones_mes_inf_c = go.Figure()
+                            fig_publicaciones_mes_inf_c.add_trace(go.Bar(
+                                name="Oportunos", x=meses_nombres_inf_c, y=cantidades_oportunos_mes_inf_c,
+                                marker_color="#34D399",
+                                text=[str(v) if v > 0 else "" for v in cantidades_oportunos_mes_inf_c],
+                                textposition="outside", cliponaxis=False,
+                                hovertemplate="Mes: %{x}<br>Publicados oportunamente: %{y}<extra></extra>"
+                            ))
+                            fig_publicaciones_mes_inf_c.add_trace(go.Bar(
+                                name="Extemporáneos", x=meses_nombres_inf_c, y=cantidades_extemporaneos_mes_inf_c,
+                                marker_color="#FB923C",
+                                text=[str(v) if v > 0 else "" for v in cantidades_extemporaneos_mes_inf_c],
+                                textposition="outside", cliponaxis=False,
+                                hovertemplate="Mes: %{x}<br>Publicados extemporáneamente: %{y}<extra></extra>"
+                            ))
+                            fig_publicaciones_mes_inf_c.update_layout(
+                                barmode="group", height=360, margin=dict(l=10, r=15, t=15, b=35),
+                                xaxis_title="Mes de publicación", yaxis_title="Cantidad de informes",
+                                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                                font=dict(color="#E5E7EB"),
+                                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+                                xaxis=dict(showgrid=False, categoryorder="array", categoryarray=meses_nombres_inf_c),
+                                yaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.2)", rangemode="tozero", dtick=1)
+                            )
+                            st.plotly_chart(
+                                fig_publicaciones_mes_inf_c, use_container_width=True,
+                                key="fig_publicaciones_mensuales_control_c", config={"displayModeBar": False}
+                            )
+                            st.caption("Cuenta los informes publicados según la fecha real de publicación, separados entre oportunos y extemporáneos.")
+
+                        # Gráfica 2: volumen de obligaciones por periodicidad registrada en la hoja.
+                        with col_chart_periodicidad_inf_c:
+                            st.subheader("🗓️ Obligaciones por periodicidad")
+                            if col_periodicidad_inf_c and col_periodicidad_inf_c in df_inf_ctrl_c.columns:
+                                df_periodicidad_ctrl_c = df_inf_ctrl_c[[col_periodicidad_inf_c]].copy()
+                                df_periodicidad_ctrl_c[col_periodicidad_inf_c] = (
+                                    df_periodicidad_ctrl_c[col_periodicidad_inf_c]
+                                    .fillna("").astype(str).str.strip()
+                                )
+                                df_periodicidad_ctrl_c = df_periodicidad_ctrl_c[
+                                    df_periodicidad_ctrl_c[col_periodicidad_inf_c].str.lower().isin(["", "nan", "none"]) == False
+                                ]
+                                df_periodicidad_ctrl_c[col_periodicidad_inf_c] = df_periodicidad_ctrl_c[col_periodicidad_inf_c].str.capitalize()
+                                df_periodicidad_ctrl_c = (
+                                    df_periodicidad_ctrl_c[col_periodicidad_inf_c]
+                                    .value_counts().rename_axis("Periodicidad").reset_index(name="Cantidad")
+                                    .sort_values("Cantidad", ascending=True)
+                                )
+                                if not df_periodicidad_ctrl_c.empty:
+                                    fig_periodicidad_inf_c = px.bar(
+                                        df_periodicidad_ctrl_c, x="Cantidad", y="Periodicidad", orientation="h",
+                                        text="Cantidad", color="Periodicidad",
+                                        color_discrete_sequence=["#60A5FA", "#34D399", "#A78BFA", "#FB923C", "#FACC15", "#38BDF8"]
+                                    )
+                                    fig_periodicidad_inf_c.update_traces(textposition="outside", cliponaxis=False, showlegend=False)
+                                    fig_periodicidad_inf_c.update_layout(
+                                        height=360, showlegend=False, margin=dict(l=10, r=25, t=15, b=35),
+                                        xaxis_title="Cantidad de obligaciones", yaxis_title=None,
+                                        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                                        font=dict(color="#E5E7EB"),
+                                        xaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.2)", rangemode="tozero", dtick=1),
+                                        yaxis=dict(showgrid=False, automargin=True)
+                                    )
+                                    st.plotly_chart(
+                                        fig_periodicidad_inf_c, use_container_width=True,
+                                        key="fig_obligaciones_periodicidad_control_c", config={"displayModeBar": False}
+                                    )
+                                else:
+                                    st.info("No hay periodicidades registradas para graficar.")
+                            else:
+                                st.info("La hoja no contiene una columna de periodicidad.")
 
                         st.markdown("---")
                         st.subheader("🔎 Detalle de obligaciones")

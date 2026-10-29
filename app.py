@@ -3512,22 +3512,67 @@ else:
                         st.markdown("---")
                         col_mes_inf_c, col_chart_periodicidad_inf_c = st.columns([1.2, 1], gap="large")
 
-                        # Gráfica 1: publicaciones por mes real de publicación.
-                        # Solo incluye informes ya publicados; compara oportunidad frente a extemporaneidad.
+                        # Gráfica 1: informes mensuales por PERÍODO REPORTADO.
+                        # Solo se contabilizan cuando existe fecha real de publicación.
+                        # Así, los informes correspondientes a octubre aparecerán en OCT
+                        # cuando se publiquen (aunque su fecha real sea de noviembre).
                         with col_mes_inf_c:
-                            st.subheader("📈 Publicaciones por mes")
+                            st.subheader("📈 Informes mensuales por período reportado")
                             meses_nombres_inf_c = [
                                 "ENE", "FEB", "MAR", "ABR", "MAY", "JUN",
                                 "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"
                             ]
+                            mapa_meses_inf_c = {
+                                "enero": 1, "ene": 1,
+                                "febrero": 2, "feb": 2,
+                                "marzo": 3, "mar": 3,
+                                "abril": 4, "abr": 4,
+                                "mayo": 5, "may": 5,
+                                "junio": 6, "jun": 6,
+                                "julio": 7, "jul": 7,
+                                "agosto": 8, "ago": 8,
+                                "septiembre": 9, "setiembre": 9, "sep": 9, "set": 9,
+                                "octubre": 10, "oct": 10,
+                                "noviembre": 11, "nov": 11,
+                                "diciembre": 12, "dic": 12,
+                            }
+
                             df_publicados_mes_inf_c = df_inf_ctrl_c[
                                 df_inf_ctrl_c[col_real_inf_c].notna()
                                 & df_inf_ctrl_c["Estado calculado"].isin([
                                     "Publicado oportunamente", "Publicado extemporáneamente"
                                 ])
                             ].copy()
+
+                            # La gráfica mensual solo incluye periodicidad mensual y agrupa
+                            # por el mes que se está reportando, no por el mes de envío.
+                            if col_periodicidad_inf_c and col_periodicidad_inf_c in df_publicados_mes_inf_c.columns:
+                                periodicidad_normalizada_graf_c = (
+                                    df_publicados_mes_inf_c[col_periodicidad_inf_c]
+                                    .fillna("").astype(str).str.strip().str.lower()
+                                    .str.replace(r"\s+", " ", regex=True)
+                                )
+                                df_publicados_mes_inf_c = df_publicados_mes_inf_c[
+                                    periodicidad_normalizada_graf_c.eq("mensual")
+                                    | periodicidad_normalizada_graf_c.str.startswith("mensual ")
+                                ].copy()
+                            else:
+                                df_publicados_mes_inf_c = df_publicados_mes_inf_c.iloc[0:0].copy()
+
+                            if col_periodo_inf_c and col_periodo_inf_c in df_publicados_mes_inf_c.columns:
+                                df_publicados_mes_inf_c["Mes_numero"] = (
+                                    df_publicados_mes_inf_c[col_periodo_inf_c]
+                                    .fillna("").astype(str).str.strip().str.lower()
+                                    .map(mapa_meses_inf_c)
+                                )
+                                df_publicados_mes_inf_c = df_publicados_mes_inf_c[
+                                    df_publicados_mes_inf_c["Mes_numero"].notna()
+                                ].copy()
+                            else:
+                                df_publicados_mes_inf_c["Mes_numero"] = pd.Series(dtype="float64")
+
                             if not df_publicados_mes_inf_c.empty:
-                                df_publicados_mes_inf_c["Mes_numero"] = df_publicados_mes_inf_c[col_real_inf_c].dt.month
+                                df_publicados_mes_inf_c["Mes_numero"] = df_publicados_mes_inf_c["Mes_numero"].astype(int)
                                 resumen_mes_inf_c = df_publicados_mes_inf_c.groupby(
                                     ["Mes_numero", "Estado calculado"]
                                 ).size().unstack(fill_value=0)
@@ -3551,18 +3596,18 @@ else:
                                 marker_color="#34D399",
                                 text=[str(v) if v > 0 else "" for v in cantidades_oportunos_mes_inf_c],
                                 textposition="outside", cliponaxis=False,
-                                hovertemplate="Mes: %{x}<br>Publicados oportunamente: %{y}<extra></extra>"
+                                hovertemplate="Período reportado: %{x}<br>Informes publicados oportunamente: %{y}<extra></extra>"
                             ))
                             fig_publicaciones_mes_inf_c.add_trace(go.Bar(
                                 name="Extemporáneos", x=meses_nombres_inf_c, y=cantidades_extemporaneos_mes_inf_c,
                                 marker_color="#FB923C",
                                 text=[str(v) if v > 0 else "" for v in cantidades_extemporaneos_mes_inf_c],
                                 textposition="outside", cliponaxis=False,
-                                hovertemplate="Mes: %{x}<br>Publicados extemporáneamente: %{y}<extra></extra>"
+                                hovertemplate="Período reportado: %{x}<br>Informes publicados extemporáneamente: %{y}<extra></extra>"
                             ))
                             fig_publicaciones_mes_inf_c.update_layout(
                                 barmode="group", height=360, margin=dict(l=10, r=15, t=15, b=35),
-                                xaxis_title="Mes de publicación", yaxis_title="Cantidad de informes",
+                                xaxis_title="Período reportado", yaxis_title="Cantidad de informes publicados",
                                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                                 font=dict(color="#E5E7EB"),
                                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
@@ -3573,7 +3618,7 @@ else:
                                 fig_publicaciones_mes_inf_c, use_container_width=True,
                                 key="fig_publicaciones_mensuales_control_c", config={"displayModeBar": False}
                             )
-                            st.caption("Cuenta los informes publicados según la fecha real de publicación, separados entre oportunos y extemporáneos.")
+                            st.caption("Cuenta los informes de periodicidad mensual según el período que reportan. Solo aparecen cuando tienen fecha real de publicación registrada; los informes de octubre se reflejarán en OCT cuando se publiquen, aunque se envíen en noviembre.")
 
                         # Gráfica 2: obligaciones agrupadas por periodicidad normalizada.
                         # Se normalizan los textos para evitar que espacios/capitalización creen

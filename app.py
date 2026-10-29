@@ -3579,45 +3579,51 @@ else:
                             else:
                                 resumen_mes_inf_c = pd.DataFrame()
 
-                            meses_x_inf_c = list(range(1, 13))
+                            # Mostrar únicamente los meses con al menos una publicación mensual registrada.
+                            # Si octubre no tiene informes publicados, OCT no aparece aún en el eje.
+                            meses_x_inf_c = (
+                                sorted(int(m) for m in resumen_mes_inf_c.index)
+                                if not resumen_mes_inf_c.empty else []
+                            )
+                            meses_publicados_x_inf_c = [meses_nombres_inf_c[m - 1] for m in meses_x_inf_c]
                             cantidades_oportunos_mes_inf_c = []
                             cantidades_extemporaneos_mes_inf_c = []
                             for mes_inf_c in meses_x_inf_c:
-                                if mes_inf_c in resumen_mes_inf_c.index:
-                                    cantidades_oportunos_mes_inf_c.append(int(resumen_mes_inf_c.loc[mes_inf_c].get("Publicado oportunamente", 0)))
-                                    cantidades_extemporaneos_mes_inf_c.append(int(resumen_mes_inf_c.loc[mes_inf_c].get("Publicado extemporáneamente", 0)))
-                                else:
-                                    cantidades_oportunos_mes_inf_c.append(0)
-                                    cantidades_extemporaneos_mes_inf_c.append(0)
+                                fila_mes_inf_c = resumen_mes_inf_c.loc[mes_inf_c]
+                                cantidades_oportunos_mes_inf_c.append(int(fila_mes_inf_c.get("Publicado oportunamente", 0)))
+                                cantidades_extemporaneos_mes_inf_c.append(int(fila_mes_inf_c.get("Publicado extemporáneamente", 0)))
 
-                            fig_publicaciones_mes_inf_c = go.Figure()
-                            fig_publicaciones_mes_inf_c.add_trace(go.Bar(
-                                name="Oportunos", x=meses_nombres_inf_c, y=cantidades_oportunos_mes_inf_c,
-                                marker_color="#34D399",
-                                text=[str(v) if v > 0 else "" for v in cantidades_oportunos_mes_inf_c],
-                                textposition="outside", cliponaxis=False,
-                                hovertemplate="Período reportado: %{x}<br>Informes publicados oportunamente: %{y}<extra></extra>"
-                            ))
-                            fig_publicaciones_mes_inf_c.add_trace(go.Bar(
-                                name="Extemporáneos", x=meses_nombres_inf_c, y=cantidades_extemporaneos_mes_inf_c,
-                                marker_color="#FB923C",
-                                text=[str(v) if v > 0 else "" for v in cantidades_extemporaneos_mes_inf_c],
-                                textposition="outside", cliponaxis=False,
-                                hovertemplate="Período reportado: %{x}<br>Informes publicados extemporáneamente: %{y}<extra></extra>"
-                            ))
-                            fig_publicaciones_mes_inf_c.update_layout(
-                                barmode="group", height=360, margin=dict(l=10, r=15, t=15, b=35),
-                                xaxis_title="Período reportado", yaxis_title="Cantidad de informes publicados",
-                                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                                font=dict(color="#E5E7EB"),
-                                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-                                xaxis=dict(showgrid=False, categoryorder="array", categoryarray=meses_nombres_inf_c),
-                                yaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.2)", rangemode="tozero", dtick=1)
-                            )
-                            st.plotly_chart(
-                                fig_publicaciones_mes_inf_c, use_container_width=True,
-                                key="fig_publicaciones_mensuales_control_c", config={"displayModeBar": False}
-                            )
+                            if meses_x_inf_c:
+                                fig_publicaciones_mes_inf_c = go.Figure()
+                                fig_publicaciones_mes_inf_c.add_trace(go.Bar(
+                                    name="Oportunos", x=meses_publicados_x_inf_c, y=cantidades_oportunos_mes_inf_c,
+                                    marker_color="#34D399",
+                                    text=[str(v) if v > 0 else "" for v in cantidades_oportunos_mes_inf_c],
+                                    textposition="outside", cliponaxis=False,
+                                    hovertemplate="Período reportado: %{x}<br>Informes publicados oportunamente: %{y}<extra></extra>"
+                                ))
+                                fig_publicaciones_mes_inf_c.add_trace(go.Bar(
+                                    name="Extemporáneos", x=meses_publicados_x_inf_c, y=cantidades_extemporaneos_mes_inf_c,
+                                    marker_color="#FB923C",
+                                    text=[str(v) if v > 0 else "" for v in cantidades_extemporaneos_mes_inf_c],
+                                    textposition="outside", cliponaxis=False,
+                                    hovertemplate="Período reportado: %{x}<br>Informes publicados extemporáneamente: %{y}<extra></extra>"
+                                ))
+                                fig_publicaciones_mes_inf_c.update_layout(
+                                    barmode="group", height=360, margin=dict(l=10, r=15, t=15, b=35),
+                                    xaxis_title="Período reportado", yaxis_title="Cantidad de informes publicados",
+                                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                                    font=dict(color="#E5E7EB"),
+                                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+                                    xaxis=dict(showgrid=False, categoryorder="array", categoryarray=meses_publicados_x_inf_c),
+                                    yaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.2)", rangemode="tozero", dtick=1)
+                                )
+                                st.plotly_chart(
+                                    fig_publicaciones_mes_inf_c, use_container_width=True,
+                                    key="fig_publicaciones_mensuales_control_c", config={"displayModeBar": False}
+                                )
+                            else:
+                                st.info("Aún no hay informes mensuales publicados para mostrar en la gráfica.")
                             st.caption("Cuenta los informes de periodicidad mensual según el período que reportan. Solo aparecen cuando tienen fecha real de publicación registrada.")
 
                         # Gráfica 2: obligaciones por periodicidad y estado.
@@ -3748,15 +3754,16 @@ else:
                                     fig_periodicidad_inf_c.update_layout(
                                         barmode="stack",
                                         height=altura_periodicidad_c,
-                                        margin=dict(l=12, r=18, t=18, b=80),
+                                        margin=dict(l=12, r=18, t=18, b=108),
                                         xaxis_title="Cantidad de obligaciones",
                                         yaxis_title=None,
                                         paper_bgcolor="rgba(0,0,0,0)",
                                         plot_bgcolor="rgba(0,0,0,0)",
                                         font=dict(color="#E5E7EB", size=11),
                                         legend=dict(
-                                            orientation="h", yanchor="top", y=-0.2,
-                                            xanchor="left", x=0, font=dict(size=9),
+                                            orientation="h", yanchor="top", y=-0.25,
+                                            xanchor="left", x=0, font=dict(size=10),
+                                            tracegroupgap=8,
                                         ),
                                         bargap=0.34,
                                         xaxis=dict(

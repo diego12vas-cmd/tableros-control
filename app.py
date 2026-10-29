@@ -3553,15 +3553,155 @@ else:
                             df_hist_calc_c = df_raw_c.copy()
                             
                             def limpiar_vigencia_str_c(v_val):
-                                s = str(v_val).upper().replace(".0", "").strip()
+                                s = str(v_val).upper().strip()
                                 m = re.search(r"\b(20\d{2})\b", s)
                                 if m:
                                     return f"PLAN DE MEJORAMIENTO VIGENCIA {m.group(1)}"
-                                return f"PLAN DE MEJORAMIENTO VIGENCIA {s}" if s.isdigit() else s
+                                return s
 
                             df_hist_calc_c["Vigencia_Limpia"] = df_hist_calc_c[col_auditoria_c].apply(limpiar_vigencia_str_c)
                             
-                            c_h1_c, c_h2_c = st.columns(2)
+                            c_h1, c_h2 = st.columns(2)
 
-                            with c_h1_c:
-                                df_vigencia_totales_c = df_hist_calc_c.copy()
+                            with c_h1:
+                                df_vigencia_totales = df_hist_calc_c.groupby("Vigencia_Limpia").size().reset_index(name="Total_Planes").sort_values(by="Vigencia_Limpia")
+                                max_hall_v = df_vigencia_totales["Total_Planes"].max() if not df_vigencia_totales.empty else 10
+                                sum_tot_g1 = df_vigencia_totales["Total_Planes"].sum() if not df_vigencia_totales.empty else 0
+                                
+                                fig_hist_line = px.bar(
+                                    df_vigencia_totales, x="Vigencia_Limpia", y="Total_Planes", text="Total_Planes",
+                                    title="Evolución Total de Planes de Mejoramiento por Vigencia", color_discrete_sequence=["#1F4E78"]
+                                )
+                                fig_hist_line.update_traces(textposition="outside", textfont=dict(size=13, color="var(--text-color)"))
+                                fig_hist_line.update_layout(
+                                    height=360, xaxis_title=None, yaxis_title=None,
+                                    xaxis=dict(showgrid=False, zeroline=False),
+                                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hall_v * 1.35]),
+                                    margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
+                                )
+                                st.plotly_chart(fig_hist_line, use_container_width=True, key="fig_hist_line_key_c", config={'displayModeBar': False})
+                                st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Planes de Mejoramiento Históricos: <b>{sum_tot_g1}</b></div>', unsafe_allow_html=True)
+
+                            with c_h2:
+                                df_hist_grouped = df_hist_calc_c.groupby(["Vigencia_Limpia", col_estado_c]).size().reset_index(name="Cantidad")
+                                max_hist_st = df_hist_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().max() if not df_hist_grouped.empty else 10
+                                sum_tot_g2 = df_hist_grouped["Cantidad"].sum() if not df_hist_grouped.empty else 0
+
+                                fig_hist_stack = px.bar(
+                                    df_hist_grouped, x="Vigencia_Limpia", y="Cantidad", color=col_estado_c,
+                                    title="Distribución de Estados por Vigencia", barmode="stack",
+                                    color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Sin plan de acción": "#F8A583"}
+                                )
+                                
+                                df_totales_por_vigencia = df_hist_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
+                                for _, row_v in df_totales_por_vigencia.iterrows():
+                                    fig_hist_stack.add_annotation(
+                                        x=row_v["Vigencia_Limpia"], 
+                                        y=row_v["Cantidad"] + max_hist_st * 0.08, 
+                                        text=f"<b>{row_v['Cantidad']}</b>", 
+                                        showarrow=False, 
+                                        yanchor="bottom", 
+                                        font=dict(size=14, color="var(--text-color)", family="Arial Black")
+                                    )
+
+                                fig_hist_stack.update_layout(
+                                    height=360, xaxis_title=None, yaxis_title=None,
+                                    xaxis=dict(showgrid=False, zeroline=False),
+                                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_st * 1.35]),
+                                    legend_title_text="Estado", margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
+                                )
+                                st.plotly_chart(fig_hist_stack, use_container_width=True, key="fig_hist_stack_key_c", config={'displayModeBar': False})
+                                st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Evaluados: <b>{sum_tot_g2}</b></div>', unsafe_allow_html=True)
+
+                        st.markdown("---")
+                        st.subheader("👥 Matriz Comparativa Interanual por Área Responsable (Planes de Acción)")
+                        if col_responsable_c and col_responsable_c in df_hist_calc_c.columns:
+                            df_area_hist = df_hist_calc_c.copy()
+                            df_area_hist[col_responsable_c] = df_area_hist[col_responsable_c].astype(str).str.replace("\n", ",").str.split(",")
+                            df_area_hist_exploded = df_area_hist.explode(col_responsable_c)
+                            df_area_hist_exploded[col_responsable_c] = df_area_hist_exploded[col_responsable_c].astype(str).apply(limpiar_nombre_area)
+                            df_area_hist_exploded = df_area_hist_exploded[~df_area_hist_exploded[col_responsable_c].isin(["", "NAN", "NONE", "NONE."])]
+
+                            df_pivot_area = pd.pivot_table(df_area_hist_exploded, index=col_responsable_c, columns="Vigencia_Limpia", aggfunc="size", fill_value=0)
+                            df_pivot_area["Total Histórico"] = df_pivot_area.sum(axis=1)
+                            df_pivot_area = df_pivot_area.sort_values(by="Total Histórico", ascending=False)
+                            st.dataframe(df_pivot_area, use_container_width=True)
+
+                with subtab_hist_c2:
+                    if not (sub_names_hist_c[1] in subp_usuario_c or "TODOS" in [x.upper() for x in subp_usuario_c]):
+                        st.error("🔒 **Acceso Restringido:** No tienes permisos para consultar esta sub-pestaña.")
+                    else:
+                        st.markdown("Evolución del volumen de **Hallazgos Únicos** (desduplicados) por vigencia y distribución por Área Responsable.")
+
+                        if col_hallazgo_c and col_hallazgo_c in df_raw_c.columns and col_auditoria_c and col_auditoria_c in df_raw_c.columns:
+                            df_hall_calc = df_raw_c.dropna(subset=[col_hallazgo_c]).copy()
+                            df_hall_calc["Hallaz_Clean"] = df_hall_calc[col_hallazgo_c].astype(str).str.strip()
+                            df_hall_calc["Vigencia_Limpia"] = df_hall_calc[col_auditoria_c].apply(limpiar_vigencia_str_c)
+
+                            df_hall_unicos = df_hall_calc.groupby(["Vigencia_Limpia", "Hallaz_Clean"]).first().reset_index()
+
+                            c_hu1, c_hu2 = st.columns(2)
+
+                            with c_hu1:
+                                df_vig_hall_totales = df_hall_unicos.groupby("Vigencia_Limpia").size().reset_index(name="Total_Hallazgos").sort_values(by="Vigencia_Limpia")
+                                max_h_v = df_vig_hall_totales["Total_Hallazgos"].max() if not df_vig_hall_totales.empty else 10
+                                sum_tot_hu1 = df_vig_hall_totales["Total_Hallazgos"].sum() if not df_vig_hall_totales.empty else 0
+
+                                fig_hist_hall_line = px.bar(
+                                    df_vig_hall_totales, x="Vigencia_Limpia", y="Total_Hallazgos", text="Total_Hallazgos",
+                                    title="Evolución Total de Hallazgos Únicos por Vigencia", color_discrete_sequence=["#27AE60"]
+                                )
+                                fig_hist_hall_line.update_traces(textposition="outside", textfont=dict(size=13, color="var(--text-color)"))
+                                fig_hist_hall_line.update_layout(
+                                    height=360, xaxis_title=None, yaxis_title=None,
+                                    xaxis=dict(showgrid=False, zeroline=False),
+                                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_h_v * 1.35]),
+                                    margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
+                                )
+                                st.plotly_chart(fig_hist_hall_line, use_container_width=True, key="fig_hist_hall_line_key_c", config={'displayModeBar': False})
+                                st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Hallazgos Únicos Históricos: <b>{sum_tot_hu1}</b></div>', unsafe_allow_html=True)
+
+                            with c_hu2:
+                                df_hall_st_grouped = df_hall_unicos.groupby(["Vigencia_Limpia", col_estado_c]).size().reset_index(name="Cantidad")
+                                max_hist_hu_st = df_hall_st_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().max() if not df_hall_st_grouped.empty else 10
+                                sum_tot_hu2 = df_hall_st_grouped["Cantidad"].sum() if not df_hall_st_grouped.empty else 0
+
+                                fig_hist_hall_stack = px.bar(
+                                    df_hall_st_grouped, x="Vigencia_Limpia", y="Cantidad", color=col_estado_c,
+                                    title="Distribución de Estados por Vigencia (Hallazgos Únicos)", barmode="stack",
+                                    color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Sin plan de acción": "#F8A583"}
+                                )
+
+                                df_totales_hall_vig = df_hall_st_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
+                                for _, row_hv in df_totales_hall_vig.iterrows():
+                                    fig_hist_hall_stack.add_annotation(
+                                        x=row_hv["Vigencia_Limpia"], 
+                                        y=row_hv["Cantidad"] + max_hist_hu_st * 0.08, 
+                                        text=f"<b>{row_hv['Cantidad']}</b>", 
+                                        showarrow=False, 
+                                        yanchor="bottom", 
+                                        font=dict(size=14, color="var(--text-color)", family="Arial Black")
+                                    )
+
+                                fig_hist_hall_stack.update_layout(
+                                    height=360, xaxis_title=None, yaxis_title=None,
+                                    xaxis=dict(showgrid=False, zeroline=False),
+                                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, max_hist_hu_st * 1.35]),
+                                    legend_title_text="Estado", margin=dict(t=50, b=40, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
+                                )
+                                st.plotly_chart(fig_hist_hall_stack, use_container_width=True, key="fig_hist_hall_stack_key_c", config={'displayModeBar': False})
+                                st.markdown(f'<div class="total-acciones-box" style="width:100%; text-align:center;">📌 Total Hallazgos Evaluados: <b>{sum_tot_hu2}</b></div>', unsafe_allow_html=True)
+
+                        st.markdown("---")
+                        st.subheader("👥 Matriz Comparativa Interanual por Área Responsable (Hallazgos Únicos)")
+                        if col_responsable_c and col_responsable_c in df_hall_unicos.columns:
+                            df_area_hall = df_hall_unicos.copy()
+                            df_area_hall[col_responsable_c] = df_area_hall[col_responsable_c].astype(str).str.replace("\n", ",").str.split(",")
+                            df_area_hall_exploded = df_area_hall.explode(col_responsable_c)
+                            df_area_hall_exploded[col_responsable_c] = df_area_hall_exploded[col_responsable_c].astype(str).apply(limpiar_nombre_area)
+                            df_area_hall_exploded = df_area_hall_exploded[~df_area_hall_exploded[col_responsable_c].isin(["", "NAN", "NONE", "NONE."])]
+
+                            df_pivot_area_hall = pd.pivot_table(df_area_hall_exploded, index=col_responsable_c, columns="Vigencia_Limpia", aggfunc="size", fill_value=0)
+                            df_pivot_area_hall["Total Histórico"] = df_pivot_area_hall.sum(axis=1)
+                            df_pivot_area_hall = df_pivot_area_hall.sort_values(by="Total Histórico", ascending=False)
+                            st.dataframe(df_pivot_area_hall, use_container_width=True)

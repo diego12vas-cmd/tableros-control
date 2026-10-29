@@ -1473,16 +1473,16 @@ if entorno_activo == "Auditoría Interna":
         y=[data_tend_abiertos[m] for m in meses_orden],
         mode='lines+markers',
         name='Abiertos',
-        line=dict(color='#F39C12', width=3, shape='spline'),
-        marker=dict(size=6)
+        line=dict(color='#F39C12', width=3, shape='spline', dash='dash'),
+        marker=dict(size=7, symbol='diamond')
     ))
     fig_tendencia.add_trace(go.Scatter(
         x=meses_orden, 
         y=[data_tend_vencidos[m] for m in meses_orden],
         mode='lines+markers',
         name='Vencidos',
-        line=dict(color='#FF5E5E', width=3, shape='spline'),
-        marker=dict(size=6)
+        line=dict(color='#FF5E5E', width=3, shape='spline', dash='dot'),
+        marker=dict(size=7, symbol='square')
     ))
     fig_tendencia.add_trace(go.Scatter(
         x=meses_orden, 
@@ -1490,14 +1490,14 @@ if entorno_activo == "Auditoría Interna":
         mode='lines+markers',
         name='Finalizados/Cerrados',
         line=dict(color='#2ECC71', width=3, shape='spline'),
-        marker=dict(size=6)
+        marker=dict(size=7, symbol='circle')
     ))
 
     fig_tendencia.update_layout(
         template='plotly_dark',
         title=dict(text="📈 Tendencia Mensual de Planes (Vigencia 2026)", font=dict(size=14, color="white")),
-        height=360,
-        margin=dict(l=24, r=24, t=44, b=48),
+        height=345,
+        margin=dict(l=20, r=20, t=40, b=40),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center"),
@@ -1533,8 +1533,8 @@ if entorno_activo == "Auditoría Interna":
             fig_top5.update_traces(textposition='inside', insidetextanchor='middle')
             fig_top5.update_layout(
                 template='plotly_dark',
-                height=360,
-                margin=dict(l=24, r=24, t=42, b=32),
+                height=320,
+                margin=dict(l=20, r=20, t=30, b=10),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
                 yaxis=dict(type='category', autorange='reversed', title=None),
@@ -1613,77 +1613,63 @@ if entorno_activo == "Auditoría Interna":
     for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
         with tab_obj:
             if nombre_tab_real == "Tablero":
-                col_izq, col_der = st.columns([1.15, 1.55], gap="large")
+                col_izq, col_der = st.columns([0.92, 1.6], gap="medium")
 
                 with col_izq:
-                    # =========================================================
-                    # FILA 1: KPIS PRINCIPALES (HALLAZGOS, PLANES, CUMPLIMIENTO, MORA)
-                    # =========================================================
-                    k1, k2 = st.columns(2)
-
+                    # Tarjetas KPI: se conserva la lógica y las variables originales.
+                    k1, k2 = st.columns(2, gap="small")
                     with k1:
                         st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #3B82F6; padding: 20px 18px; min-height: 172px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px;">
-                            <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">Hallazgos Pendientes por Riesgo</div>
-                            <div style="font-size: 30px; font-weight: 800; color: #FFFFFF; font-family: monospace; margin: 4px 0;">{total_hallazgos_unicos_pendientes}</div>
-                            <div style="font-size: 11px; font-weight: 600; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-wrap: wrap; align-items: flex-start; gap: 5px;">
-                                <span style="background: rgba(244,63,94,0.15); color: #FB7185; padding: 2px 5px; border-radius: 4px;">● {r_alto} Alto</span>
-                                <span style="background: rgba(245,158,11,0.15); color: #FCD34D; padding: 2px 5px; border-radius: 4px;">● {r_medio} Medio</span>
-                                <span style="background: rgba(16,185,129,0.15); color: #6EE7B7; padding: 2px 5px; border-radius: 4px;">● {r_bajo} Bajo</span>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-
+                        <div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #3B82F6;border-radius:12px;padding:15px 13px;min-height:150px;box-sizing:border-box;margin-bottom:10px;">
+                          <div style="font-size:11px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Hallazgos pendientes por riesgo</div>
+                          <div style="font-size:30px;font-weight:800;color:#fff;margin:2px 0 8px;">{total_hallazgos_unicos_pendientes}</div>
+                          <div style="border-top:1px solid rgba(255,255,255,.1);padding-top:8px;display:flex;flex-wrap:wrap;gap:4px;font-size:10px;font-weight:700;">
+                            <span style="background:rgba(244,63,94,.16);color:#FB7185;padding:4px 5px;border-radius:5px;">● {r_alto} Alto</span>
+                            <span style="background:rgba(245,158,11,.16);color:#FCD34D;padding:4px 5px;border-radius:5px;">● {r_medio} Medio</span>
+                            <span style="background:rgba(16,185,129,.16);color:#6EE7B7;padding:4px 5px;border-radius:5px;">● {r_bajo} Bajo</span>
+                          </div>
+                        </div>""", unsafe_allow_html=True)
                     with k2:
                         st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #EF4444; padding: 20px 18px; min-height: 172px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px;">
-                            <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">Planes de Acción por Estado</div>
-                            <div style="font-size: 30px; font-weight: 800; color: #FFFFFF; font-family: monospace; margin: 4px 0;">{total_planes_pendientes}</div>
-                            <div style="font-size: 11px; font-weight: 600; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: flex-start; align-items: flex-start; flex-wrap: wrap; gap: 5px;">
-                                <span style="background: rgba(16,185,129,0.15); color: #34D399; padding: 2px 5px; border-radius: 4px;">{abiertos} Abiertos</span>
-                                <span style="background: rgba(239,68,68,0.2); color: #F87171; padding: 2px 5px; border-radius: 4px; font-weight: 700;">{vencidos} Vencidos</span>
-                                <span style="background: rgba(148,163,184,0.15); color: #CBD5E1; padding: 2px 5px; border-radius: 4px;">{sin_plan} Sin definir</span>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        <div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #EF4444;border-radius:12px;padding:15px 13px;min-height:150px;box-sizing:border-box;margin-bottom:10px;">
+                          <div style="font-size:11px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Planes de acción por estado</div>
+                          <div style="font-size:30px;font-weight:800;color:#fff;margin:2px 0 8px;">{total_planes_pendientes}</div>
+                          <div style="border-top:1px solid rgba(255,255,255,.1);padding-top:8px;display:flex;flex-wrap:wrap;gap:4px;font-size:10px;font-weight:700;">
+                            <span style="background:rgba(16,185,129,.16);color:#34D399;padding:4px 5px;border-radius:5px;">{abiertos} Abiertos</span>
+                            <span style="background:rgba(239,68,68,.18);color:#F87171;padding:4px 5px;border-radius:5px;">{vencidos} Vencidos</span>
+                            <span style="background:rgba(148,163,184,.16);color:#CBD5E1;padding:4px 5px;border-radius:5px;">{sin_plan} Sin definir</span>
+                          </div>
+                        </div>""", unsafe_allow_html=True)
 
-                    k3, k4 = st.columns(2)
-
+                    k3, k4 = st.columns(2, gap="small")
                     with k3:
                         st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #10B981; padding: 20px 18px; height: 239px; min-height: 239px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px; display: flex; flex-direction: column;">
-                            <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">Cumplimiento</div>
-                            <div style="font-size: 30px; font-weight: 800; color: #34D399; font-family: monospace; margin: 4px 0;">{pct_cumplimiento_ai}%</div>
-                            <div style="font-size: 10px; color: #94A3B8; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08);">{fin_ai_cnt} cerrados de {total_hist_ai}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-
+                        <div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #10B981;border-radius:12px;padding:15px 13px;height:180px;box-sizing:border-box;margin-bottom:10px;">
+                          <div style="font-size:11px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Cumplimiento</div>
+                          <div style="font-size:30px;font-weight:800;color:#34D399;margin:2px 0 10px;">{pct_cumplimiento_ai}%</div>
+                          <div style="font-size:10px;color:#94A3B8;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;">{fin_ai_cnt} cerrados de {total_hist_ai}</div>
+                        </div>""", unsafe_allow_html=True)
                     with k4:
-                        # Porcentajes calculados sobre el total de planes de acción pendientes.
                         pct_abiertos_ai = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes else 0
                         pct_vencidos_ai = round((vencidos / total_planes_pendientes) * 100) if total_planes_pendientes else 0
                         st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #F59E0B; padding: 18px 16px; height: 239px; min-height: 239px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px; display: flex; flex-direction: column;">
-                            <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase; margin-bottom: 12px;">Análisis de Planes de Acción</div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                                <div style="min-width: 0; padding-right: 8px; border-right: 1px solid rgba(255,255,255,0.10);">
-                                    <div style="font-size: 10px; font-weight: 700; color: #34D399; line-height: 1.4;">Porcentaje de Abiertas</div>
-                                    <div style="font-size: 27px; font-weight: 800; color: #34D399; font-family: monospace; margin: 5px 0 2px 0;">{pct_abiertos_ai}%</div>
-                                    <div style="font-size: 10px; color: #94A3B8;">{abiertos} abiertas</div>
-                                </div>
-                                <div style="min-width: 0;">
-                                    <div style="font-size: 10px; font-weight: 700; color: #F87171; line-height: 1.4;">Porcentaje de Vencidas</div>
-                                    <div style="font-size: 27px; font-weight: 800; color: #F87171; font-family: monospace; margin: 5px 0 2px 0;">{pct_vencidos_ai}%</div>
-                                    <div style="font-size: 10px; color: #94A3B8;">{vencidos} vencidas</div>
-                                </div>
+                        <div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #F59E0B;border-radius:12px;padding:15px 12px;height:180px;box-sizing:border-box;margin-bottom:10px;">
+                          <div style="font-size:10px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Análisis de planes de acción</div>
+                          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+                            <div style="min-width:0;border-right:1px solid rgba(255,255,255,.12);padding-right:5px;">
+                              <div style="font-size:9px;font-weight:700;color:#34D399;line-height:1.35;">Porcentaje de abiertas</div>
+                              <div style="font-size:24px;font-weight:800;color:#34D399;margin:5px 0;">{pct_abiertos_ai}%</div>
+                              <div style="font-size:9px;color:#94A3B8;">{abiertos} abiertas</div>
                             </div>
-                            <div style="font-size: 9px; color: #94A3B8; padding-top: 7px; margin-top: 7px; border-top: 1px solid rgba(255,255,255,0.08);">Base de cálculo: {total_planes_pendientes} planes pendientes</div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                            <div style="min-width:0;">
+                              <div style="font-size:9px;font-weight:700;color:#F87171;line-height:1.35;">Porcentaje de vencidas</div>
+                              <div style="font-size:24px;font-weight:800;color:#F87171;margin:5px 0;">{pct_vencidos_ai}%</div>
+                              <div style="font-size:9px;color:#94A3B8;">{vencidos} vencidas</div>
+                            </div>
+                          </div>
+                          <div style="font-size:9px;color:#94A3B8;border-top:1px solid rgba(255,255,255,.1);padding-top:6px;margin-top:7px;">Base: {total_planes_pendientes} planes pendientes</div>
+                        </div>""", unsafe_allow_html=True)
 
-                    # =========================================================
-                    # FILA 2: ACCIONES PRÓXIMAS A VENCER (5, 10, 20 Y 30 DÍAS)
-                    # =========================================================
                     def obtener_valor_alerta(col_name):
                         if col_name and col_name in df_filtrado.columns:
                             s = df_filtrado[col_name].dropna().astype(str).str.strip()
@@ -1696,62 +1682,17 @@ if entorno_activo == "Auditoría Interna":
                     val_10 = obtener_valor_alerta(col_a10)
                     val_20 = obtener_valor_alerta(col_a20)
                     val_30 = obtener_valor_alerta(col_a30)
-
-                    st.markdown('<div style="font-size: 12px; font-weight: 800; color: #E2E8F0; margin: 12px 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">⏳ Acciones Próximas a Vencer</div>', unsafe_allow_html=True)
-
-                    a1, a2 = st.columns(2)
+                    st.markdown('<div style="font-size:12px;font-weight:800;color:#E2E8F0;text-transform:uppercase;margin:5px 0 8px;">⏳ Acciones próximas a vencer</div>', unsafe_allow_html=True)
+                    a1, a2 = st.columns(2, gap="small")
                     with a1:
-                        color_5 = "#FB7185" if val_5 != "—" else "#64748B"
-                        st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #24141E, #111827); border-top: 3.5px solid #EF4444; padding: 19px 17px; min-height: 160px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(239,68,68,0.3); margin-bottom: 10px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                                <span style="font-size: 12px; font-weight: 800; color: #FDA4AF;">🔴 5 DÍAS</span>
-                                <span style="font-size: 11px; font-weight: 700; background: rgba(239,68,68,0.2); color: #FDA4AF; padding: 1px 5px; border-radius: 999px;">Crítico</span>
-                            </div>
-                            <div style="font-size: 27px; font-weight: 800; color: {color_5}; font-family: monospace;">{val_5}</div>
-                            <div style="font-size: 11px; color: #94A3B8; margin-top: 6px;">Vencimiento inmediato</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-
+                        st.markdown(f'<div style="background:linear-gradient(145deg,#24141E,#111827);border:1px solid rgba(239,68,68,.3);border-top:3px solid #EF4444;border-radius:10px;padding:12px;min-height:112px;box-sizing:border-box;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:#FDA4AF;">🔴 5 DÍAS · CRÍTICO</div><div style="font-size:27px;font-weight:800;color:#FB7185;margin:5px 0;">{val_5}</div><div style="font-size:10px;color:#94A3B8;">Vencimiento inmediato</div></div>', unsafe_allow_html=True)
                     with a2:
-                        color_10 = "#FCD34D" if val_10 != "—" else "#64748B"
-                        st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #1F1E16, #111827); border-top: 3.5px solid #F59E0B; padding: 19px 17px; min-height: 160px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(245,158,11,0.25); margin-bottom: 10px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                                <span style="font-size: 12px; font-weight: 800; color: #FDE68A;">🟡 10 DÍAS</span>
-                                <span style="font-size: 11px; font-weight: 700; background: rgba(245,158,11,0.2); color: #FDE68A; padding: 1px 5px; border-radius: 999px;">Atención</span>
-                            </div>
-                            <div style="font-size: 27px; font-weight: 800; color: {color_10}; font-family: monospace;">{val_10}</div>
-                            <div style="font-size: 11px; color: #94A3B8; margin-top: 6px;">Ventana de precaución</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-
-                    a3, a4 = st.columns(2)
+                        st.markdown(f'<div style="background:linear-gradient(145deg,#1F1E16,#111827);border:1px solid rgba(245,158,11,.25);border-top:3px solid #F59E0B;border-radius:10px;padding:12px;min-height:112px;box-sizing:border-box;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:#FDE68A;">🟡 10 DÍAS · ATENCIÓN</div><div style="font-size:27px;font-weight:800;color:#FCD34D;margin:5px 0;">{val_10}</div><div style="font-size:10px;color:#94A3B8;">Ventana de precaución</div></div>', unsafe_allow_html=True)
+                    a3, a4 = st.columns(2, gap="small")
                     with a3:
-                        color_20 = "#6EE7B7" if val_20 != "—" else "#64748B"
-                        st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #13221C, #111827); border-top: 3.5px solid #10B981; padding: 19px 17px; min-height: 160px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(16,185,129,0.25); margin-bottom: 10px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                                <span style="font-size: 12px; font-weight: 800; color: #A7F3D0;">🟢 20 DÍAS</span>
-                                <span style="font-size: 11px; font-weight: 700; background: rgba(16,185,129,0.2); color: #A7F3D0; padding: 1px 5px; border-radius: 999px;">Control</span>
-                            </div>
-                            <div style="font-size: 27px; font-weight: 800; color: {color_20}; font-family: monospace;">{val_20}</div>
-                            <div style="font-size: 11px; color: #94A3B8; margin-top: 6px;">Seguimiento preventivo</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-
+                        st.markdown(f'<div style="background:linear-gradient(145deg,#13221C,#111827);border:1px solid rgba(16,185,129,.25);border-top:3px solid #10B981;border-radius:10px;padding:12px;min-height:112px;box-sizing:border-box;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:#A7F3D0;">🟢 20 DÍAS · CONTROL</div><div style="font-size:27px;font-weight:800;color:#6EE7B7;margin:5px 0;">{val_20}</div><div style="font-size:10px;color:#94A3B8;">Seguimiento preventivo</div></div>', unsafe_allow_html=True)
                     with a4:
-                        color_30 = "#93C5FD" if val_30 != "—" else "#64748B"
-                        st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #141E2C, #111827); border-top: 3.5px solid #3B82F6; padding: 19px 17px; min-height: 160px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(59,130,246,0.25); margin-bottom: 10px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                                <span style="font-size: 12px; font-weight: 800; color: #BFDBFE;">🔵 30 DÍAS</span>
-                                <span style="font-size: 11px; font-weight: 700; background: rgba(59,130,246,0.2); color: #BFDBFE; padding: 1px 5px; border-radius: 999px;">Planeación</span>
-                            </div>
-                            <div style="font-size: 27px; font-weight: 800; color: {color_30}; font-family: monospace;">{val_30}</div>
-                            <div style="font-size: 11px; color: #94A3B8; margin-top: 6px;">Alerta mensual anticipada</div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        st.markdown(f'<div style="background:linear-gradient(145deg,#141E2C,#111827);border:1px solid rgba(59,130,246,.25);border-top:3px solid #3B82F6;border-radius:10px;padding:12px;min-height:112px;box-sizing:border-box;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:#BFDBFE;">🔵 30 DÍAS · PLANEACIÓN</div><div style="font-size:27px;font-weight:800;color:#93C5FD;margin:5px 0;">{val_30}</div><div style="font-size:10px;color:#94A3B8;">Alerta mensual anticipada</div></div>', unsafe_allow_html=True)
 
                 with col_der:
                     st.plotly_chart(fig_tendencia, use_container_width=True, key="fig_tendencia_tablero", config={'displayModeBar': False})
@@ -2983,16 +2924,16 @@ else:
         y=[data_tend_abiertos_c[m] for m in meses_orden_c],
         mode='lines+markers',
         name='Abiertos',
-        line=dict(color='#F39C12', width=3, shape='spline'),
-        marker=dict(size=6)
+        line=dict(color='#F39C12', width=3, shape='spline', dash='dash'),
+        marker=dict(size=7, symbol='diamond')
     ))
     fig_tendencia_c.add_trace(go.Scatter(
         x=meses_orden_c, 
         y=[data_tend_vencidos_c[m] for m in meses_orden_c],
         mode='lines+markers',
         name='Vencidos',
-        line=dict(color='#FF5E5E', width=3, shape='spline'),
-        marker=dict(size=6)
+        line=dict(color='#FF5E5E', width=3, shape='spline', dash='dot'),
+        marker=dict(size=7, symbol='square')
     ))
     fig_tendencia_c.add_trace(go.Scatter(
         x=meses_orden_c, 
@@ -3000,7 +2941,7 @@ else:
         mode='lines+markers',
         name='Finalizados/Cerrados',
         line=dict(color='#2ECC71', width=3, shape='spline'),
-        marker=dict(size=6)
+        marker=dict(size=7, symbol='circle')
     ))
 
     fig_tendencia_c.update_layout(
@@ -3225,40 +3166,21 @@ else:
     for nombre_tab_real_c, tab_obj_c in zip(pestañas_permitidas_c, tabs_objetos_c):
         with tab_obj_c:
             if nombre_tab_real_c == "Tablero":
-                col_izq_c, col_der_c = st.columns([0.72, 1.6])
+                col_izq_c, col_der_c = st.columns([0.92, 1.6], gap="medium")
 
                 with col_izq_c:
-                    st.markdown('<div class="block-header">Total Hallazgos Pendientes</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="card-box" style="background-color:#4B92DB; font-size:1.3rem; height:34px; line-height:26px;">{total_hallazgos_unicos_c}</div>', unsafe_allow_html=True)
-
-                    st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
-                    st.markdown('<div class="block-header" style="font-size:0.78rem;">Planes de Acción Pendientes</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="card-box" style="background-color:#00B050; height:36px; line-height:26px; font-size:1.4rem; margin-bottom:8px;">{total_planes_c}</div>', unsafe_allow_html=True)
-
-                    st.markdown('<div class="block-header" style="font-size:0.78rem;">Detalle de Estados Pendientes</div>', unsafe_allow_html=True)
-                    ce1, ce2 = st.columns(2)
-                    with ce1:
-                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Abiertos</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="card-box" style="background-color:#58C57A; font-size:1.05rem; padding:4px;">{abiertos_c}</div>', unsafe_allow_html=True)
-                    with ce2:
-                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Vencidos</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="card-box" style="background-color:#FF5252; color:#FFFFFF; font-size:1.05rem; padding:4px;">{vencidos_c}</div>', unsafe_allow_html=True)
-
-                    st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
-
-                    col_m_strat_c1, col_m_strat_c2 = st.columns(2)
-                    with col_m_strat_c1:
-                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">🎯 % Cumplimiento</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:0.95rem; padding:4px;">{int(round(pct_cumplimiento_c))}%</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div style="text-align:center; font-size:0.72rem; color:#A0AEC0; margin-top:2px;">({fin_c_cnt} cerrados de {total_hist_c} totales)</div>', unsafe_allow_html=True)
-                    with col_m_strat_c2:
-                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️ Prom. Días Mora</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="card-box" style="background-color:#C0392B; color:#FFFFFF; font-size:0.95rem; padding:4px;">{prom_mora_c_val} días</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div style="text-align:center; font-size:0.72rem; color:#A0AEC0; margin-top:2px;">({len(df_raw_venc_c)} vencidos)</div>', unsafe_allow_html=True)
-
-                    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
-
-                    st.markdown('<div class="block-header">Acciones próximas a vencer</div>', unsafe_allow_html=True)
+                    kc1, kc2 = st.columns(2, gap="small")
+                    with kc1:
+                        st.markdown(f"""<div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #3B82F6;border-radius:12px;padding:15px 13px;min-height:150px;box-sizing:border-box;margin-bottom:10px;"><div style="font-size:11px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Hallazgos pendientes</div><div style="font-size:30px;font-weight:800;color:#fff;margin:2px 0 8px;">{total_hallazgos_unicos_c}</div><div style="font-size:10px;color:#94A3B8;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;">Contraloría de Bogotá</div></div>""", unsafe_allow_html=True)
+                    with kc2:
+                        st.markdown(f"""<div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #EF4444;border-radius:12px;padding:15px 13px;min-height:150px;box-sizing:border-box;margin-bottom:10px;"><div style="font-size:11px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Planes de acción por estado</div><div style="font-size:30px;font-weight:800;color:#fff;margin:2px 0 8px;">{total_planes_c}</div><div style="border-top:1px solid rgba(255,255,255,.1);padding-top:8px;display:flex;flex-wrap:wrap;gap:4px;font-size:10px;font-weight:700;"><span style="background:rgba(16,185,129,.16);color:#34D399;padding:4px 5px;border-radius:5px;">{abiertos_c} Abiertos</span><span style="background:rgba(239,68,68,.18);color:#F87171;padding:4px 5px;border-radius:5px;">{vencidos_c} Vencidos</span></div></div>""", unsafe_allow_html=True)
+                    kc3, kc4 = st.columns(2, gap="small")
+                    with kc3:
+                        st.markdown(f"""<div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #10B981;border-radius:12px;padding:15px 13px;height:180px;box-sizing:border-box;margin-bottom:10px;"><div style="font-size:11px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Cumplimiento</div><div style="font-size:30px;font-weight:800;color:#34D399;margin:2px 0 10px;">{int(round(pct_cumplimiento_c))}%</div><div style="font-size:10px;color:#94A3B8;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;">{fin_c_cnt} cerrados de {total_hist_c}</div></div>""", unsafe_allow_html=True)
+                    with kc4:
+                        pct_abiertos_c = round((abiertos_c / total_planes_c) * 100) if total_planes_c else 0
+                        pct_vencidos_c = round((vencidos_c / total_planes_c) * 100) if total_planes_c else 0
+                        st.markdown(f"""<div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #F59E0B;border-radius:12px;padding:15px 12px;height:180px;box-sizing:border-box;margin-bottom:10px;"><div style="font-size:10px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Análisis de planes de acción</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;"><div style="min-width:0;border-right:1px solid rgba(255,255,255,.12);padding-right:5px;"><div style="font-size:9px;font-weight:700;color:#34D399;line-height:1.35;">Porcentaje de abiertas</div><div style="font-size:24px;font-weight:800;color:#34D399;margin:5px 0;">{pct_abiertos_c}%</div><div style="font-size:9px;color:#94A3B8;">{abiertos_c} abiertas</div></div><div style="min-width:0;"><div style="font-size:9px;font-weight:700;color:#F87171;line-height:1.35;">Porcentaje de vencidas</div><div style="font-size:24px;font-weight:800;color:#F87171;margin:5px 0;">{pct_vencidos_c}%</div><div style="font-size:9px;color:#94A3B8;">{vencidos_c} vencidas</div></div></div><div style="font-size:9px;color:#94A3B8;border-top:1px solid rgba(255,255,255,.1);padding-top:6px;margin-top:7px;">Base: {total_planes_c} planes pendientes</div></div>""", unsafe_allow_html=True)
 
                     def obtener_valor_alerta_c(col_name):
                         if col_name and col_name in df_filtrado_c.columns:
@@ -3267,16 +3189,21 @@ else:
                             cant = len(validos)
                             return str(cant) if cant > 0 else "—"
                         return "—"
-
                     val_5_c = obtener_valor_alerta_c(col_a5_c)
                     val_10_c = obtener_valor_alerta_c(col_a10_c)
                     val_20_c = obtener_valor_alerta_c(col_a20_c)
                     val_30_c = obtener_valor_alerta_c(col_a30_c)
-
-                    st.markdown(f'<div class="alert-card-horiz"><span>5 días 🔴</span><div class="alert-val-box">{val_5_c}</div></div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="alert-card-horiz"><span>10 días 🟡</span><div class="alert-val-box">{val_10_c}</div></div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="alert-card-horiz"><span>20 días 🟢</span><div class="alert-val-box">{val_20_c}</div></div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="alert-card-horiz"><span>30 días 🔵</span><div class="alert-val-box">{val_30_c}</div></div>', unsafe_allow_html=True)
+                    st.markdown('<div style="font-size:12px;font-weight:800;color:#E2E8F0;text-transform:uppercase;margin:5px 0 8px;">⏳ Acciones próximas a vencer</div>', unsafe_allow_html=True)
+                    ac1, ac2 = st.columns(2, gap="small")
+                    with ac1:
+                        st.markdown(f'<div style="background:linear-gradient(145deg,#24141E,#111827);border:1px solid rgba(239,68,68,.3);border-top:3px solid #EF4444;border-radius:10px;padding:12px;min-height:112px;box-sizing:border-box;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:#FDA4AF;">🔴 5 DÍAS · CRÍTICO</div><div style="font-size:27px;font-weight:800;color:#FB7185;margin:5px 0;">{val_5_c}</div><div style="font-size:10px;color:#94A3B8;">Vencimiento inmediato</div></div>', unsafe_allow_html=True)
+                    with ac2:
+                        st.markdown(f'<div style="background:linear-gradient(145deg,#1F1E16,#111827);border:1px solid rgba(245,158,11,.25);border-top:3px solid #F59E0B;border-radius:10px;padding:12px;min-height:112px;box-sizing:border-box;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:#FDE68A;">🟡 10 DÍAS · ATENCIÓN</div><div style="font-size:27px;font-weight:800;color:#FCD34D;margin:5px 0;">{val_10_c}</div><div style="font-size:10px;color:#94A3B8;">Ventana de precaución</div></div>', unsafe_allow_html=True)
+                    ac3, ac4 = st.columns(2, gap="small")
+                    with ac3:
+                        st.markdown(f'<div style="background:linear-gradient(145deg,#13221C,#111827);border:1px solid rgba(16,185,129,.25);border-top:3px solid #10B981;border-radius:10px;padding:12px;min-height:112px;box-sizing:border-box;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:#A7F3D0;">🟢 20 DÍAS · CONTROL</div><div style="font-size:27px;font-weight:800;color:#6EE7B7;margin:5px 0;">{val_20_c}</div><div style="font-size:10px;color:#94A3B8;">Seguimiento preventivo</div></div>', unsafe_allow_html=True)
+                    with ac4:
+                        st.markdown(f'<div style="background:linear-gradient(145deg,#141E2C,#111827);border:1px solid rgba(59,130,246,.25);border-top:3px solid #3B82F6;border-radius:10px;padding:12px;min-height:112px;box-sizing:border-box;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:#BFDBFE;">🔵 30 DÍAS · PLANEACIÓN</div><div style="font-size:27px;font-weight:800;color:#93C5FD;margin:5px 0;">{val_30_c}</div><div style="font-size:10px;color:#94A3B8;">Alerta mensual anticipada</div></div>', unsafe_allow_html=True)
 
                 with col_der_c:
                     st.plotly_chart(fig_tendencia_c, use_container_width=True, key="fig_tendencia_contraloria", config={'displayModeBar': False})

@@ -1616,53 +1616,60 @@ if entorno_activo == "Auditoría Interna":
                 col_izq, col_der = st.columns([0.72, 1.6])
 
                 with col_izq:
-                    st.markdown('<div class="block-header">Total Hallazgos Pendientes</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="card-box" style="background-color:#4B92DB; font-size:1.3rem; height:34px; line-height:26px;">{total_hallazgos_unicos_pendientes}</div>', unsafe_allow_html=True)
+                    # =========================================================
+                    # FILA 1: KPIS PRINCIPALES (HALLAZGOS, PLANES, CUMPLIMIENTO, MORA)
+                    # =========================================================
+                    k1, k2 = st.columns(2)
 
-                    st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
-                    r1, r2, r3 = st.columns(3)
-                    with r1:
-                        st.markdown('<div class="block-header" style="font-size:0.72rem;">Riesgo Alto</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="card-box" style="background-color:#FFB000; font-size:1rem;">{r_alto}</div>', unsafe_allow_html=True)
-                    with r2:
-                        st.markdown('<div class="block-header" style="font-size:0.72rem;">Riesgo Medio</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="card-box" style="background-color:#FFFF00; font-size:1rem;">{r_medio}</div>', unsafe_allow_html=True)
-                    with r3:
-                        st.markdown('<div class="block-header" style="font-size:0.72rem;">Riesgo Bajo</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="card-box" style="background-color:#00B050; font-size:1rem;">{r_bajo}</div>', unsafe_allow_html=True)
+                    with k1:
+                        st.markdown(f"""
+                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #3B82F6; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 10px;">
+                            <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">Hallazgos Pendientes</div>
+                            <div style="font-size: 28px; font-weight: 800; color: #FFFFFF; font-family: monospace; margin: 4px 0;">{total_hallazgos_unicos_pendientes}</div>
+                            <div style="font-size: 10px; font-weight: 600; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-wrap: wrap; gap: 4px;">
+                                <span style="background: rgba(244,63,94,0.15); color: #FB7185; padding: 2px 5px; border-radius: 4px;">● {r_alto} Alto</span>
+                                <span style="background: rgba(245,158,11,0.15); color: #FCD34D; padding: 2px 5px; border-radius: 4px;">● {r_medio} Med</span>
+                                <span style="background: rgba(16,185,129,0.15); color: #6EE7B7; padding: 2px 5px; border-radius: 4px;">● {r_bajo} Bajo</span>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
 
-                    st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
-                    st.markdown('<div class="block-header" style="font-size:0.78rem;">Planes de Acción Pendientes</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="card-box" style="background-color:#00B050; height:36px; line-height:26px; font-size:1.4rem; margin-bottom:8px;">{total_planes_pendientes}</div>', unsafe_allow_html=True)
+                    with k2:
+                        st.markdown(f"""
+                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #EF4444; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 10px;">
+                            <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">Planes de Acción</div>
+                            <div style="font-size: 28px; font-weight: 800; color: #FFFFFF; font-family: monospace; margin: 4px 0;">{total_planes_pendientes}</div>
+                            <div style="font-size: 10px; font-weight: 600; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
+                                <span style="background: rgba(16,185,129,0.15); color: #34D399; padding: 2px 5px; border-radius: 4px;">{abiertos} Abiertos</span>
+                                <span style="background: rgba(239,68,68,0.2); color: #F87171; padding: 2px 5px; border-radius: 4px; font-weight: 700;">{vencidos} Vencidos</span>
+                                <span style="background: rgba(148,163,184,0.15); color: #CBD5E1; padding: 2px 5px; border-radius: 4px;">{sin_plan} S/D</span>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
 
-                    st.markdown('<div class="block-header" style="font-size:0.78rem;">Detalle de Estados Pendientes</div>', unsafe_allow_html=True)
-                    e1, e2, e3 = st.columns(3)
-                    with e1:
-                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Abiertos</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="card-box" style="background-color:#58C57A; font-size:1.05rem; padding:4px;">{abiertos}</div>', unsafe_allow_html=True)
-                    with e2:
-                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Vencidos</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="card-box" style="background-color:#FF5252; color:#FFFFFF; font-size:1.05rem; padding:4px;">{vencidos}</div>', unsafe_allow_html=True)
-                    with e3:
-                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">Sin definir</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="card-box" style="background-color:#F8A583; font-size:1.05rem; padding:4px;">{sin_plan}</div>', unsafe_allow_html=True)
+                    k3, k4 = st.columns(2)
 
-                    st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+                    with k3:
+                        st.markdown(f"""
+                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #10B981; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 10px;">
+                            <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">Cumplimiento</div>
+                            <div style="font-size: 28px; font-weight: 800; color: #34D399; font-family: monospace; margin: 4px 0;">{pct_cumplimiento_ai}%</div>
+                            <div style="font-size: 10px; color: #94A3B8; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08);">{fin_ai_cnt} cerrados de {total_hist_ai}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
 
-                    col_m_strat1, col_m_strat2 = st.columns(2)
-                    with col_m_strat1:
-                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">🎯 % Cumplimiento</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="card-box" style="background-color:#1F4E78; color:#FFFFFF; font-size:0.95rem; padding:4px;">{pct_cumplimiento_ai}%</div>', unsafe_allow_html=True)
-                        st.caption(f"({fin_ai_cnt} cerrados de {total_hist_ai} totales)")
-                    with col_m_strat2:
-                        st.markdown('<div class="block-header" style="font-size:0.7rem; text-transform:none;">⏱️ Prom. Días Mora</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="card-box" style="background-color:#C0392B; color:#FFFFFF; font-size:0.95rem; padding:4px;">{prom_mora_ai_val} días</div>', unsafe_allow_html=True)
-                        st.caption(f"({len(df_raw_venc_ai)} vencidos)")
+                    with k4:
+                        st.markdown(f"""
+                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #F59E0B; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 10px;">
+                            <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">Prom. Días Mora</div>
+                            <div style="font-size: 28px; font-weight: 800; color: #FBBF24; font-family: monospace; margin: 4px 0;">{prom_mora_ai_val} <span style="font-size: 12px; color: #94A3B8;">días</span></div>
+                            <div style="font-size: 10px; color: #F87171; font-weight: 600; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08);">{len(df_raw_venc_ai)} atrasados</div>
+                        </div>
+                        """, unsafe_allow_html=True)
 
-                    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
-
-                    st.markdown('<div class="block-header">Acciones próximas a vencer</div>', unsafe_allow_html=True)
-
+                    # =========================================================
+                    # FILA 2: ACCIONES PRÓXIMAS A VENCER (5, 10, 20 Y 30 DÍAS)
+                    # =========================================================
                     def obtener_valor_alerta(col_name):
                         if col_name and col_name in df_filtrado.columns:
                             s = df_filtrado[col_name].dropna().astype(str).str.strip()
@@ -1676,10 +1683,61 @@ if entorno_activo == "Auditoría Interna":
                     val_20 = obtener_valor_alerta(col_a20)
                     val_30 = obtener_valor_alerta(col_a30)
 
-                    st.markdown(f'<div class="alert-card-horiz"><span>5 días 🔴</span><div class="alert-val-box">{val_5}</div></div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="alert-card-horiz"><span>10 días 🟡</span><div class="alert-val-box">{val_10}</div></div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="alert-card-horiz"><span>20 días 🟢</span><div class="alert-val-box">{val_20}</div></div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="alert-card-horiz"><span>30 días 🔵</span><div class="alert-val-box">{val_30}</div></div>', unsafe_allow_html=True)
+                    st.markdown('<div style="font-size: 12px; font-weight: 800; color: #E2E8F0; margin: 12px 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">⏳ Acciones Próximas a Vencer</div>', unsafe_allow_html=True)
+
+                    a1, a2 = st.columns(2)
+                    with a1:
+                        color_5 = "#FB7185" if val_5 != "—" else "#64748B"
+                        st.markdown(f"""
+                        <div style="background: linear-gradient(145deg, #24141E, #111827); border-top: 3.5px solid #EF4444; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(239,68,68,0.3); margin-bottom: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                                <span style="font-size: 10.5px; font-weight: 800; color: #FDA4AF;">🔴 5 DÍAS</span>
+                                <span style="font-size: 9.5px; font-weight: 700; background: rgba(239,68,68,0.2); color: #FDA4AF; padding: 1px 5px; border-radius: 999px;">Crítico</span>
+                            </div>
+                            <div style="font-size: 24px; font-weight: 800; color: {color_5}; font-family: monospace;">{val_5}</div>
+                            <div style="font-size: 10px; color: #94A3B8; margin-top: 2px;">Vencimiento inmediato</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    with a2:
+                        color_10 = "#FCD34D" if val_10 != "—" else "#64748B"
+                        st.markdown(f"""
+                        <div style="background: linear-gradient(145deg, #1F1E16, #111827); border-top: 3.5px solid #F59E0B; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(245,158,11,0.25); margin-bottom: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                                <span style="font-size: 10.5px; font-weight: 800; color: #FDE68A;">🟡 10 DÍAS</span>
+                                <span style="font-size: 9.5px; font-weight: 700; background: rgba(245,158,11,0.2); color: #FDE68A; padding: 1px 5px; border-radius: 999px;">Atención</span>
+                            </div>
+                            <div style="font-size: 24px; font-weight: 800; color: {color_10}; font-family: monospace;">{val_10}</div>
+                            <div style="font-size: 10px; color: #94A3B8; margin-top: 2px;">Ventana de precaución</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    a3, a4 = st.columns(2)
+                    with a3:
+                        color_20 = "#6EE7B7" if val_20 != "—" else "#64748B"
+                        st.markdown(f"""
+                        <div style="background: linear-gradient(145deg, #13221C, #111827); border-top: 3.5px solid #10B981; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(16,185,129,0.25); margin-bottom: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                                <span style="font-size: 10.5px; font-weight: 800; color: #A7F3D0;">🟢 20 DÍAS</span>
+                                <span style="font-size: 9.5px; font-weight: 700; background: rgba(16,185,129,0.2); color: #A7F3D0; padding: 1px 5px; border-radius: 999px;">Control</span>
+                            </div>
+                            <div style="font-size: 24px; font-weight: 800; color: {color_20}; font-family: monospace;">{val_20}</div>
+                            <div style="font-size: 10px; color: #94A3B8; margin-top: 2px;">Seguimiento preventivo</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    with a4:
+                        color_30 = "#93C5FD" if val_30 != "—" else "#64748B"
+                        st.markdown(f"""
+                        <div style="background: linear-gradient(145deg, #141E2C, #111827); border-top: 3.5px solid #3B82F6; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(59,130,246,0.25); margin-bottom: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                                <span style="font-size: 10.5px; font-weight: 800; color: #BFDBFE;">🔵 30 DÍAS</span>
+                                <span style="font-size: 9.5px; font-weight: 700; background: rgba(59,130,246,0.2); color: #BFDBFE; padding: 1px 5px; border-radius: 999px;">Planeación</span>
+                            </div>
+                            <div style="font-size: 24px; font-weight: 800; color: {color_30}; font-family: monospace;">{val_30}</div>
+                            <div style="font-size: 10px; color: #94A3B8; margin-top: 2px;">Alerta mensual anticipada</div>
+                        </div>
+                        """, unsafe_allow_html=True)
 
                 with col_der:
                     st.plotly_chart(fig_tendencia, use_container_width=True, key="fig_tendencia_tablero", config={'displayModeBar': False})

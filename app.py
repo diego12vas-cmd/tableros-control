@@ -1618,10 +1618,7 @@ if entorno_activo == "Auditoría Interna":
         "Informes": "📑 Informes"
     }
 
-    pestañas_permitidas = [
-        p for p in TODAS_LAS_PESTANIAS
-        if p in dict_pestanias and p in st.session_state.get("permisos_usuario", [])
-    ]
+    pestañas_permitidas = [p for p in TODAS_LAS_PESTANIAS if p in st.session_state.get("permisos_usuario", [])]
 
     if not pestañas_permitidas:
         st.warning("⚠️ No tienes permisos asignados para ver ninguna sección. Contacta al administrador.")
@@ -3728,6 +3725,11 @@ else:
 
             elif nombre_tab_real_c == "Control de Informes":
                 st.header("📋 Control de Informes de Contraloría")
+                st.markdown(
+                    "Indicadores calculados directamente desde la hoja **Seguimiento informes** del Excel de Contraloría. "
+                    "Los estados se recalculan al abrir la aplicación usando las fechas registradas."
+                )
+
                 if df_seguimiento_informes_c.empty:
                     st.warning(
                         "No se encontró la hoja **Seguimiento informes** o no contiene registros. "
@@ -3841,10 +3843,11 @@ else:
                         tarjeta_indicador_inf_c(k3, "Publicados extemporáneamente", f"{extemporaneos_inf_c}", "#FB923C")
                         tarjeta_indicador_inf_c(k4, "Oportunidad de publicación", f"{pct_oportunidad_inf_c:.1f}%", "#A78BFA")
 
-                        k5, k6, k7 = st.columns(3, gap="small")
+                        k5, k6, k7, k8 = st.columns(4, gap="small")
                         tarjeta_indicador_inf_c(k5, "Próximos a vencer", f"{proximos_inf_c}", "#FACC15")
                         tarjeta_indicador_inf_c(k6, "Vencidos sin publicar", f"{vencidos_inf_c}", "#F87171")
                         tarjeta_indicador_inf_c(k7, "Pendientes", f"{pendientes_inf_c}", "#38BDF8")
+                        tarjeta_indicador_inf_c(k8, "Fecha por configurar", f"{int(conteo_estados_inf_c.get('Configurar fecha límite', 0) + conteo_estados_inf_c.get('Fecha límite pendiente', 0))}", "#CBD5E1")
 
                         st.markdown("---")
                         col_graf_inf_c, col_tab_inf_c = st.columns([1.25, 1], gap="large")
@@ -4002,5 +4005,4 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
-
 

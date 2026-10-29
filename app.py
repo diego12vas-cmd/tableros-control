@@ -3486,12 +3486,23 @@ else:
                         pendientes_inf_c = int(conteo_estados_inf_c.get("Pendiente", 0))
                         base_oportunidad_inf_c = oportunos_inf_c + extemporaneos_inf_c
                         pct_oportunidad_inf_c = (oportunos_inf_c / base_oportunidad_inf_c * 100) if base_oportunidad_inf_c else 0
+                        # Cumplimiento global: obligaciones que ya tienen publicación registrada,
+                        # sean oportunas o extemporáneas, sobre el total de obligaciones.
+                        total_publicadas_inf_c = oportunos_inf_c + extemporaneos_inf_c
+                        pct_cumplimiento_global_inf_c = (
+                            total_publicadas_inf_c / total_obligaciones_inf_c * 100
+                            if total_obligaciones_inf_c else 0
+                        )
 
-                        def tarjeta_indicador_inf_c(col, titulo, valor, color):
+                        def tarjeta_indicador_inf_c(col, titulo, valor, color, subtitulo=""):
+                            subtitulo_html = (
+                                f'<div style="font-size:10px;line-height:1.25;color:#9CA3AF;margin-top:4px;">{subtitulo}</div>'
+                                if subtitulo else ""
+                            )
                             col.markdown(
                                 f"""<div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid {color};border-radius:10px;padding:10px 12px;min-height:94px;box-sizing:border-box;margin:4px 0 6px 0;overflow-wrap:anywhere;">
                                 <div style="font-size:10.5px;font-weight:800;line-height:1.25;color:#CBD5E1;text-transform:uppercase;min-height:27px;">{titulo}</div>
-                                <div style="font-size:26px;line-height:1.15;font-weight:800;color:{color};margin-top:5px;">{valor}</div></div>""",
+                                <div style="font-size:26px;line-height:1.15;font-weight:800;color:{color};margin-top:5px;">{valor}</div>{subtitulo_html}</div>""",
                                 unsafe_allow_html=True
                             )
 
@@ -3508,6 +3519,13 @@ else:
                         tarjeta_indicador_inf_c(k5, "Próximos a vencer", f"{proximos_inf_c}", "#FACC15")
                         tarjeta_indicador_inf_c(k6, "Vencidos sin publicar", f"{vencidos_inf_c}", "#F87171")
                         tarjeta_indicador_inf_c(k7, "Pendientes", f"{pendientes_inf_c}", "#38BDF8")
+                        tarjeta_indicador_inf_c(
+                            k8,
+                            "Cumplimiento global de publicación",
+                            f"{pct_cumplimiento_global_inf_c:.1f}%",
+                            "#34D399",
+                            f"{total_publicadas_inf_c} de {total_obligaciones_inf_c} obligaciones publicadas",
+                        )
 
                         st.markdown("---")
                         col_mes_inf_c, col_chart_periodicidad_inf_c = st.columns([1.2, 1], gap="large")
@@ -3624,7 +3642,7 @@ else:
                                 )
                             else:
                                 st.info("Aún no hay informes mensuales publicados para mostrar en la gráfica.")
-                            st.caption("Cuenta los informes de periodicidad mensual según el período que reportan. Solo aparecen cuando tienen fecha real de publicación registrada.")
+                            st.caption("Agrupa por período reportado y cuenta solo los informes mensuales con fecha real de publicación.")
 
                         # Gráfica 2: obligaciones por periodicidad y estado.
                         # Así los informes extemporáneos de periodicidad no mensual
@@ -3754,15 +3772,15 @@ else:
                                     fig_periodicidad_inf_c.update_layout(
                                         barmode="stack",
                                         height=altura_periodicidad_c,
-                                        margin=dict(l=12, r=18, t=18, b=108),
+                                        margin=dict(l=12, r=22, t=18, b=122),
                                         xaxis_title="Cantidad de obligaciones",
                                         yaxis_title=None,
                                         paper_bgcolor="rgba(0,0,0,0)",
                                         plot_bgcolor="rgba(0,0,0,0)",
                                         font=dict(color="#E5E7EB", size=11),
                                         legend=dict(
-                                            orientation="h", yanchor="top", y=-0.25,
-                                            xanchor="left", x=0, font=dict(size=10),
+                                            orientation="h", yanchor="top", y=-0.27,
+                                            xanchor="left", x=0, font=dict(size=11),
                                             tracegroupgap=8,
                                         ),
                                         bargap=0.34,
@@ -3917,4 +3935,5 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
+
 

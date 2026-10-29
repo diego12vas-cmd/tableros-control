@@ -3376,7 +3376,7 @@ else:
                             st.dataframe(df_pivot_area_hall, use_container_width=True)
 
             elif nombre_tab_real_c == "Control de Informes":
-                st.header("📋 Control de Informes de Contraloría")
+                st.header("📋 Control de Informes de Contraloría - Vigencia 2026")
                 if df_seguimiento_informes_c.empty:
                     st.warning(
                         "No se encontró la hoja **Seguimiento informes** o no contiene registros. "
@@ -3667,4 +3667,5 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
+
 

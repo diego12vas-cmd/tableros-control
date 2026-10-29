@@ -2623,13 +2623,6 @@ else:
             mask_resp_c = df_filtrado_c[col_responsable_c].apply(evaluar_resp_c)
             df_filtrado_c = df_filtrado_c[mask_resp_c]
 
-    if col_entidad_c:
-        ent_vals_c = sorted(list(set([e for e in df_raw_c[col_entidad_c].dropna().unique() if str(e).lower() not in ["nan", "none", ""]])))
-        with st.sidebar.expander("📁 Plan / Entidad", expanded=False):
-            ent_sel_c = st.multiselect("Seleccione una o varias Entidades:", options=ent_vals_c, default=[], key="multi_entidad_c")
-        if ent_sel_c:
-            df_filtrado_c = df_filtrado_c[df_filtrado_c[col_entidad_c].isin(ent_sel_c)]
-
     if col_auditoria_c:
         aud_vals_c = sorted(list(set([a for a in df_raw_c[col_auditoria_c].dropna().unique() if str(a).lower() not in ["nan", "none", ""]])))
         with st.sidebar.expander("🔬 Vigencia de Auditoría", expanded=False):
@@ -3395,3 +3388,4 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
+

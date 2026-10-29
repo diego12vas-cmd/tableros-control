@@ -51,7 +51,6 @@ TODAS_LAS_PESTANIAS = [
     "Métricas", 
     "Indicadores de Gestión",
     "Histórico", 
-    "Alertas y Edición", 
     "Oficios", 
     "Informes"
 ]
@@ -1615,7 +1614,6 @@ if entorno_activo == "Auditoría Interna":
         "Métricas": "📈 Métricas",
         "Indicadores de Gestión": "📌 Indicadores de Gestión",
         "Histórico": "📊 Histórico",
-        "Alertas y Edición": "🚨 Alertas y Edición",
         "Oficios": "📩 Oficios",
         "Informes": "📑 Informes"
     }

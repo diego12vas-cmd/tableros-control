@@ -3620,11 +3620,12 @@ else:
                             )
                             st.caption("Cuenta los informes de periodicidad mensual según el período que reportan. Solo aparecen cuando tienen fecha real de publicación registrada.")
 
-                        # Gráfica 2: obligaciones agrupadas por periodicidad normalizada.
-                        # Se normalizan los textos para evitar que espacios/capitalización creen
-                        # categorías duplicadas que provoquen etiquetas superpuestas.
+                        # Gráfica 2: obligaciones por periodicidad y estado.
+                        # Así los informes extemporáneos de periodicidad no mensual
+                        # (por ejemplo, un informe semestral) también quedan visibles,
+                        # sin mezclarlos incorrectamente en la gráfica de informes mensuales.
                         with col_chart_periodicidad_inf_c:
-                            st.subheader("🗓️ Obligaciones por periodicidad")
+                            st.subheader("🗓️ Obligaciones por periodicidad y estado")
                             if col_periodicidad_inf_c and col_periodicidad_inf_c in df_inf_ctrl_c.columns:
                                 _periodicidad_raw_c = (
                                     df_inf_ctrl_c[col_periodicidad_inf_c]
@@ -3644,47 +3645,113 @@ else:
                                         return ""
                                     return "Otra periodicidad"
 
-                                _periodicidad_norm_c = _periodicidad_raw_c.apply(_normalizar_periodicidad_inf_c)
-                                orden_periodicidad_c = ["Mensual", "Anual", "Semestral", "Otra periodicidad"]
-                                conteo_periodicidad_c = _periodicidad_norm_c[_periodicidad_norm_c != ""].value_counts()
-                                df_periodicidad_ctrl_c = pd.DataFrame({
-                                    "Periodicidad": orden_periodicidad_c,
-                                    "Cantidad": [int(conteo_periodicidad_c.get(cat, 0)) for cat in orden_periodicidad_c],
-                                })
-                                df_periodicidad_ctrl_c = df_periodicidad_ctrl_c[df_periodicidad_ctrl_c["Cantidad"] > 0]
+                                _df_periodicidad_estado_c = df_inf_ctrl_c.copy()
+                                _df_periodicidad_estado_c["Periodicidad_gráfica"] = _periodicidad_raw_c.apply(
+                                    _normalizar_periodicidad_inf_c
+                                )
+                                _df_periodicidad_estado_c = _df_periodicidad_estado_c[
+                                    _df_periodicidad_estado_c["Periodicidad_gráfica"] != ""
+                                ].copy()
 
-                                if not df_periodicidad_ctrl_c.empty:
-                                    colores_periodicidad_c = {
-                                        "Mensual": "#60A5FA",
-                                        "Anual": "#34D399",
-                                        "Semestral": "#A78BFA",
-                                        "Otra periodicidad": "#FB923C",
+                                def _normalizar_estado_grafica_inf_c(valor):
+                                    if valor == "Publicado oportunamente":
+                                        return "Publicado oportunamente"
+                                    if valor == "Publicado extemporáneamente":
+                                        return "Publicado extemporáneamente"
+                                    if valor == "Próximo a vencer":
+                                        return "Próximo a vencer"
+                                    if valor == "Vencido sin publicar":
+                                        return "Vencido sin publicar"
+                                    if valor == "Pendiente":
+                                        return "Pendiente"
+                                    return "Fecha límite por configurar"
+
+                                _df_periodicidad_estado_c["Estado_gráfica"] = _df_periodicidad_estado_c[
+                                    "Estado calculado"
+                                ].apply(_normalizar_estado_grafica_inf_c)
+
+                                orden_periodicidad_c = ["Mensual", "Anual", "Semestral", "Otra periodicidad"]
+                                orden_estados_grafica_c = [
+                                    "Publicado oportunamente",
+                                    "Publicado extemporáneamente",
+                                    "Próximo a vencer",
+                                    "Vencido sin publicar",
+                                    "Pendiente",
+                                    "Fecha límite por configurar",
+                                ]
+                                tabla_periodicidad_estado_c = pd.crosstab(
+                                    _df_periodicidad_estado_c["Periodicidad_gráfica"],
+                                    _df_periodicidad_estado_c["Estado_gráfica"],
+                                ).reindex(index=orden_periodicidad_c, columns=orden_estados_grafica_c, fill_value=0)
+                                tabla_periodicidad_estado_c = tabla_periodicidad_estado_c.loc[
+                                    tabla_periodicidad_estado_c.sum(axis=1) > 0
+                                ]
+
+                                if not tabla_periodicidad_estado_c.empty:
+                                    colores_estado_grafica_c = {
+                                        "Publicado oportunamente": "#34D399",
+                                        "Publicado extemporáneamente": "#FB923C",
+                                        "Próximo a vencer": "#FACC15",
+                                        "Vencido sin publicar": "#F87171",
+                                        "Pendiente": "#60A5FA",
+                                        "Fecha límite por configurar": "#A78BFA",
                                     }
-                                    fig_periodicidad_inf_c = go.Figure(go.Bar(
-                                        x=df_periodicidad_ctrl_c["Cantidad"],
-                                        y=df_periodicidad_ctrl_c["Periodicidad"],
-                                        orientation="h",
-                                        marker_color=[colores_periodicidad_c.get(v, "#60A5FA") for v in df_periodicidad_ctrl_c["Periodicidad"]],
-                                        text=df_periodicidad_ctrl_c["Cantidad"].astype(int).astype(str),
-                                        textposition="outside",
-                                        cliponaxis=False,
-                                        hovertemplate="Periodicidad: %{y}<br>Cantidad de obligaciones: %{x}<extra></extra>",
-                                    ))
-                                    # No fijar dtick=1: con muchas obligaciones el eje X dibuja
-                                    # decenas de etiquetas consecutivas que se montan y parecen una cadena.
-                                    max_obligaciones_periodicidad_c = int(df_periodicidad_ctrl_c["Cantidad"].max())
+                                    fig_periodicidad_inf_c = go.Figure()
+                                    for estado_grafica_c in orden_estados_grafica_c:
+                                        vals_grafica_c = [
+                                            int(tabla_periodicidad_estado_c.loc[p, estado_grafica_c])
+                                            for p in tabla_periodicidad_estado_c.index
+                                        ]
+                                        fig_periodicidad_inf_c.add_trace(go.Bar(
+                                            name=estado_grafica_c,
+                                            x=vals_grafica_c,
+                                            y=tabla_periodicidad_estado_c.index.tolist(),
+                                            orientation="h",
+                                            marker_color=colores_estado_grafica_c[estado_grafica_c],
+                                            text=[str(v) if v >= 3 else "" for v in vals_grafica_c],
+                                            textposition="inside",
+                                            insidetextanchor="middle",
+                                            hovertemplate=(
+                                                "Periodicidad: %{y}<br>Estado: " + estado_grafica_c
+                                                + "<br>Cantidad de obligaciones: %{x}<extra></extra>"
+                                            ),
+                                        ))
+
+                                    # Etiquetar fuera de la barra los segmentos pequeños para que
+                                    # cifras como el informe semestral extemporáneo (1) no desaparezcan.
+                                    for periodicidad_fila_c in tabla_periodicidad_estado_c.index:
+                                        acumulado_x_c = 0
+                                        for estado_grafica_c in orden_estados_grafica_c:
+                                            valor_segmento_c = int(tabla_periodicidad_estado_c.loc[periodicidad_fila_c, estado_grafica_c])
+                                            if 0 < valor_segmento_c < 3:
+                                                fig_periodicidad_inf_c.add_annotation(
+                                                    x=acumulado_x_c + valor_segmento_c + 0.7,
+                                                    y=periodicidad_fila_c,
+                                                    text=str(valor_segmento_c),
+                                                    showarrow=False,
+                                                    xanchor="left",
+                                                    font=dict(color=colores_estado_grafica_c[estado_grafica_c], size=11),
+                                                )
+                                            acumulado_x_c += valor_segmento_c
+
+                                    totales_periodicidad_c = tabla_periodicidad_estado_c.sum(axis=1)
+                                    max_obligaciones_periodicidad_c = int(totales_periodicidad_c.max()) if not totales_periodicidad_c.empty else 1
                                     salto_eje_periodicidad_c = max(1, (max_obligaciones_periodicidad_c + 4) // 5)
-                                    altura_periodicidad_c = max(300, 62 * len(df_periodicidad_ctrl_c) + 95)
+                                    altura_periodicidad_c = max(320, 68 * len(tabla_periodicidad_estado_c.index) + 150)
                                     fig_periodicidad_inf_c.update_layout(
+                                        barmode="stack",
                                         height=altura_periodicidad_c,
-                                        showlegend=False,
-                                        margin=dict(l=22, r=38, t=18, b=48),
+                                        margin=dict(l=12, r=18, t=18, b=80),
                                         xaxis_title="Cantidad de obligaciones",
                                         yaxis_title=None,
                                         paper_bgcolor="rgba(0,0,0,0)",
                                         plot_bgcolor="rgba(0,0,0,0)",
-                                        font=dict(color="#E5E7EB", size=12),
-                                        bargap=0.38,
+                                        font=dict(color="#E5E7EB", size=11),
+                                        legend=dict(
+                                            orientation="h", yanchor="top", y=-0.2,
+                                            xanchor="left", x=0, font=dict(size=9),
+                                        ),
+                                        bargap=0.34,
                                         xaxis=dict(
                                             showgrid=True,
                                             gridcolor="rgba(128,128,128,0.2)",
@@ -3696,9 +3763,9 @@ else:
                                         yaxis=dict(
                                             showgrid=False,
                                             automargin=True,
-                                            tickfont=dict(size=12),
+                                            tickfont=dict(size=11),
                                             categoryorder="array",
-                                            categoryarray=list(reversed(df_periodicidad_ctrl_c["Periodicidad"].tolist())),
+                                            categoryarray=list(reversed(tabla_periodicidad_estado_c.index.tolist())),
                                         ),
                                     )
                                     st.plotly_chart(

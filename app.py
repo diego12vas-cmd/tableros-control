@@ -1450,19 +1450,31 @@ if entorno_activo == "Auditoría Interna":
 
     df_eval_tend = df_filtrado.copy()
 
+    # La tendencia se agrupa por MES de la fecha correspondiente, sin excluir
+    # vencimientos de años anteriores: así también se visualizan las acciones vencidas.
+    # Finalizados/cerrados usan fecha real de cierre; abiertos/vencidos usan fecha prevista.
+    def _fecha_tendencia_ai(valor):
+        dt = parsear_fecha_estricta(valor)
+        if pd.isna(dt) and pd.notna(valor) and str(valor).strip():
+            dt = pd.to_datetime(valor, errors="coerce", dayfirst=True)
+        return dt
+
     for _, r in df_eval_tend.iterrows():
-        st_val = str(r[col_estado]).lower()
-        
-        if any(term in st_val for term in ['finaliz', 'cerrad']):
-            dt_s = parsear_fecha_estricta(r[col_fecha_cierre_aud]) if col_fecha_cierre_aud in r else pd.NaT
-            if pd.notnull(dt_s) and dt_s.year == 2026 and dt_s.month in map_m_num:
-                m_lbl = map_m_num[dt_s.month]
-                data_tend_fin[m_lbl] += 1
+        st_val = str(r[col_estado] if col_estado in r else "").strip().lower()
+        es_finalizado = any(term in st_val for term in ["finaliz", "cerrad"])
+        es_vencido = "vencid" in st_val
+
+        if es_finalizado:
+            valor_fecha = r[col_fecha_cierre_aud] if col_fecha_cierre_aud and col_fecha_cierre_aud in r else None
+            dt = _fecha_tendencia_ai(valor_fecha)
+            if pd.notnull(dt) and dt.month in map_m_num:
+                data_tend_fin[map_m_num[dt.month]] += 1
         else:
-            dt_i = parsear_fecha_estricta(r[col_fecha_cierre]) if col_fecha_cierre in r else pd.NaT
-            if pd.notnull(dt_i) and dt_i.year == 2026 and dt_i.month in map_m_num:
-                m_lbl = map_m_num[dt_i.month]
-                if 'vencid' in st_val:
+            valor_fecha = r[col_fecha_cierre] if col_fecha_cierre and col_fecha_cierre in r else None
+            dt = _fecha_tendencia_ai(valor_fecha)
+            if pd.notnull(dt) and dt.month in map_m_num:
+                m_lbl = map_m_num[dt.month]
+                if es_vencido:
                     data_tend_vencidos[m_lbl] += 1
                 else:
                     data_tend_abiertos[m_lbl] += 1
@@ -1495,7 +1507,7 @@ if entorno_activo == "Auditoría Interna":
 
     fig_tendencia.update_layout(
         template='plotly_dark',
-        title=dict(text="📈 Tendencia Mensual de Planes (Vigencia 2026)", font=dict(size=14, color="white")),
+        title=dict(text="📈 Tendencia Mensual de Planes por Estado", font=dict(size=14, color="white")),
         height=345,
         margin=dict(l=20, r=20, t=40, b=40),
         paper_bgcolor='rgba(0,0,0,0)',
@@ -2901,19 +2913,30 @@ else:
 
     df_eval_tend_c = df_filtrado_c.copy()
 
+    # Agrupar por mes de vencimiento/cierre, incluyendo fechas de años anteriores.
+    # Esto evita que los planes vencidos desaparezcan por tener fecha límite pasada.
+    def _fecha_tendencia_c(valor):
+        dt = parsear_fecha_estricta(valor)
+        if pd.isna(dt) and pd.notna(valor) and str(valor).strip():
+            dt = pd.to_datetime(valor, errors="coerce", dayfirst=True)
+        return dt
+
     for _, r in df_eval_tend_c.iterrows():
-        st_val = str(r[col_estado_c]).lower()
-        
-        if any(term in st_val for term in ['finaliz', 'cerrad']):
-            dt_ai = parsear_fecha_estricta(r[col_fecha_cierre_aud_c]) if col_fecha_cierre_aud_c in r else pd.NaT
-            if pd.notnull(dt_ai) and dt_ai.year == 2026 and dt_ai.month in map_m_num_c:
-                m_lbl = map_m_num_c[dt_ai.month]
-                data_tend_fin_c[m_lbl] += 1
+        st_val = str(r[col_estado_c] if col_estado_c in r else "").strip().lower()
+        es_finalizado = any(term in st_val for term in ["finaliz", "cerrad"])
+        es_vencido = "vencid" in st_val
+
+        if es_finalizado:
+            valor_fecha = r[col_fecha_cierre_aud_c] if col_fecha_cierre_aud_c and col_fecha_cierre_aud_c in r else None
+            dt = _fecha_tendencia_c(valor_fecha)
+            if pd.notnull(dt) and dt.month in map_m_num_c:
+                data_tend_fin_c[map_m_num_c[dt.month]] += 1
         else:
-            dt_w = parsear_fecha_estricta(r[col_fecha_cierre_c]) if col_fecha_cierre_c in r else pd.NaT
-            if pd.notnull(dt_w) and dt_w.year == 2026 and dt_w.month in map_m_num_c:
-                m_lbl = map_m_num_c[dt_w.month]
-                if 'vencid' in st_val:
+            valor_fecha = r[col_fecha_cierre_c] if col_fecha_cierre_c and col_fecha_cierre_c in r else None
+            dt = _fecha_tendencia_c(valor_fecha)
+            if pd.notnull(dt) and dt.month in map_m_num_c:
+                m_lbl = map_m_num_c[dt.month]
+                if es_vencido:
                     data_tend_vencidos_c[m_lbl] += 1
                 else:
                     data_tend_abiertos_c[m_lbl] += 1
@@ -2946,7 +2969,7 @@ else:
 
     fig_tendencia_c.update_layout(
         template='plotly_dark',
-        title=dict(text="📈 Tendencia Mensual de Planes (Vigencia 2026)", font=dict(size=14, color="white")),
+        title=dict(text="📈 Tendencia Mensual de Planes por Estado", font=dict(size=14, color="white")),
         height=345,
         margin=dict(l=20, r=20, t=40, b=40),
         paper_bgcolor='rgba(0,0,0,0)',

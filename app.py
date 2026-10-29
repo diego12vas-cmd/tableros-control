@@ -1445,59 +1445,64 @@ if entorno_activo == "Auditoría Interna":
     map_m_num = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
 
     data_tend_abiertos = {m: 0 for m in meses_orden}
+    data_tend_vencidos = {m: 0 for m in meses_orden}
     data_tend_fin = {m: 0 for m in meses_orden}
-    data_tend_cerrados = {m: 0 for m in meses_orden}
 
-    # La tendencia separa los tres estados solicitados. Los estados abiertos
-    # (incluidos los que aparecen vencidos) se agrupan en Abiertos; los
-    # finalizados y cerrados se cuentan por separado usando la fecha de cierre.
     df_eval_tend = df_filtrado.copy()
+
     for _, r in df_eval_tend.iterrows():
-        st_val = str(r[col_estado]).strip().lower() if col_estado else ''
-        if 'finaliz' in st_val:
-            dt_estado = parsear_fecha_estricta(r[col_fecha_cierre_aud]) if col_fecha_cierre_aud and col_fecha_cierre_aud in r.index else pd.NaT
-            destino = data_tend_fin
-        elif 'cerrad' in st_val:
-            dt_estado = parsear_fecha_estricta(r[col_fecha_cierre_aud]) if col_fecha_cierre_aud and col_fecha_cierre_aud in r.index else pd.NaT
-            destino = data_tend_cerrados
+        st_val = str(r[col_estado]).lower()
+        
+        if any(term in st_val for term in ['finaliz', 'cerrad']):
+            dt_s = parsear_fecha_estricta(r[col_fecha_cierre_aud]) if col_fecha_cierre_aud in r else pd.NaT
+            if pd.notnull(dt_s) and dt_s.year == 2026 and dt_s.month in map_m_num:
+                m_lbl = map_m_num[dt_s.month]
+                data_tend_fin[m_lbl] += 1
         else:
-            dt_estado = parsear_fecha_estricta(r[col_fecha_cierre]) if col_fecha_cierre and col_fecha_cierre in r.index else pd.NaT
-            destino = data_tend_abiertos
-        if pd.notnull(dt_estado) and dt_estado.year == 2026 and dt_estado.month in map_m_num:
-            destino[map_m_num[dt_estado.month]] += 1
+            dt_i = parsear_fecha_estricta(r[col_fecha_cierre]) if col_fecha_cierre in r else pd.NaT
+            if pd.notnull(dt_i) and dt_i.year == 2026 and dt_i.month in map_m_num:
+                m_lbl = map_m_num[dt_i.month]
+                if 'vencid' in st_val:
+                    data_tend_vencidos[m_lbl] += 1
+                else:
+                    data_tend_abiertos[m_lbl] += 1
 
     fig_tendencia = go.Figure()
     fig_tendencia.add_trace(go.Scatter(
-        x=meses_orden, y=[data_tend_abiertos[m] for m in meses_orden],
-        mode='lines+markers', name='Abiertos',
-        line=dict(color='#F39C12', width=3, shape='linear'),
-        marker=dict(size=8, symbol='diamond')
+        x=meses_orden, 
+        y=[data_tend_abiertos[m] for m in meses_orden],
+        mode='lines+markers',
+        name='Abiertos',
+        line=dict(color='#F39C12', width=3, shape='spline'),
+        marker=dict(size=6)
     ))
     fig_tendencia.add_trace(go.Scatter(
-        x=meses_orden, y=[data_tend_fin[m] for m in meses_orden],
-        mode='lines+markers', name='Finalizados',
-        line=dict(color='#2ECC71', width=3, shape='linear'),
-        marker=dict(size=8, symbol='circle')
+        x=meses_orden, 
+        y=[data_tend_vencidos[m] for m in meses_orden],
+        mode='lines+markers',
+        name='Vencidos',
+        line=dict(color='#FF5E5E', width=3, shape='spline'),
+        marker=dict(size=6)
     ))
     fig_tendencia.add_trace(go.Scatter(
-        x=meses_orden, y=[data_tend_cerrados[m] for m in meses_orden],
-        mode='lines+markers', name='Cerrados',
-        line=dict(color='#FF5E5E', width=3, shape='linear'),
-        marker=dict(size=8, symbol='square')
+        x=meses_orden, 
+        y=[data_tend_fin[m] for m in meses_orden],
+        mode='lines+markers',
+        name='Finalizados/Cerrados',
+        line=dict(color='#2ECC71', width=3, shape='spline'),
+        marker=dict(size=6)
     ))
 
     fig_tendencia.update_layout(
         template='plotly_dark',
-        title=dict(text="📈 Tendencia Mensual de Planes (Vigencia 2026)", font=dict(size=16, color="white")),
-        height=365,
-        margin=dict(l=28, r=20, t=48, b=52),
+        title=dict(text="📈 Tendencia Mensual de Planes (Vigencia 2026)", font=dict(size=14, color="white")),
+        height=345,
+        margin=dict(l=20, r=20, t=40, b=40),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        legend=dict(orientation="h", y=-0.23, x=0.5, xanchor="center", font=dict(size=12)),
-        xaxis=dict(showgrid=False, tickfont=dict(size=12), title=None),
-        yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', tickfont=dict(size=12), rangemode='tozero', title=None),
-        font=dict(size=12, color='white'),
-        hovermode='x unified'
+        legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center"),
+        xaxis=dict(showgrid=False),
+        yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)')
     )
 
     df_pend_ai = df_activos.copy()
@@ -2891,59 +2896,64 @@ else:
     map_m_num_c = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
 
     data_tend_abiertos_c = {m: 0 for m in meses_orden_c}
+    data_tend_vencidos_c = {m: 0 for m in meses_orden_c}
     data_tend_fin_c = {m: 0 for m in meses_orden_c}
-    data_tend_cerrados_c = {m: 0 for m in meses_orden_c}
 
-    # La tendencia separa los tres estados solicitados. Los estados abiertos
-    # (incluidos los que aparecen vencidos) se agrupan en Abiertos; los
-    # finalizados y cerrados se cuentan por separado usando la fecha de cierre.
     df_eval_tend_c = df_filtrado_c.copy()
+
     for _, r in df_eval_tend_c.iterrows():
-        st_val = str(r[col_estado_c]).strip().lower() if col_estado_c else ''
-        if 'finaliz' in st_val:
-            dt_estado = parsear_fecha_estricta(r[col_fecha_cierre_aud_c]) if col_fecha_cierre_aud_c and col_fecha_cierre_aud_c in r.index else pd.NaT
-            destino = data_tend_fin_c
-        elif 'cerrad' in st_val:
-            dt_estado = parsear_fecha_estricta(r[col_fecha_cierre_aud_c]) if col_fecha_cierre_aud_c and col_fecha_cierre_aud_c in r.index else pd.NaT
-            destino = data_tend_cerrados_c
+        st_val = str(r[col_estado_c]).lower()
+        
+        if any(term in st_val for term in ['finaliz', 'cerrad']):
+            dt_ai = parsear_fecha_estricta(r[col_fecha_cierre_aud_c]) if col_fecha_cierre_aud_c in r else pd.NaT
+            if pd.notnull(dt_ai) and dt_ai.year == 2026 and dt_ai.month in map_m_num_c:
+                m_lbl = map_m_num_c[dt_ai.month]
+                data_tend_fin_c[m_lbl] += 1
         else:
-            dt_estado = parsear_fecha_estricta(r[col_fecha_cierre_c]) if col_fecha_cierre_c and col_fecha_cierre_c in r.index else pd.NaT
-            destino = data_tend_abiertos_c
-        if pd.notnull(dt_estado) and dt_estado.year == 2026 and dt_estado.month in map_m_num_c:
-            destino[map_m_num_c[dt_estado.month]] += 1
+            dt_w = parsear_fecha_estricta(r[col_fecha_cierre_c]) if col_fecha_cierre_c in r else pd.NaT
+            if pd.notnull(dt_w) and dt_w.year == 2026 and dt_w.month in map_m_num_c:
+                m_lbl = map_m_num_c[dt_w.month]
+                if 'vencid' in st_val:
+                    data_tend_vencidos_c[m_lbl] += 1
+                else:
+                    data_tend_abiertos_c[m_lbl] += 1
 
     fig_tendencia_c = go.Figure()
     fig_tendencia_c.add_trace(go.Scatter(
-        x=meses_orden_c, y=[data_tend_abiertos_c[m] for m in meses_orden_c],
-        mode='lines+markers', name='Abiertos',
-        line=dict(color='#F39C12', width=3, shape='linear'),
-        marker=dict(size=8, symbol='diamond')
+        x=meses_orden_c, 
+        y=[data_tend_abiertos_c[m] for m in meses_orden_c],
+        mode='lines+markers',
+        name='Abiertos',
+        line=dict(color='#F39C12', width=3, shape='spline'),
+        marker=dict(size=6)
     ))
     fig_tendencia_c.add_trace(go.Scatter(
-        x=meses_orden_c, y=[data_tend_fin_c[m] for m in meses_orden_c],
-        mode='lines+markers', name='Finalizados',
-        line=dict(color='#2ECC71', width=3, shape='linear'),
-        marker=dict(size=8, symbol='circle')
+        x=meses_orden_c, 
+        y=[data_tend_vencidos_c[m] for m in meses_orden_c],
+        mode='lines+markers',
+        name='Vencidos',
+        line=dict(color='#FF5E5E', width=3, shape='spline'),
+        marker=dict(size=6)
     ))
     fig_tendencia_c.add_trace(go.Scatter(
-        x=meses_orden_c, y=[data_tend_cerrados_c[m] for m in meses_orden_c],
-        mode='lines+markers', name='Cerrados',
-        line=dict(color='#FF5E5E', width=3, shape='linear'),
-        marker=dict(size=8, symbol='square')
+        x=meses_orden_c, 
+        y=[data_tend_fin_c[m] for m in meses_orden_c],
+        mode='lines+markers',
+        name='Finalizados/Cerrados',
+        line=dict(color='#2ECC71', width=3, shape='spline'),
+        marker=dict(size=6)
     ))
 
     fig_tendencia_c.update_layout(
         template='plotly_dark',
-        title=dict(text="📈 Tendencia Mensual de Planes (Vigencia 2026)", font=dict(size=16, color="white")),
-        height=365,
-        margin=dict(l=28, r=20, t=48, b=52),
+        title=dict(text="📈 Tendencia Mensual de Planes (Vigencia 2026)", font=dict(size=14, color="white")),
+        height=345,
+        margin=dict(l=20, r=20, t=40, b=40),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        legend=dict(orientation="h", y=-0.23, x=0.5, xanchor="center", font=dict(size=12)),
-        xaxis=dict(showgrid=False, tickfont=dict(size=12), title=None),
-        yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', tickfont=dict(size=12), rangemode='tozero', title=None),
-        font=dict(size=12, color='white'),
-        hovermode='x unified'
+        legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center"),
+        xaxis=dict(showgrid=False),
+        yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)')
     )
 
     df_pend_c_top = df_activos_c.copy()

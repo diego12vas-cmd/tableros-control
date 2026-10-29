@@ -1651,7 +1651,7 @@ if entorno_activo == "Auditoría Interna":
 
                     with k3:
                         st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #10B981; padding: 20px 18px; min-height: 172px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px;">
+                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #10B981; padding: 20px 18px; height: 239px; min-height: 239px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px; display: flex; flex-direction: column;">
                             <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">Cumplimiento</div>
                             <div style="font-size: 30px; font-weight: 800; color: #34D399; font-family: monospace; margin: 4px 0;">{pct_cumplimiento_ai}%</div>
                             <div style="font-size: 10px; color: #94A3B8; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08);">{fin_ai_cnt} cerrados de {total_hist_ai}</div>
@@ -1663,7 +1663,7 @@ if entorno_activo == "Auditoría Interna":
                         pct_abiertos_ai = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes else 0
                         pct_vencidos_ai = round((vencidos / total_planes_pendientes) * 100) if total_planes_pendientes else 0
                         st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #F59E0B; padding: 18px 16px; min-height: 172px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px;">
+                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #F59E0B; padding: 18px 16px; height: 239px; min-height: 239px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px; display: flex; flex-direction: column;">
                             <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase; margin-bottom: 12px;">Análisis de Planes de Acción</div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                                 <div style="min-width: 0; padding-right: 8px; border-right: 1px solid rgba(255,255,255,0.10);">

@@ -3625,24 +3625,33 @@ else:
                                         cliponaxis=False,
                                         hovertemplate="Periodicidad: %{y}<br>Cantidad de obligaciones: %{x}<extra></extra>",
                                     ))
+                                    # No fijar dtick=1: con muchas obligaciones el eje X dibuja
+                                    # decenas de etiquetas consecutivas que se montan y parecen una cadena.
+                                    max_obligaciones_periodicidad_c = int(df_periodicidad_ctrl_c["Cantidad"].max())
+                                    salto_eje_periodicidad_c = max(1, (max_obligaciones_periodicidad_c + 4) // 5)
+                                    altura_periodicidad_c = max(300, 62 * len(df_periodicidad_ctrl_c) + 95)
                                     fig_periodicidad_inf_c.update_layout(
-                                        height=320,
+                                        height=altura_periodicidad_c,
                                         showlegend=False,
-                                        margin=dict(l=20, r=35, t=18, b=45),
+                                        margin=dict(l=22, r=38, t=18, b=48),
                                         xaxis_title="Cantidad de obligaciones",
                                         yaxis_title=None,
                                         paper_bgcolor="rgba(0,0,0,0)",
                                         plot_bgcolor="rgba(0,0,0,0)",
                                         font=dict(color="#E5E7EB", size=12),
+                                        bargap=0.38,
                                         xaxis=dict(
                                             showgrid=True,
                                             gridcolor="rgba(128,128,128,0.2)",
                                             rangemode="tozero",
-                                            dtick=1,
+                                            tickmode="linear",
+                                            dtick=salto_eje_periodicidad_c,
+                                            automargin=True,
                                         ),
                                         yaxis=dict(
                                             showgrid=False,
                                             automargin=True,
+                                            tickfont=dict(size=12),
                                             categoryorder="array",
                                             categoryarray=list(reversed(df_periodicidad_ctrl_c["Periodicidad"].tolist())),
                                         ),
@@ -3782,5 +3791,4 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
-
 

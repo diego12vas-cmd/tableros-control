@@ -1483,7 +1483,10 @@ if entorno_activo == "Auditoría Interna":
     fig_tendencia.add_trace(go.Scatter(
         x=meses_orden, 
         y=[data_tend_abiertos[m] for m in meses_orden],
-        mode='lines+markers',
+        text=[data_tend_abiertos[m] for m in meses_orden],
+        textposition='top center',
+        textfont=dict(size=10, color='white'),
+        mode='lines+markers+text',
         name='Abiertos',
         line=dict(color='#F39C12', width=3, shape='spline'),
         marker=dict(size=6)
@@ -1491,7 +1494,10 @@ if entorno_activo == "Auditoría Interna":
     fig_tendencia.add_trace(go.Scatter(
         x=meses_orden, 
         y=[data_tend_vencidos[m] for m in meses_orden],
-        mode='lines+markers',
+        text=[data_tend_vencidos[m] for m in meses_orden],
+        textposition='top center',
+        textfont=dict(size=10, color='white'),
+        mode='lines+markers+text',
         name='Vencidos',
         line=dict(color='#FF5E5E', width=3, shape='spline'),
         marker=dict(size=6)
@@ -1499,7 +1505,10 @@ if entorno_activo == "Auditoría Interna":
     fig_tendencia.add_trace(go.Scatter(
         x=meses_orden, 
         y=[data_tend_fin[m] for m in meses_orden],
-        mode='lines+markers',
+        text=[data_tend_fin[m] for m in meses_orden],
+        textposition='top center',
+        textfont=dict(size=10, color='white'),
+        mode='lines+markers+text',
         name='Finalizados/Cerrados',
         line=dict(color='#2ECC71', width=3, shape='spline'),
         marker=dict(size=6)
@@ -2714,7 +2723,10 @@ else:
     fig_tendencia_c.add_trace(go.Scatter(
         x=meses_orden_c, 
         y=[data_tend_abiertos_c[m] for m in meses_orden_c],
-        mode='lines+markers',
+        text=[data_tend_abiertos_c[m] for m in meses_orden_c],
+        textposition='top center',
+        textfont=dict(size=10, color='white'),
+        mode='lines+markers+text',
         name='Abiertos',
         line=dict(color='#F39C12', width=3, shape='spline'),
         marker=dict(size=6)
@@ -2722,7 +2734,10 @@ else:
     fig_tendencia_c.add_trace(go.Scatter(
         x=meses_orden_c, 
         y=[data_tend_vencidos_c[m] for m in meses_orden_c],
-        mode='lines+markers',
+        text=[data_tend_vencidos_c[m] for m in meses_orden_c],
+        textposition='top center',
+        textfont=dict(size=10, color='white'),
+        mode='lines+markers+text',
         name='Vencidos',
         line=dict(color='#FF5E5E', width=3, shape='spline'),
         marker=dict(size=6)
@@ -2730,7 +2745,10 @@ else:
     fig_tendencia_c.add_trace(go.Scatter(
         x=meses_orden_c, 
         y=[data_tend_fin_c[m] for m in meses_orden_c],
-        mode='lines+markers',
+        text=[data_tend_fin_c[m] for m in meses_orden_c],
+        textposition='top center',
+        textfont=dict(size=10, color='white'),
+        mode='lines+markers+text',
         name='Finalizados/Cerrados',
         line=dict(color='#2ECC71', width=3, shape='spline'),
         marker=dict(size=6)

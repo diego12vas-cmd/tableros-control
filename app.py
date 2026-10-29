@@ -1624,7 +1624,7 @@ if entorno_activo == "Auditoría Interna":
                     with k1:
                         st.markdown(f"""
                         <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #3B82F6; padding: 20px 18px; min-height: 172px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px;">
-                            <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">Hallazgos Pendientes</div>
+                            <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">Hallazgos Pendientes por Riesgo</div>
                             <div style="font-size: 30px; font-weight: 800; color: #FFFFFF; font-family: monospace; margin: 4px 0;">{total_hallazgos_unicos_pendientes}</div>
                             <div style="font-size: 11px; font-weight: 600; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-wrap: wrap; align-items: flex-start; gap: 5px;">
                                 <span style="background: rgba(244,63,94,0.15); color: #FB7185; padding: 2px 5px; border-radius: 4px;">● {r_alto} Alto</span>
@@ -1637,7 +1637,7 @@ if entorno_activo == "Auditoría Interna":
                     with k2:
                         st.markdown(f"""
                         <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #EF4444; padding: 20px 18px; min-height: 172px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px;">
-                            <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">Planes de Acción</div>
+                            <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">Planes de Acción por Estado</div>
                             <div style="font-size: 30px; font-weight: 800; color: #FFFFFF; font-family: monospace; margin: 4px 0;">{total_planes_pendientes}</div>
                             <div style="font-size: 11px; font-weight: 600; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: flex-start; align-items: flex-start; flex-wrap: wrap; gap: 5px;">
                                 <span style="background: rgba(16,185,129,0.15); color: #34D399; padding: 2px 5px; border-radius: 4px;">{abiertos} Abiertos</span>
@@ -1659,11 +1659,25 @@ if entorno_activo == "Auditoría Interna":
                         """, unsafe_allow_html=True)
 
                     with k4:
+                        # Porcentajes calculados sobre el total de planes de acción pendientes.
+                        pct_abiertos_ai = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes else 0
+                        pct_vencidos_ai = round((vencidos / total_planes_pendientes) * 100) if total_planes_pendientes else 0
                         st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #F59E0B; padding: 20px 18px; min-height: 172px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px;">
-                            <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">Prom. Días Mora</div>
-                            <div style="font-size: 30px; font-weight: 800; color: #FBBF24; font-family: monospace; margin: 4px 0;">{prom_mora_ai_val} <span style="font-size: 12px; color: #94A3B8;">días</span></div>
-                            <div style="font-size: 10px; color: #F87171; font-weight: 600; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08);">{len(df_raw_venc_ai)} atrasados</div>
+                        <div style="background: linear-gradient(145deg, #1A2434, #111827); border-top: 3.5px solid #F59E0B; padding: 18px 16px; min-height: 172px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px;">
+                            <div style="font-size: 11px; font-weight: 700; color: #CBD5E1; text-transform: uppercase; margin-bottom: 12px;">Análisis de Planes de Acción</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                <div style="min-width: 0; padding-right: 8px; border-right: 1px solid rgba(255,255,255,0.10);">
+                                    <div style="font-size: 10px; font-weight: 700; color: #34D399; line-height: 1.4;">Porcentaje de Abiertas</div>
+                                    <div style="font-size: 27px; font-weight: 800; color: #34D399; font-family: monospace; margin: 5px 0 2px 0;">{pct_abiertos_ai}%</div>
+                                    <div style="font-size: 10px; color: #94A3B8;">{abiertos} abiertas</div>
+                                </div>
+                                <div style="min-width: 0;">
+                                    <div style="font-size: 10px; font-weight: 700; color: #F87171; line-height: 1.4;">Porcentaje de Vencidas</div>
+                                    <div style="font-size: 27px; font-weight: 800; color: #F87171; font-family: monospace; margin: 5px 0 2px 0;">{pct_vencidos_ai}%</div>
+                                    <div style="font-size: 10px; color: #94A3B8;">{vencidos} vencidas</div>
+                                </div>
+                            </div>
+                            <div style="font-size: 9px; color: #94A3B8; padding-top: 7px; margin-top: 7px; border-top: 1px solid rgba(255,255,255,0.08);">Base de cálculo: {total_planes_pendientes} planes pendientes</div>
                         </div>
                         """, unsafe_allow_html=True)
 

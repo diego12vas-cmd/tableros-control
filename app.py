@@ -3642,7 +3642,6 @@ else:
                                 )
                             else:
                                 st.info("Aún no hay informes mensuales publicados para mostrar en la gráfica.")
-                            st.caption("Agrupa por período reportado y cuenta solo los informes mensuales con fecha real de publicación.")
 
                         # Gráfica 2: obligaciones por periodicidad y estado.
                         # Así los informes extemporáneos de periodicidad no mensual
@@ -3935,5 +3934,4 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
-
 

@@ -1043,17 +1043,121 @@ st.markdown(
         .st-key-click-c-state-open { left: 3% !important; }
         .st-key-click-c-state-overdue { left: 51% !important; }
 
-        /* Las cuatro alertas son clicables en toda su superficie. */
-        .st-key-click-ai-alert-5,
-        .st-key-click-ai-alert-10,
-        .st-key-click-ai-alert-20,
-        .st-key-click-ai-alert-30,
-        .st-key-click-c-alert-5,
-        .st-key-click-c-alert-10,
-        .st-key-click-c-alert-20,
-        .st-key-click-c-alert-30 {
-            z-index: 35 !important;
+        /* -----------------------------------------------------
+           CONTRALORÍA: botones Streamlit reales dentro de cada
+           tarjeta. No se usan capas transparentes superpuestas.
+           ----------------------------------------------------- */
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(.st-key-kpi_c_hallazgos_total) {
+            background: linear-gradient(145deg,#1A2434,#111827) !important;
+            border: 1px solid rgba(255,255,255,.09) !important;
+            border-top: 3px solid #3B82F6 !important;
+            border-radius: 12px !important;
         }
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(.st-key-kpi_c_planes_total) {
+            background: linear-gradient(145deg,#1A2434,#111827) !important;
+            border: 1px solid rgba(255,255,255,.09) !important;
+            border-top: 3px solid #EF4444 !important;
+            border-radius: 12px !important;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(.st-key-kpi_c_cumplimiento) {
+            background: linear-gradient(145deg,#1A2434,#111827) !important;
+            border: 1px solid rgba(255,255,255,.09) !important;
+            border-top: 3px solid #10B981 !important;
+            border-radius: 12px !important;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(.st-key-kpi_c_abiertos_pct) {
+            background: linear-gradient(145deg,#1A2434,#111827) !important;
+            border: 1px solid rgba(255,255,255,.09) !important;
+            border-top: 3px solid #F59E0B !important;
+            border-radius: 12px !important;
+        }
+        .st-key-kpi_c_hallazgos_total button,
+        .st-key-kpi_c_planes_total button,
+        .st-key-kpi_c_cumplimiento button {
+            background: transparent !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            justify-content: flex-start !important;
+            text-align: left !important;
+            min-height: 42px !important;
+            height: 42px !important;
+            padding: 0 2px !important;
+            cursor: pointer !important;
+        }
+        .st-key-kpi_c_hallazgos_total button p,
+        .st-key-kpi_c_planes_total button p,
+        .st-key-kpi_c_cumplimiento button p {
+            font-size: 30px !important;
+            line-height: 1.1 !important;
+            font-weight: 800 !important;
+            color: #FFFFFF !important;
+        }
+        .st-key-kpi_c_cumplimiento button p { color:#34D399 !important; }
+        .st-key-kpi_c_hallazgos_total button:hover,
+        .st-key-kpi_c_planes_total button:hover,
+        .st-key-kpi_c_cumplimiento button:hover {
+            background: rgba(255,255,255,.045) !important;
+        }
+        .st-key-kpi_c_estado_abiertos button,
+        .st-key-kpi_c_estado_vencidos button {
+            min-height: 29px !important;
+            height: 29px !important;
+            padding: 0 5px !important;
+            border: 1px solid transparent !important;
+            border-radius: 5px !important;
+            box-shadow: none !important;
+            font-size: 11px !important;
+            font-weight: 800 !important;
+            white-space: nowrap !important;
+            cursor: pointer !important;
+        }
+        .st-key-kpi_c_estado_abiertos button { background:rgba(16,185,129,.16)!important; color:#34D399!important; }
+        .st-key-kpi_c_estado_vencidos button { background:rgba(239,68,68,.18)!important; color:#F87171!important; }
+        .st-key-kpi_c_estado_abiertos button p,
+        .st-key-kpi_c_estado_vencidos button p { font-size:11px!important; font-weight:800!important; }
+        .st-key-kpi_c_abiertos_pct button,
+        .st-key-kpi_c_vencidos_pct button {
+            width:100% !important;
+            min-height:68px !important;
+            height:68px !important;
+            white-space:normal !important;
+            background:rgba(255,255,255,.035) !important;
+            border:1px solid rgba(255,255,255,.08) !important;
+            border-radius:7px !important;
+            box-shadow:none !important;
+            font-size:12px !important;
+            font-weight:700 !important;
+            cursor:pointer !important;
+        }
+        .st-key-kpi_c_abiertos_pct button { color:#34D399!important; }
+        .st-key-kpi_c_vencidos_pct button { color:#F87171!important; }
+        .st-key-kpi_c_abiertos_pct button strong,
+        .st-key-kpi_c_vencidos_pct button strong { font-size:24px!important; }
+        .st-key-kpi_c_alerta_5 button,
+        .st-key-kpi_c_alerta_10 button,
+        .st-key-kpi_c_alerta_20 button,
+        .st-key-kpi_c_alerta_30 button {
+            width:100% !important;
+            min-height:112px !important;
+            height:112px !important;
+            white-space:pre-line !important;
+            text-align:left !important;
+            justify-content:flex-start !important;
+            border-radius:10px !important;
+            padding:10px 12px !important;
+            box-shadow:none !important;
+            font-size:12px !important;
+            font-weight:800 !important;
+            cursor:pointer !important;
+        }
+        .st-key-kpi_c_alerta_5 button strong,
+        .st-key-kpi_c_alerta_10 button strong,
+        .st-key-kpi_c_alerta_20 button strong,
+        .st-key-kpi_c_alerta_30 button strong { display:block!important; font-size:27px!important; line-height:1.15!important; }
+        .st-key-kpi_c_alerta_5 button { background:linear-gradient(145deg,#24141E,#111827)!important; color:#FDA4AF!important; border:1px solid rgba(239,68,68,.3)!important; border-top:3px solid #EF4444!important; }
+        .st-key-kpi_c_alerta_10 button { background:linear-gradient(145deg,#1F1E16,#111827)!important; color:#FDE68A!important; border:1px solid rgba(245,158,11,.25)!important; border-top:3px solid #F59E0B!important; }
+        .st-key-kpi_c_alerta_20 button { background:linear-gradient(145deg,#13221C,#111827)!important; color:#A7F3D0!important; border:1px solid rgba(16,185,129,.25)!important; border-top:3px solid #10B981!important; }
+        .st-key-kpi_c_alerta_30 button { background:linear-gradient(145deg,#141E2C,#111827)!important; color:#BFDBFE!important; border:1px solid rgba(59,130,246,.25)!important; border-top:3px solid #3B82F6!important; }
 
     </style>
 """,
@@ -1831,91 +1935,217 @@ if entorno_activo == "Auditoría Interna":
                 col_izq, col_der = st.columns([0.92, 1.6], gap="medium")
 
                 with col_izq:
-                    # Tarjetas KPI originales con zonas de clic transparentes.
-                    def opciones_filtro_ai():
-                        opciones = [
-                            "(Mostrar Todos)", "Hallazgos pendientes", "Planes pendientes",
-                            "Riesgo: Alto", "Riesgo: Medio", "Riesgo: Bajo",
-                            "Estado: Abiertos", "Estado: Vencidos", "Estado: Sin definir",
-                            "Estado: Finalizados/Cerrados",
-                        ]
-                        if col_a5: opciones.append("Alerta: Próximos a 5 días")
-                        if col_a10: opciones.append("Alerta: Próximos a 10 días")
-                        if col_a20: opciones.append("Alerta: Próximos a 20 días")
-                        if col_a30: opciones.append("Alerta: Próximos a 30 días")
-                        return opciones
+                    # TARJETAS KPI INTERACTIVAS (drill-down a la tabla inferior)
+                    # ---------------------------------------------------------
+                    opciones_rapidas = [
+                        "(Mostrar Todos)",
+                        "Hallazgos pendientes",
+                        "Planes pendientes",
+                        "Riesgo: Alto",
+                        "Riesgo: Medio",
+                        "Riesgo: Bajo",
+                        "Estado: Abiertos",
+                        "Estado: Vencidos",
+                        "Estado: Sin definir",
+                        "Estado: Finalizados/Cerrados",
+                    ]
+                    if col_a5:
+                        opciones_rapidas.append("Alerta: Próximos a 5 días")
+                    if col_a10:
+                        opciones_rapidas.append("Alerta: Próximos a 10 días")
+                    if col_a20:
+                        opciones_rapidas.append("Alerta: Próximos a 20 días")
+                    if col_a30:
+                        opciones_rapidas.append("Alerta: Próximos a 30 días")
 
-                    opciones_rapidas = opciones_filtro_ai()
-                    if st.session_state.get("filtro_rapido_ai") not in opciones_rapidas:
+                    if "filtro_rapido_ai" not in st.session_state or st.session_state["filtro_rapido_ai"] not in opciones_rapidas:
                         st.session_state["filtro_rapido_ai"] = "(Mostrar Todos)"
+
+                    st.markdown("""
+                    <style>
+                      /* Cada contenedor con borde se estiliza como una tarjeta KPI. */
+                      div[data-testid="stVerticalBlockBorderWrapper"]:has(.st-key-kpi_ai_total_hallazgos) {
+                        background: linear-gradient(145deg,#1A2434,#111827) !important;
+                        border: 1px solid rgba(255,255,255,.09) !important;
+                        border-top: 3px solid #3B82F6 !important;
+                        border-radius: 12px !important;
+                      }
+                      div[data-testid="stVerticalBlockBorderWrapper"]:has(.st-key-kpi_ai_total_planes) {
+                        background: linear-gradient(145deg,#1A2434,#111827) !important;
+                        border: 1px solid rgba(255,255,255,.09) !important;
+                        border-top: 3px solid #EF4444 !important;
+                        border-radius: 12px !important;
+                      }
+                      div[data-testid="stVerticalBlockBorderWrapper"]:has(.st-key-kpi_ai_cumplimiento) {
+                        background: linear-gradient(145deg,#1A2434,#111827) !important;
+                        border: 1px solid rgba(255,255,255,.09) !important;
+                        border-top: 3px solid #10B981 !important;
+                        border-radius: 12px !important;
+                      }
+                      div[data-testid="stVerticalBlockBorderWrapper"]:has(.st-key-kpi_ai_abiertos_pct) {
+                        background: linear-gradient(145deg,#1A2434,#111827) !important;
+                        border: 1px solid rgba(255,255,255,.09) !important;
+                        border-top: 3px solid #F59E0B !important;
+                        border-radius: 12px !important;
+                      }
+                      .st-key-kpi_ai_total_hallazgos button,
+                      .st-key-kpi_ai_total_planes button,
+                      .st-key-kpi_ai_cumplimiento button {
+                        background: transparent !important;
+                        border: 0 !important;
+                        box-shadow: none !important;
+                        justify-content: flex-start !important;
+                        text-align: left !important;
+                        min-height: 42px !important;
+                        height: 42px !important;
+                        padding: 0 2px !important;
+                      }
+                      .st-key-kpi_ai_total_hallazgos button p,
+                      .st-key-kpi_ai_total_planes button p,
+                      .st-key-kpi_ai_cumplimiento button p {
+                        font-size: 30px !important;
+                        line-height: 1.1 !important;
+                        font-weight: 800 !important;
+                        color: #FFFFFF !important;
+                      }
+                      .st-key-kpi_ai_total_hallazgos button:hover,
+                      .st-key-kpi_ai_total_planes button:hover,
+                      .st-key-kpi_ai_cumplimiento button:hover {
+                        background: rgba(255,255,255,.06) !important;
+                      }
+                      .st-key-kpi_ai_cumplimiento button p { color:#34D399!important; }
+                      .st-key-kpi_ai_riesgo_alto button,
+                      .st-key-kpi_ai_riesgo_medio button,
+                      .st-key-kpi_ai_riesgo_bajo button,
+                      .st-key-kpi_ai_estado_abiertos button,
+                      .st-key-kpi_ai_estado_vencidos button,
+                      .st-key-kpi_ai_estado_sin_definir button {
+                        min-height: 29px !important;
+                        height: 29px !important;
+                        padding: 0 5px !important;
+                        border: 1px solid transparent !important;
+                        border-radius: 5px !important;
+                        box-shadow: none !important;
+                        font-size: 11px !important;
+                        font-weight: 800 !important;
+                        white-space: nowrap !important;
+                      }
+                      .st-key-kpi_ai_riesgo_alto button { background:rgba(244,63,94,.16)!important; color:#FB7185!important; }
+                      .st-key-kpi_ai_riesgo_medio button { background:rgba(245,158,11,.16)!important; color:#FCD34D!important; }
+                      .st-key-kpi_ai_riesgo_bajo button { background:rgba(16,185,129,.16)!important; color:#6EE7B7!important; }
+                      .st-key-kpi_ai_estado_abiertos button { background:rgba(16,185,129,.16)!important; color:#34D399!important; }
+                      .st-key-kpi_ai_estado_vencidos button { background:rgba(239,68,68,.18)!important; color:#F87171!important; }
+                      .st-key-kpi_ai_estado_sin_definir button { background:rgba(148,163,184,.16)!important; color:#CBD5E1!important; }
+                      .st-key-kpi_ai_abiertos_pct button,
+                      .st-key-kpi_ai_vencidos_pct button {
+                        width:100% !important;
+                        min-height:68px !important;
+                        height:68px !important;
+                        white-space:normal !important;
+                        background:rgba(255,255,255,.035) !important;
+                        border:1px solid rgba(255,255,255,.08) !important;
+                        border-radius:7px !important;
+                        box-shadow:none !important;
+                        font-size:17px !important;
+                        font-weight:800 !important;
+                      }
+                      .st-key-kpi_ai_abiertos_pct button { color:#34D399!important; }
+                      .st-key-kpi_ai_vencidos_pct button { color:#F87171!important; }
+                      .st-key-kpi_ai_abiertos_pct button strong,
+                      .st-key-kpi_ai_vencidos_pct button strong { font-size:24px!important; }
+                      .st-key-kpi_ai_alerta_5 button,
+                      .st-key-kpi_ai_alerta_10 button,
+                      .st-key-kpi_ai_alerta_20 button,
+                      .st-key-kpi_ai_alerta_30 button {
+                        width:100% !important;
+                        min-height:112px !important;
+                        height:112px !important;
+                        white-space:pre-line !important;
+                        text-align:left !important;
+                        justify-content:flex-start !important;
+                        border-radius:10px !important;
+                        padding:10px 12px !important;
+                        box-shadow:none !important;
+                        font-size:12px !important;
+                        font-weight:800 !important;
+                      }
+                      .st-key-kpi_ai_alerta_5 button strong,
+                      .st-key-kpi_ai_alerta_10 button strong,
+                      .st-key-kpi_ai_alerta_20 button strong,
+                      .st-key-kpi_ai_alerta_30 button strong { display:block!important; font-size:27px!important; line-height:1.15!important; }
+                      .st-key-kpi_ai_alerta_5 button { background:linear-gradient(145deg,#24141E,#111827)!important; color:#FDA4AF!important; border:1px solid rgba(239,68,68,.3)!important; border-top:3px solid #EF4444!important; }
+                      .st-key-kpi_ai_alerta_10 button { background:linear-gradient(145deg,#1F1E16,#111827)!important; color:#FDE68A!important; border:1px solid rgba(245,158,11,.25)!important; border-top:3px solid #F59E0B!important; }
+                      .st-key-kpi_ai_alerta_20 button { background:linear-gradient(145deg,#13221C,#111827)!important; color:#A7F3D0!important; border:1px solid rgba(16,185,129,.25)!important; border-top:3px solid #10B981!important; }
+                      .st-key-kpi_ai_alerta_30 button { background:linear-gradient(145deg,#141E2C,#111827)!important; color:#BFDBFE!important; border:1px solid rgba(59,130,246,.25)!important; border-top:3px solid #3B82F6!important; }
+                    </style>
+                    """, unsafe_allow_html=True)
 
                     k1, k2 = st.columns(2, gap="small")
                     with k1:
-                        with st.container(key="card-ai-risk"):
-                            st.markdown(f"""
-                            <div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #3B82F6;border-radius:12px;padding:15px 13px;min-height:150px;box-sizing:border-box;margin-bottom:10px;">
-                              <div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Hallazgos pendientes por riesgo</div>
-                              <div style="font-size:30px;font-weight:800;color:#fff;margin:2px 0 8px;">{total_hallazgos_unicos_pendientes}</div>
-                              <div style="border-top:1px solid rgba(255,255,255,.1);padding-top:8px;display:flex;flex-wrap:wrap;gap:4px;font-size:11px;font-weight:700;">
-                                <span style="background:rgba(244,63,94,.16);color:#FB7185;padding:4px 5px;border-radius:5px;">● {r_alto} Alto</span>
-                                <span style="background:rgba(245,158,11,.16);color:#FCD34D;padding:4px 5px;border-radius:5px;">● {r_medio} Medio</span>
-                                <span style="background:rgba(16,185,129,.16);color:#6EE7B7;padding:4px 5px;border-radius:5px;">● {r_bajo} Bajo</span>
-                              </div>
-                            </div>""", unsafe_allow_html=True)
-                            st.button(" ", key="click-ai-risk-total", help="Ver hallazgos pendientes.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Hallazgos pendientes"))
-                            st.button(" ", key="click-ai-risk-high", help="Ver hallazgos de riesgo alto.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Riesgo: Alto"))
-                            st.button(" ", key="click-ai-risk-medium", help="Ver hallazgos de riesgo medio.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Riesgo: Medio"))
-                            st.button(" ", key="click-ai-risk-low", help="Ver hallazgos de riesgo bajo.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Riesgo: Bajo"))
+                        with st.container(border=True):
+                            st.markdown('<div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Hallazgos pendientes por riesgo</div>', unsafe_allow_html=True)
+                            st.button(
+                                f"{total_hallazgos_unicos_pendientes}",
+                                key="kpi_ai_total_hallazgos",
+                                help="Ver los hallazgos y compromisos pendientes.",
+                                use_container_width=True,
+                                on_click=seleccionar_filtro_tarjeta,
+                                args=("filtro_rapido_ai", "Hallazgos pendientes"),
+                            )
+                            st.markdown('<div style="border-top:1px solid rgba(255,255,255,.1);margin:2px 0 8px;"></div>', unsafe_allow_html=True)
+                            r1, r2, r3 = st.columns(3, gap="small")
+                            with r1:
+                                st.button(f"● {r_alto} Alto", key="kpi_ai_riesgo_alto", help="Ver hallazgos pendientes de riesgo alto.", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Riesgo: Alto"))
+                            with r2:
+                                st.button(f"● {r_medio} Medio", key="kpi_ai_riesgo_medio", help="Ver hallazgos pendientes de riesgo medio.", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Riesgo: Medio"))
+                            with r3:
+                                st.button(f"● {r_bajo} Bajo", key="kpi_ai_riesgo_bajo", help="Ver hallazgos pendientes de riesgo bajo.", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Riesgo: Bajo"))
+
                     with k2:
-                        with st.container(key="card-ai-state"):
-                            st.markdown(f"""
-                            <div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #EF4444;border-radius:12px;padding:15px 13px;min-height:150px;box-sizing:border-box;margin-bottom:10px;">
-                              <div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Planes de acción por estado</div>
-                              <div style="font-size:30px;font-weight:800;color:#fff;margin:2px 0 8px;">{total_planes_pendientes}</div>
-                              <div style="border-top:1px solid rgba(255,255,255,.1);padding-top:8px;display:flex;flex-wrap:wrap;gap:4px;font-size:11px;font-weight:700;">
-                                <span style="background:rgba(16,185,129,.16);color:#34D399;padding:4px 5px;border-radius:5px;">{abiertos} Abiertos</span>
-                                <span style="background:rgba(239,68,68,.18);color:#F87171;padding:4px 5px;border-radius:5px;">{vencidos} Vencidos</span>
-                                <span style="background:rgba(148,163,184,.16);color:#CBD5E1;padding:4px 5px;border-radius:5px;">{sin_plan} Sin definir</span>
-                              </div>
-                            </div>""", unsafe_allow_html=True)
-                            st.button(" ", key="click-ai-state-total", help="Ver todos los planes pendientes.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Planes pendientes"))
-                            st.button(" ", key="click-ai-state-open", help="Ver planes abiertos.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Abiertos"))
-                            st.button(" ", key="click-ai-state-overdue", help="Ver planes vencidos.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Vencidos"))
-                            st.button(" ", key="click-ai-state-undefined", help="Ver planes sin definir.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Sin definir"))
+                        with st.container(border=True):
+                            st.markdown('<div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Planes de acción por estado</div>', unsafe_allow_html=True)
+                            st.button(
+                                f"{total_planes_pendientes}",
+                                key="kpi_ai_total_planes",
+                                help="Ver todos los planes de acción pendientes.",
+                                use_container_width=True,
+                                on_click=seleccionar_filtro_tarjeta,
+                                args=("filtro_rapido_ai", "Planes pendientes"),
+                            )
+                            st.markdown('<div style="border-top:1px solid rgba(255,255,255,.1);margin:2px 0 8px;"></div>', unsafe_allow_html=True)
+                            p1, p2, p3 = st.columns(3, gap="small")
+                            with p1:
+                                st.button(f"● {abiertos} Abiertos", key="kpi_ai_estado_abiertos", help="Ver los planes abiertos.", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Abiertos"))
+                            with p2:
+                                st.button(f"● {vencidos} Vencidos", key="kpi_ai_estado_vencidos", help="Ver los planes vencidos.", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Vencidos"))
+                            with p3:
+                                st.button(f"● {sin_plan} Sin definir", key="kpi_ai_estado_sin_definir", help="Ver los registros sin plan de acción definido.", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Sin definir"))
 
                     k3, k4 = st.columns(2, gap="small")
                     with k3:
-                        with st.container(key="card-ai-compliance"):
-                            st.markdown(f"""
-                            <div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #10B981;border-radius:12px;padding:15px 13px;height:180px;box-sizing:border-box;margin-bottom:10px;">
-                              <div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Cumplimiento global</div>
-                              <div style="font-size:30px;font-weight:800;color:#34D399;margin:2px 0 10px;">{pct_cumplimiento_ai}%</div>
-                              <div style="font-size:11px;color:#94A3B8;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;">{fin_ai_cnt} cerrados de {total_hist_ai}</div>
-                            </div>""", unsafe_allow_html=True)
-                            st.button(" ", key="click-ai-compliance", help="Ver compromisos finalizados o cerrados.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Finalizados/Cerrados"))
+                        with st.container(border=True):
+                            st.markdown('<div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Cumplimiento global</div>', unsafe_allow_html=True)
+                            st.button(
+                                f"{pct_cumplimiento_ai}%",
+                                key="kpi_ai_cumplimiento",
+                                help=f"Consultar los {fin_ai_cnt} compromisos finalizados o cerrados.",
+                                use_container_width=True,
+                                on_click=seleccionar_filtro_tarjeta,
+                                args=("filtro_rapido_ai", "Estado: Finalizados/Cerrados"),
+                            )
+                            st.markdown(f'<div style="font-size:11px;color:#94A3B8;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;">{fin_ai_cnt} cerrados de {total_hist_ai}</div>', unsafe_allow_html=True)
+
                     with k4:
-                        pct_abiertos_ai = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes else 0
-                        pct_vencidos_ai = round((vencidos / total_planes_pendientes) * 100) if total_planes_pendientes else 0
-                        with st.container(key="card-ai-analysis"):
-                            st.markdown(f"""
-                            <div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #F59E0B;border-radius:12px;padding:15px 12px;height:180px;box-sizing:border-box;margin-bottom:10px;">
-                              <div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Análisis de planes de acción</div>
-                              <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
-                                <div style="min-width:0;border-right:1px solid rgba(255,255,255,.12);padding-right:5px;">
-                                  <div style="font-size:11px;font-weight:700;color:#34D399;line-height:1.35;">Porcentaje de abiertas</div>
-                                  <div style="font-size:24px;font-weight:800;color:#34D399;margin:5px 0;">{pct_abiertos_ai}%</div>
-                                  <div style="font-size:11px;color:#94A3B8;">{abiertos} abiertas</div>
-                                </div>
-                                <div style="min-width:0;">
-                                  <div style="font-size:11px;font-weight:700;color:#F87171;line-height:1.35;">Porcentaje de vencidas</div>
-                                  <div style="font-size:24px;font-weight:800;color:#F87171;margin:5px 0;">{pct_vencidos_ai}%</div>
-                                  <div style="font-size:11px;color:#94A3B8;">{vencidos} vencidas</div>
-                                </div>
-                              </div>
-                              <div style="font-size:11px;color:#94A3B8;border-top:1px solid rgba(255,255,255,.1);padding-top:6px;margin-top:7px;">Base: {total_planes_pendientes} planes pendientes</div>
-                            </div>""", unsafe_allow_html=True)
-                            st.button(" ", key="click-ai-open-pct", help="Ver planes abiertos.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Abiertos"))
-                            st.button(" ", key="click-ai-overdue-pct", help="Ver planes vencidos.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Vencidos"))
+                        with st.container(border=True):
+                            pct_abiertos_ai = round((abiertos / total_planes_pendientes) * 100) if total_planes_pendientes else 0
+                            pct_vencidos_ai = round((vencidos / total_planes_pendientes) * 100) if total_planes_pendientes else 0
+                            st.markdown('<div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Análisis de planes de acción</div>', unsafe_allow_html=True)
+                            pa1, pa2 = st.columns(2, gap="small")
+                            with pa1:
+                                st.button(f"**{pct_abiertos_ai}%**\n{abiertos} abiertas", key="kpi_ai_abiertos_pct", help="Consultar los planes abiertos.", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Abiertos"))
+                            with pa2:
+                                st.button(f"**{pct_vencidos_ai}%**\n{vencidos} vencidas", key="kpi_ai_vencidos_pct", help="Consultar los planes vencidos.", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Vencidos"))
+                            st.markdown(f'<div style="font-size:11px;color:#94A3B8;border-top:1px solid rgba(255,255,255,.1);padding-top:6px;margin-top:7px;">Base: {total_planes_pendientes} planes pendientes</div>', unsafe_allow_html=True)
 
                     def obtener_valor_alerta(col_name):
                         if col_name and col_name in df_filtrado.columns:
@@ -1932,23 +2162,14 @@ if entorno_activo == "Auditoría Interna":
                     st.markdown('<div style="font-size:12px;font-weight:800;color:#E2E8F0;text-transform:uppercase;margin:5px 0 8px;">⏳ Acciones próximas a vencer</div>', unsafe_allow_html=True)
                     a1, a2 = st.columns(2, gap="small")
                     with a1:
-                        with st.container(key="card-ai-alert-5"):
-                            st.markdown(f'<div style="background:linear-gradient(145deg,#24141E,#111827);border:1px solid rgba(239,68,68,.3);border-top:3px solid #EF4444;border-radius:10px;padding:12px;min-height:112px;box-sizing:border-box;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:#FDA4AF;">🔴 5 DÍAS · CRÍTICO</div><div style="font-size:27px;font-weight:800;color:#FB7185;margin:5px 0;">{val_5}</div><div style="font-size:11px;color:#94A3B8;">Vencimiento inmediato</div></div>', unsafe_allow_html=True)
-                            st.button(" ", key="click-ai-alert-5", help="Ver registros con alerta de 5 días.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Alerta: Próximos a 5 días"))
+                        st.button(f"🔴 5 DÍAS · CRÍTICO\n\n**{val_5}**\n\nVencimiento inmediato", key="kpi_ai_alerta_5", help="Ver los registros con alerta de 5 días.", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Alerta: Próximos a 5 días"))
                     with a2:
-                        with st.container(key="card-ai-alert-10"):
-                            st.markdown(f'<div style="background:linear-gradient(145deg,#1F1E16,#111827);border:1px solid rgba(245,158,11,.25);border-top:3px solid #F59E0B;border-radius:10px;padding:12px;min-height:112px;box-sizing:border-box;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:#FDE68A;">🟡 10 DÍAS · ATENCIÓN</div><div style="font-size:27px;font-weight:800;color:#FCD34D;margin:5px 0;">{val_10}</div><div style="font-size:11px;color:#94A3B8;">Ventana de precaución</div></div>', unsafe_allow_html=True)
-                            st.button(" ", key="click-ai-alert-10", help="Ver registros con alerta de 10 días.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Alerta: Próximos a 10 días"))
+                        st.button(f"🟡 10 DÍAS · ATENCIÓN\n\n**{val_10}**\n\nVentana de precaución", key="kpi_ai_alerta_10", help="Ver los registros con alerta de 10 días.", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Alerta: Próximos a 10 días"))
                     a3, a4 = st.columns(2, gap="small")
                     with a3:
-                        with st.container(key="card-ai-alert-20"):
-                            st.markdown(f'<div style="background:linear-gradient(145deg,#13221C,#111827);border:1px solid rgba(16,185,129,.25);border-top:3px solid #10B981;border-radius:10px;padding:12px;min-height:112px;box-sizing:border-box;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:#A7F3D0;">🟢 20 DÍAS · CONTROL</div><div style="font-size:27px;font-weight:800;color:#6EE7B7;margin:5px 0;">{val_20}</div><div style="font-size:11px;color:#94A3B8;">Seguimiento preventivo</div></div>', unsafe_allow_html=True)
-                            st.button(" ", key="click-ai-alert-20", help="Ver registros con alerta de 20 días.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Alerta: Próximos a 20 días"))
+                        st.button(f"🟢 20 DÍAS · CONTROL\n\n**{val_20}**\n\nSeguimiento preventivo", key="kpi_ai_alerta_20", help="Ver los registros con alerta de 20 días.", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Alerta: Próximos a 20 días"))
                     with a4:
-                        with st.container(key="card-ai-alert-30"):
-                            st.markdown(f'<div style="background:linear-gradient(145deg,#141E2C,#111827);border:1px solid rgba(59,130,246,.25);border-top:3px solid #3B82F6;border-radius:10px;padding:12px;min-height:112px;box-sizing:border-box;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:#BFDBFE;">🔵 30 DÍAS · PLANEACIÓN</div><div style="font-size:27px;font-weight:800;color:#93C5FD;margin:5px 0;">{val_30}</div><div style="font-size:11px;color:#94A3B8;">Alerta mensual anticipada</div></div>', unsafe_allow_html=True)
-                            st.button(" ", key="click-ai-alert-30", help="Ver registros con alerta de 30 días.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Alerta: Próximos a 30 días"))
-
+                        st.button(f"🔵 30 DÍAS · PLANEACIÓN\n\n**{val_30}**\n\nAlerta mensual anticipada", key="kpi_ai_alerta_30", help="Ver los registros con alerta de 30 días.", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Alerta: Próximos a 30 días"))
 
                 with col_der:
                     st.plotly_chart(fig_tendencia, use_container_width=True, key="fig_tendencia_tablero", config={'displayModeBar': False})
@@ -3242,7 +3463,9 @@ else:
                 col_izq_c, col_der_c = st.columns([0.92, 1.6], gap="medium")
 
                 with col_izq_c:
-                    # Tarjetas KPI de Contraloría: mismo diseño original y clic único.
+                    # Tarjetas KPI de Contraloría con botones Streamlit nativos.
+                    # Cada número o indicador es un control real: el clic se procesa
+                    # en un solo evento y actualiza el filtro de detalle.
                     opciones_rapidas_c = [
                         "(Mostrar Todos)", "Hallazgos pendientes", "Planes pendientes",
                         "Estado: Abiertos", "Estado: Vencidos", "Estado: Finalizados/Cerrados",
@@ -3256,27 +3479,75 @@ else:
 
                     kc1, kc2 = st.columns(2, gap="small")
                     with kc1:
-                        with st.container(key="card-c-hallazgos"):
-                            st.markdown(f"""<div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #3B82F6;border-radius:12px;padding:15px 13px;min-height:150px;box-sizing:border-box;margin-bottom:10px;"><div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Hallazgos pendientes</div><div style="font-size:30px;font-weight:800;color:#fff;margin:2px 0 8px;">{total_hallazgos_unicos_c}</div><div style="font-size:11px;color:#94A3B8;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;">Contraloría de Bogotá</div></div>""", unsafe_allow_html=True)
-                            st.button(" ", key="click-c-hallazgos", help="Ver hallazgos pendientes de Contraloría.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_contraloria", "Hallazgos pendientes"))
+                        with st.container(border=True):
+                            st.markdown('<div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Hallazgos pendientes</div>', unsafe_allow_html=True)
+                            st.button(
+                                f"{total_hallazgos_unicos_c}", key="kpi_c_hallazgos_total",
+                                help="Consultar los hallazgos pendientes de Contraloría.",
+                                use_container_width=True, on_click=seleccionar_filtro_tarjeta,
+                                args=("filtro_rapido_contraloria", "Hallazgos pendientes"),
+                            )
+                            st.markdown('<div style="font-size:11px;color:#94A3B8;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;">Contraloría de Bogotá</div>', unsafe_allow_html=True)
                     with kc2:
-                        with st.container(key="card-c-state"):
-                            st.markdown(f"""<div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #EF4444;border-radius:12px;padding:15px 13px;min-height:150px;box-sizing:border-box;margin-bottom:10px;"><div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Planes de acción por estado</div><div style="font-size:30px;font-weight:800;color:#fff;margin:2px 0 8px;">{total_planes_c}</div><div style="border-top:1px solid rgba(255,255,255,.1);padding-top:8px;display:flex;flex-wrap:wrap;gap:4px;font-size:11px;font-weight:700;"><span style="background:rgba(16,185,129,.16);color:#34D399;padding:4px 5px;border-radius:5px;">{abiertos_c} Abiertos</span><span style="background:rgba(239,68,68,.18);color:#F87171;padding:4px 5px;border-radius:5px;">{vencidos_c} Vencidos</span></div></div>""", unsafe_allow_html=True)
-                            st.button(" ", key="click-c-state-total", help="Ver todos los planes pendientes de Contraloría.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_contraloria", "Planes pendientes"))
-                            st.button(" ", key="click-c-state-open", help="Ver planes abiertos de Contraloría.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_contraloria", "Estado: Abiertos"))
-                            st.button(" ", key="click-c-state-overdue", help="Ver planes vencidos de Contraloría.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_contraloria", "Estado: Vencidos"))
+                        with st.container(border=True):
+                            st.markdown('<div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Planes de acción por estado</div>', unsafe_allow_html=True)
+                            st.button(
+                                f"{total_planes_c}", key="kpi_c_planes_total",
+                                help="Consultar todos los planes de acción pendientes.",
+                                use_container_width=True, on_click=seleccionar_filtro_tarjeta,
+                                args=("filtro_rapido_contraloria", "Planes pendientes"),
+                            )
+                            st.markdown('<div style="border-top:1px solid rgba(255,255,255,.1);margin:2px 0 8px;"></div>', unsafe_allow_html=True)
+                            ps1, ps2 = st.columns(2, gap="small")
+                            with ps1:
+                                st.button(
+                                    f"{abiertos_c} Abiertos", key="kpi_c_estado_abiertos",
+                                    help="Consultar planes abiertos.", use_container_width=True,
+                                    on_click=seleccionar_filtro_tarjeta,
+                                    args=("filtro_rapido_contraloria", "Estado: Abiertos"),
+                                )
+                            with ps2:
+                                st.button(
+                                    f"{vencidos_c} Vencidos", key="kpi_c_estado_vencidos",
+                                    help="Consultar planes vencidos.", use_container_width=True,
+                                    on_click=seleccionar_filtro_tarjeta,
+                                    args=("filtro_rapido_contraloria", "Estado: Vencidos"),
+                                )
+
                     kc3, kc4 = st.columns(2, gap="small")
                     with kc3:
-                        with st.container(key="card-c-compliance"):
-                            st.markdown(f"""<div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #10B981;border-radius:12px;padding:15px 13px;height:180px;box-sizing:border-box;margin-bottom:10px;"><div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Cumplimiento global</div><div style="font-size:30px;font-weight:800;color:#34D399;margin:2px 0 10px;">{int(round(pct_cumplimiento_c))}%</div><div style="font-size:11px;color:#94A3B8;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;">{fin_c_cnt} cerrados de {total_hist_c}</div></div>""", unsafe_allow_html=True)
-                            st.button(" ", key="click-c-compliance", help="Ver compromisos finalizados o cerrados de Contraloría.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_contraloria", "Estado: Finalizados/Cerrados"))
+                        with st.container(border=True):
+                            st.markdown('<div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Cumplimiento global</div>', unsafe_allow_html=True)
+                            st.button(
+                                f"{int(round(pct_cumplimiento_c))}%", key="kpi_c_cumplimiento",
+                                help=f"Consultar los {fin_c_cnt} compromisos finalizados o cerrados.",
+                                use_container_width=True, on_click=seleccionar_filtro_tarjeta,
+                                args=("filtro_rapido_contraloria", "Estado: Finalizados/Cerrados"),
+                            )
+                            st.markdown(f'<div style="font-size:11px;color:#94A3B8;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;">{fin_c_cnt} cerrados de {total_hist_c}</div>', unsafe_allow_html=True)
                     with kc4:
-                        pct_abiertos_c = round((abiertos_c / total_planes_c) * 100) if total_planes_c else 0
-                        pct_vencidos_c = round((vencidos_c / total_planes_c) * 100) if total_planes_c else 0
-                        with st.container(key="card-c-analysis"):
-                            st.markdown(f"""<div style="background:linear-gradient(145deg,#1A2434,#111827);border:1px solid rgba(255,255,255,.09);border-top:3px solid #F59E0B;border-radius:12px;padding:15px 12px;height:180px;box-sizing:border-box;margin-bottom:10px;"><div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Análisis de planes de acción</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;"><div style="min-width:0;border-right:1px solid rgba(255,255,255,.12);padding-right:5px;"><div style="font-size:11px;font-weight:700;color:#34D399;line-height:1.35;">Porcentaje de abiertas</div><div style="font-size:24px;font-weight:800;color:#34D399;margin:5px 0;">{pct_abiertos_c}%</div><div style="font-size:11px;color:#94A3B8;">{abiertos_c} abiertas</div></div><div style="min-width:0;"><div style="font-size:11px;font-weight:700;color:#F87171;line-height:1.35;">Porcentaje de vencidas</div><div style="font-size:24px;font-weight:800;color:#F87171;margin:5px 0;">{pct_vencidos_c}%</div><div style="font-size:11px;color:#94A3B8;">{vencidos_c} vencidas</div></div></div><div style="font-size:11px;color:#94A3B8;border-top:1px solid rgba(255,255,255,.1);padding-top:6px;margin-top:7px;">Base: {total_planes_c} planes pendientes</div></div>""", unsafe_allow_html=True)
-                            st.button(" ", key="click-c-open-pct", help="Ver planes abiertos de Contraloría.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_contraloria", "Estado: Abiertos"))
-                            st.button(" ", key="click-c-overdue-pct", help="Ver planes vencidos de Contraloría.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_contraloria", "Estado: Vencidos"))
+                        with st.container(border=True):
+                            pct_abiertos_c = round((abiertos_c / total_planes_c) * 100) if total_planes_c else 0
+                            pct_vencidos_c = round((vencidos_c / total_planes_c) * 100) if total_planes_c else 0
+                            st.markdown('<div style="font-size:12px;font-weight:800;color:#CBD5E1;text-transform:uppercase;min-height:30px;">Análisis de planes de acción</div>', unsafe_allow_html=True)
+                            pa1, pa2 = st.columns(2, gap="small")
+                            with pa1:
+                                st.markdown('<div style="font-size:11px;font-weight:700;color:#34D399;line-height:1.35;">Porcentaje de abiertas</div>', unsafe_allow_html=True)
+                                st.button(
+                                    f"**{pct_abiertos_c}%**\n{abiertos_c} abiertas", key="kpi_c_abiertos_pct",
+                                    help="Consultar planes abiertos.", use_container_width=True,
+                                    on_click=seleccionar_filtro_tarjeta,
+                                    args=("filtro_rapido_contraloria", "Estado: Abiertos"),
+                                )
+                            with pa2:
+                                st.markdown('<div style="font-size:11px;font-weight:700;color:#F87171;line-height:1.35;">Porcentaje de vencidas</div>', unsafe_allow_html=True)
+                                st.button(
+                                    f"**{pct_vencidos_c}%**\n{vencidos_c} vencidas", key="kpi_c_vencidos_pct",
+                                    help="Consultar planes vencidos.", use_container_width=True,
+                                    on_click=seleccionar_filtro_tarjeta,
+                                    args=("filtro_rapido_contraloria", "Estado: Vencidos"),
+                                )
+                            st.markdown(f'<div style="font-size:11px;color:#94A3B8;border-top:1px solid rgba(255,255,255,.1);padding-top:6px;margin-top:7px;">Base: {total_planes_c} planes pendientes</div>', unsafe_allow_html=True)
 
                     def obtener_valor_alerta_c(col_name):
                         if col_name and col_name in df_filtrado_c.columns:
@@ -3285,6 +3556,7 @@ else:
                             cant = len(validos)
                             return str(cant) if cant > 0 else "—"
                         return "—"
+
                     val_5_c = obtener_valor_alerta_c(col_a5_c)
                     val_10_c = obtener_valor_alerta_c(col_a10_c)
                     val_20_c = obtener_valor_alerta_c(col_a20_c)
@@ -3292,22 +3564,34 @@ else:
                     st.markdown('<div style="font-size:12px;font-weight:800;color:#E2E8F0;text-transform:uppercase;margin:5px 0 8px;">⏳ Acciones próximas a vencer</div>', unsafe_allow_html=True)
                     ac1, ac2 = st.columns(2, gap="small")
                     with ac1:
-                        with st.container(key="card-c-alert-5"):
-                            st.markdown(f'<div style="background:linear-gradient(145deg,#24141E,#111827);border:1px solid rgba(239,68,68,.3);border-top:3px solid #EF4444;border-radius:10px;padding:12px;min-height:112px;box-sizing:border-box;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:#FDA4AF;">🔴 5 DÍAS · CRÍTICO</div><div style="font-size:27px;font-weight:800;color:#FB7185;margin:5px 0;">{val_5_c}</div><div style="font-size:11px;color:#94A3B8;">Vencimiento inmediato</div></div>', unsafe_allow_html=True)
-                            st.button(" ", key="click-c-alert-5", help="Ver registros con alerta de 5 días en Contraloría.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_contraloria", "Alerta: Próximos a 5 días"))
+                        st.button(
+                            f"🔴 5 DÍAS · CRÍTICO\n\n**{val_5_c}**\n\nVencimiento inmediato",
+                            key="kpi_c_alerta_5", help="Ver registros con alerta de 5 días en Contraloría.",
+                            use_container_width=True, on_click=seleccionar_filtro_tarjeta,
+                            args=("filtro_rapido_contraloria", "Alerta: Próximos a 5 días"),
+                        )
                     with ac2:
-                        with st.container(key="card-c-alert-10"):
-                            st.markdown(f'<div style="background:linear-gradient(145deg,#1F1E16,#111827);border:1px solid rgba(245,158,11,.25);border-top:3px solid #F59E0B;border-radius:10px;padding:12px;min-height:112px;box-sizing:border-box;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:#FDE68A;">🟡 10 DÍAS · ATENCIÓN</div><div style="font-size:27px;font-weight:800;color:#FCD34D;margin:5px 0;">{val_10_c}</div><div style="font-size:11px;color:#94A3B8;">Ventana de precaución</div></div>', unsafe_allow_html=True)
-                            st.button(" ", key="click-c-alert-10", help="Ver registros con alerta de 10 días en Contraloría.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_contraloria", "Alerta: Próximos a 10 días"))
+                        st.button(
+                            f"🟡 10 DÍAS · ATENCIÓN\n\n**{val_10_c}**\n\nVentana de precaución",
+                            key="kpi_c_alerta_10", help="Ver registros con alerta de 10 días en Contraloría.",
+                            use_container_width=True, on_click=seleccionar_filtro_tarjeta,
+                            args=("filtro_rapido_contraloria", "Alerta: Próximos a 10 días"),
+                        )
                     ac3, ac4 = st.columns(2, gap="small")
                     with ac3:
-                        with st.container(key="card-c-alert-20"):
-                            st.markdown(f'<div style="background:linear-gradient(145deg,#13221C,#111827);border:1px solid rgba(16,185,129,.25);border-top:3px solid #10B981;border-radius:10px;padding:12px;min-height:112px;box-sizing:border-box;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:#A7F3D0;">🟢 20 DÍAS · CONTROL</div><div style="font-size:27px;font-weight:800;color:#6EE7B7;margin:5px 0;">{val_20_c}</div><div style="font-size:11px;color:#94A3B8;">Seguimiento preventivo</div></div>', unsafe_allow_html=True)
-                            st.button(" ", key="click-c-alert-20", help="Ver registros con alerta de 20 días en Contraloría.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_contraloria", "Alerta: Próximos a 20 días"))
+                        st.button(
+                            f"🟢 20 DÍAS · CONTROL\n\n**{val_20_c}**\n\nSeguimiento preventivo",
+                            key="kpi_c_alerta_20", help="Ver registros con alerta de 20 días en Contraloría.",
+                            use_container_width=True, on_click=seleccionar_filtro_tarjeta,
+                            args=("filtro_rapido_contraloria", "Alerta: Próximos a 20 días"),
+                        )
                     with ac4:
-                        with st.container(key="card-c-alert-30"):
-                            st.markdown(f'<div style="background:linear-gradient(145deg,#141E2C,#111827);border:1px solid rgba(59,130,246,.25);border-top:3px solid #3B82F6;border-radius:10px;padding:12px;min-height:112px;box-sizing:border-box;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:#BFDBFE;">🔵 30 DÍAS · PLANEACIÓN</div><div style="font-size:27px;font-weight:800;color:#93C5FD;margin:5px 0;">{val_30_c}</div><div style="font-size:11px;color:#94A3B8;">Alerta mensual anticipada</div></div>', unsafe_allow_html=True)
-                            st.button(" ", key="click-c-alert-30", help="Ver registros con alerta de 30 días en Contraloría.", on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_contraloria", "Alerta: Próximos a 30 días"))
+                        st.button(
+                            f"🔵 30 DÍAS · PLANEACIÓN\n\n**{val_30_c}**\n\nAlerta mensual anticipada",
+                            key="kpi_c_alerta_30", help="Ver registros con alerta de 30 días en Contraloría.",
+                            use_container_width=True, on_click=seleccionar_filtro_tarjeta,
+                            args=("filtro_rapido_contraloria", "Alerta: Próximos a 30 días"),
+                        )
 
 
                 with col_der_c:
@@ -4208,5 +4492,4 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
-
 

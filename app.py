@@ -675,6 +675,18 @@ def limpiar_seleccion_grafica_contraloria():
     st.session_state["_version_grafica_top5_c"] = st.session_state.get("_version_grafica_top5_c", 0) + 1
 
 
+def limpiar_filtros_detalle_ai():
+    """Restablece el detalle de Auditoría Interna a todos los registros."""
+    st.session_state["filtro_rapido_ai"] = "(Mostrar Todos)"
+    limpiar_seleccion_grafica_ai()
+
+
+def limpiar_filtros_detalle_contraloria():
+    """Restablece el detalle de Contraloría a todos los registros."""
+    st.session_state["filtro_rapido_contraloria"] = "(Mostrar Todos)"
+    limpiar_seleccion_grafica_contraloria()
+
+
 def seleccionar_filtro_tarjeta(clave_estado, valor_filtro):
     """Actualiza el filtro de detalle al pulsar una tarjeta KPI y limpia selecciones de gráficas."""
     st.session_state[clave_estado] = valor_filtro
@@ -2689,28 +2701,25 @@ if entorno_activo == "Auditoría Interna":
 
                 st.markdown("---")
 
-                if st.session_state.get("filtro_grafica_ai"):
-                    seleccion_ai = st.session_state["filtro_grafica_ai"]
-                    col_msg_ai, col_clear_ai = st.columns([4, 1])
-                    with col_msg_ai:
-                        st.info(f"Selección de gráfica: **{seleccion_ai.get('etiqueta', 'Filtro seleccionado')}** · {len(seleccion_ai.get('indices', []))} registros")
-                    with col_clear_ai:
-                        st.button("Quitar selección", key="limpiar_seleccion_grafica_ai", on_click=limpiar_seleccion_grafica_ai, use_container_width=True)
-
-                col_sub, col_search_box, col_filtro_rapido = st.columns([1.8, 1.3, 1])
-                with col_sub:
+                # Los filtros se activan desde las tarjetas y las gráficas; se retiran
+                # los controles manuales de búsqueda y categoría para simplificar la vista.
+                filtro_elegido = st.session_state.get("filtro_rapido_ai", "(Mostrar Todos)")
+                seleccion_grafica_ai = st.session_state.get("filtro_grafica_ai")
+                col_sub_ai, col_reset_ai = st.columns([4, 1])
+                with col_sub_ai:
                     st.subheader("📋 Detalle General de Compromisos Pendientes")
-                
-                with col_search_box:
-                    busqueda_texto = st.text_input("🔍 Buscar texto en la tabla:", placeholder="Escribe para filtrar...", key="search_tabla_general").strip().lower()
-
-                with col_filtro_rapido:
-                    filtro_elegido = st.selectbox(
-                        "⚡ Filtrar por categoría:",
-                        options=opciones_rapidas,
-                        key="filtro_rapido_ai",
-                        on_change=limpiar_seleccion_grafica_ai,
-                    )
+                if seleccion_grafica_ai or filtro_elegido != "(Mostrar Todos)":
+                    with col_reset_ai:
+                        st.button(
+                            "↩ Mostrar todos",
+                            key="mostrar_todos_detalle_ai",
+                            on_click=limpiar_filtros_detalle_ai,
+                            use_container_width=True,
+                        )
+                    if seleccion_grafica_ai:
+                        st.info(f"Selección de gráfica: **{seleccion_grafica_ai.get('etiqueta', 'Filtro seleccionado')}** · {len(seleccion_grafica_ai.get('indices', []))} registros")
+                    else:
+                        st.info(f"Filtro aplicado desde el tablero: **{filtro_elegido}**")
 
                 # Los KPIs de cumplimiento y alertas se calculan sobre conjuntos
                 # distintos; al pulsarlos se consulta exactamente su población.
@@ -2765,13 +2774,6 @@ if entorno_activo == "Auditoría Interna":
                     st.caption(f"Detalle de selección: **{seleccion_grafica_ai.get('etiqueta', 'Gráfica')}** · {len(df_tabla_vista)} registros encontrados.")
                 elif filtro_elegido != "(Mostrar Todos)":
                     st.caption(f"Filtro aplicado desde el tablero: **{filtro_elegido}** · {len(df_tabla_vista)} registros encontrados.")
-
-                if busqueda_texto:
-                    mask_texto = df_tabla_vista.apply(
-                        lambda row: row.astype(str).str.lower().str.contains(busqueda_texto, case=False, na=False).any(),
-                        axis=1
-                    )
-                    df_tabla_vista = df_tabla_vista[mask_texto]
 
                 df_tabla_vista.index = range(1, len(df_tabla_vista) + 1)
 
@@ -4147,28 +4149,25 @@ else:
 
                 st.markdown("---")
 
-                if st.session_state.get("filtro_grafica_contraloria"):
-                    seleccion_grafica_c = st.session_state["filtro_grafica_contraloria"]
-                    col_msg_c, col_clear_c = st.columns([4, 1])
-                    with col_msg_c:
-                        st.info(f"Selección de gráfica: **{seleccion_grafica_c.get('etiqueta', 'Filtro seleccionado')}** · {len(seleccion_grafica_c.get('indices', []))} registros")
-                    with col_clear_c:
-                        st.button("Quitar selección", key="limpiar_seleccion_grafica_contraloria", on_click=limpiar_seleccion_grafica_contraloria, use_container_width=True)
-                
-                col_c_sub, col_c_search, col_c_filtro_rapido = st.columns([1.8, 1.3, 1])
+                # Los filtros se activan desde las tarjetas y las gráficas; se retiran
+                # los controles manuales de búsqueda y categoría para simplificar la vista.
+                filtro_elegido_c = st.session_state.get("filtro_rapido_contraloria", "(Mostrar Todos)")
+                seleccion_grafica_c = st.session_state.get("filtro_grafica_contraloria")
+                col_c_sub, col_c_reset = st.columns([4, 1])
                 with col_c_sub:
                     st.subheader("📋 Detalle de Compromisos Contraloría")
-                
-                with col_c_search:
-                    busqueda_texto_c = st.text_input("🔍 Buscar texto en la tabla:", placeholder="Escribe para filtrar...", key="search_tabla_contraloria").strip().lower()
-
-                with col_c_filtro_rapido:
-                    filtro_elegido_c = st.selectbox(
-                        "⚡ Filtrar por categoría:",
-                        options=opciones_rapidas_c,
-                        key="filtro_rapido_contraloria",
-                        on_change=limpiar_seleccion_grafica_contraloria,
-                    )
+                if seleccion_grafica_c or filtro_elegido_c != "(Mostrar Todos)":
+                    with col_c_reset:
+                        st.button(
+                            "↩ Mostrar todos",
+                            key="mostrar_todos_detalle_contraloria",
+                            on_click=limpiar_filtros_detalle_contraloria,
+                            use_container_width=True,
+                        )
+                    if seleccion_grafica_c:
+                        st.info(f"Selección de gráfica: **{seleccion_grafica_c.get('etiqueta', 'Filtro seleccionado')}** · {len(seleccion_grafica_c.get('indices', []))} registros")
+                    else:
+                        st.info(f"Filtro aplicado desde el tablero: **{filtro_elegido_c}**")
 
                 if filtro_elegido_c == "Estado: Finalizados/Cerrados":
                     df_c_tabla = df_raw_c.copy()
@@ -4211,13 +4210,6 @@ else:
                     st.caption(f"Detalle de selección: **{seleccion_grafica_c.get('etiqueta', 'Gráfica')}** · {len(df_c_tabla_vista)} registros encontrados.")
                 elif filtro_elegido_c != "(Mostrar Todos)":
                     st.caption(f"Filtro aplicado desde el tablero: **{filtro_elegido_c}** · {len(df_c_tabla_vista)} registros encontrados.")
-
-                if busqueda_texto_c:
-                    mask_texto_c = df_c_tabla_vista.apply(
-                        lambda row: row.astype(str).str.lower().str.contains(busqueda_texto_c, case=False, na=False).any(),
-                        axis=1
-                    )
-                    df_c_tabla_vista = df_c_tabla_vista[mask_texto_c]
 
                 df_c_tabla_vista.index = range(1, len(df_c_tabla_vista) + 1)
 

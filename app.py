@@ -887,8 +887,9 @@ st.markdown(
         }
 
         /* -----------------------------------------------------
-           TARJETAS KPI CLICABLES: conserva el HTML y el diseño
-           original; los botones transparentes solo capturan clics.
+           TARJETAS KPI CLICABLES
+           Los botones transparentes se superponen al HTML original.
+           La tarjeta conserva exactamente su diseño y dimensiones.
            ----------------------------------------------------- */
         .st-key-card-ai-risk,
         .st-key-card-ai-state,
@@ -908,41 +909,46 @@ st.markdown(
         .st-key-card-c-alert-30 {
             position: relative !important;
             overflow: visible !important;
+            isolation: isolate !important;
         }
 
+        /* Cada botón ocupa una zona concreta de su tarjeta.
+           No agrega altura ni desplaza el contenido original. */
         [class*="st-key-click-ai-"],
         [class*="st-key-click-c-"] {
             position: absolute !important;
-            z-index: 50 !important;
+            display: block !important;
+            z-index: 30 !important;
             margin: 0 !important;
             padding: 0 !important;
             min-width: 0 !important;
             min-height: 0 !important;
+            width: auto !important;
+            height: auto !important;
             pointer-events: auto !important;
         }
+
         [class*="st-key-click-ai-"] [data-testid="stButton"],
-        [class*="st-key-click-c-"] [data-testid="stButton"] {
-            width: 100% !important;
-            height: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
+        [class*="st-key-click-c-"] [data-testid="stButton"],
         [class*="st-key-click-ai-"] button,
         [class*="st-key-click-c-"] button {
             width: 100% !important;
             height: 100% !important;
             min-height: 100% !important;
-            padding: 0 !important;
             margin: 0 !important;
+            padding: 0 !important;
             border: 0 !important;
-            border-radius: 5px !important;
-            background: transparent !important;
+            border-radius: 6px !important;
+            background: rgba(255,255,255,0.001) !important;
             box-shadow: none !important;
             color: transparent !important;
             font-size: 0 !important;
-            opacity: 0 !important;
+            line-height: 0 !important;
+            opacity: 0.001 !important;
             cursor: pointer !important;
+            pointer-events: auto !important;
         }
+
         [class*="st-key-click-ai-"] button p,
         [class*="st-key-click-c-"] button p {
             font-size: 0 !important;
@@ -950,44 +956,105 @@ st.markdown(
             margin: 0 !important;
             padding: 0 !important;
         }
-        [class*="st-key-click-ai-"] button:hover,
-        [class*="st-key-click-c-"] button:hover,
-        [class*="st-key-click-ai-"] button:focus,
-        [class*="st-key-click-c-"] button:focus {
-            background: rgba(255,255,255,.025) !important;
-            outline: none !important;
-            box-shadow: none !important;
-        }
 
-        /* Auditoría Interna: tarjetas superiores de 150/180 px. */
-        .st-key-click-ai-risk-total { top:40px!important; left:5%!important; width:90%!important; height:48px!important; }
-        .st-key-click-ai-risk-high { top:105px!important; left:4%!important; width:29%!important; height:30px!important; }
-        .st-key-click-ai-risk-medium { top:105px!important; left:36%!important; width:29%!important; height:30px!important; }
-        .st-key-click-ai-risk-low { top:105px!important; left:68%!important; width:28%!important; height:30px!important; }
-        .st-key-click-ai-state-total { top:40px!important; left:5%!important; width:90%!important; height:48px!important; }
-        .st-key-click-ai-state-open { top:105px!important; left:4%!important; width:29%!important; height:30px!important; }
-        .st-key-click-ai-state-overdue { top:105px!important; left:36%!important; width:29%!important; height:30px!important; }
-        .st-key-click-ai-state-undefined { top:105px!important; left:68%!important; width:28%!important; height:30px!important; }
-        .st-key-click-ai-compliance { top:43px!important; left:5%!important; width:90%!important; height:47px!important; }
-        .st-key-click-ai-open-pct { top:59px!important; left:3%!important; width:46%!important; height:83px!important; }
-        .st-key-click-ai-overdue-pct { top:59px!important; left:51%!important; width:46%!important; height:83px!important; }
+        /* Las zonas generales cubren la tarjeta completa.
+           Las zonas de los indicadores pequeños van encima. */
+        .st-key-click-ai-risk-total,
+        .st-key-click-ai-state-total,
+        .st-key-click-ai-compliance,
         .st-key-click-ai-alert-5,
         .st-key-click-ai-alert-10,
         .st-key-click-ai-alert-20,
-        .st-key-click-ai-alert-30 { top:0!important; left:0!important; width:100%!important; height:112px!important; }
-
-        /* Contraloría: mismas dimensiones y zonas de clic. */
-        .st-key-click-c-hallazgos { top:40px!important; left:5%!important; width:90%!important; height:48px!important; }
-        .st-key-click-c-state-total { top:40px!important; left:5%!important; width:90%!important; height:48px!important; }
-        .st-key-click-c-state-open { top:105px!important; left:5%!important; width:43%!important; height:30px!important; }
-        .st-key-click-c-state-overdue { top:105px!important; left:52%!important; width:43%!important; height:30px!important; }
-        .st-key-click-c-compliance { top:43px!important; left:5%!important; width:90%!important; height:47px!important; }
-        .st-key-click-c-open-pct { top:59px!important; left:3%!important; width:46%!important; height:83px!important; }
-        .st-key-click-c-overdue-pct { top:59px!important; left:51%!important; width:46%!important; height:83px!important; }
+        .st-key-click-ai-alert-30,
+        .st-key-click-c-hallazgos,
+        .st-key-click-c-state-total,
+        .st-key-click-c-compliance,
         .st-key-click-c-alert-5,
         .st-key-click-c-alert-10,
         .st-key-click-c-alert-20,
-        .st-key-click-c-alert-30 { top:0!important; left:0!important; width:100%!important; height:112px!important; }
+        .st-key-click-c-alert-30 {
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            z-index: 20 !important;
+        }
+
+        /* Auditoría Interna: riesgo alto/medio en primera fila,
+           riesgo bajo en la segunda fila. */
+        .st-key-click-ai-risk-high,
+        .st-key-click-ai-risk-medium {
+            top: 62% !important;
+            height: 18% !important;
+            width: 31% !important;
+        }
+        .st-key-click-ai-risk-high { left: 3% !important; }
+        .st-key-click-ai-risk-medium { left: 35% !important; }
+        .st-key-click-ai-risk-low {
+            top: 80% !important;
+            left: 3% !important;
+            width: 31% !important;
+            height: 17% !important;
+            z-index: 45 !important;
+        }
+
+        /* Estados de planes AI: abiertos/vencidos arriba,
+           sin definir debajo cuando la tarjeta hace salto de línea. */
+        .st-key-click-ai-state-open,
+        .st-key-click-ai-state-overdue {
+            top: 62% !important;
+            height: 18% !important;
+            width: 46% !important;
+            z-index: 45 !important;
+        }
+        .st-key-click-ai-state-open { left: 3% !important; }
+        .st-key-click-ai-state-overdue { left: 51% !important; }
+        .st-key-click-ai-state-undefined {
+            top: 80% !important;
+            left: 3% !important;
+            width: 46% !important;
+            height: 17% !important;
+            z-index: 45 !important;
+        }
+
+        /* Porcentajes de abiertas/vencidas: cada mitad de la tarjeta. */
+        .st-key-click-ai-open-pct,
+        .st-key-click-ai-overdue-pct,
+        .st-key-click-c-open-pct,
+        .st-key-click-c-overdue-pct {
+            top: 43% !important;
+            height: 48% !important;
+            width: 48% !important;
+            z-index: 45 !important;
+        }
+        .st-key-click-ai-open-pct,
+        .st-key-click-c-open-pct { left: 1% !important; }
+        .st-key-click-ai-overdue-pct,
+        .st-key-click-c-overdue-pct { left: 51% !important; }
+
+        /* Contraloría: abiertos y vencidos aparecen en una sola fila. */
+        .st-key-click-c-state-open,
+        .st-key-click-c-state-overdue {
+            top: 62% !important;
+            height: 20% !important;
+            width: 46% !important;
+            z-index: 45 !important;
+        }
+        .st-key-click-c-state-open { left: 3% !important; }
+        .st-key-click-c-state-overdue { left: 51% !important; }
+
+        /* Las cuatro alertas son clicables en toda su superficie. */
+        .st-key-click-ai-alert-5,
+        .st-key-click-ai-alert-10,
+        .st-key-click-ai-alert-20,
+        .st-key-click-ai-alert-30,
+        .st-key-click-c-alert-5,
+        .st-key-click-c-alert-10,
+        .st-key-click-c-alert-20,
+        .st-key-click-c-alert-30 {
+            z-index: 35 !important;
+        }
+
     </style>
 """,
     unsafe_allow_html=True,
@@ -4141,4 +4208,5 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
+
 

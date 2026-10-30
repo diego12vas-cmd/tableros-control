@@ -718,9 +718,17 @@ st.markdown(
             background: transparent !important;
         }
 
-        .block-container {
+        /* Aprovechar el ancho real de la ventana: elimina los márgenes
+           laterales excesivos del contenedor principal en pantallas amplias. */
+        .block-container,
+        [data-testid="stMainBlockContainer"] {
+            max-width: 100% !important;
+            width: 100% !important;
             padding-top: 0.8rem !important;
             padding-bottom: 1rem !important;
+            padding-left: clamp(1rem, 1.5vw, 1.5rem) !important;
+            padding-right: clamp(1rem, 1.5vw, 1.5rem) !important;
+            box-sizing: border-box !important;
         }
 
         hr {
@@ -1657,6 +1665,9 @@ st.markdown(
             gap: 5px !important;
         }
 
+        /* Los gráficos ocupan todo el ancho disponible de su columna. */
+        div[data-testid="stPlotlyChart"] { width: 100% !important; }
+
     </style>
 """,
     unsafe_allow_html=True,
@@ -2430,7 +2441,7 @@ if entorno_activo == "Auditoría Interna":
     for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
         with tab_obj:
             if nombre_tab_real == "Tablero":
-                col_izq, col_der = st.columns([1.10, 1.42], gap="medium")
+                col_izq, col_der = st.columns([1.08, 1.55], gap="medium")
 
                 with col_izq:
                     # TARJETAS KPI INTERACTIVAS: botones nativos con el diseño original.
@@ -3856,7 +3867,7 @@ else:
     for nombre_tab_real_c, tab_obj_c in zip(pestañas_permitidas_c, tabs_objetos_c):
         with tab_obj_c:
             if nombre_tab_real_c == "Tablero":
-                col_izq_c, col_der_c = st.columns([1.10, 1.42], gap="medium")
+                col_izq_c, col_der_c = st.columns([1.08, 1.55], gap="medium")
 
                 with col_izq_c:
                     # TARJETAS KPI DE CONTRALORÍA: mismo diseño visual e interacción de un clic.

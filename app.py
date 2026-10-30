@@ -1127,6 +1127,39 @@ st.markdown(
             padding:0 !important;
         }
 
+        /* Ampliación del contenido de etiquetas para evitar elipsis internas. */
+        .st-key-kpi_ai_riesgo_alto [data-testid="stButton"] > button > div,
+        .st-key-kpi_ai_riesgo_medio [data-testid="stButton"] > button > div,
+        .st-key-kpi_ai_riesgo_bajo [data-testid="stButton"] > button > div,
+        .st-key-kpi_ai_estado_abiertos [data-testid="stButton"] > button > div,
+        .st-key-kpi_ai_estado_vencidos [data-testid="stButton"] > button > div,
+        .st-key-kpi_ai_estado_sin_definir [data-testid="stButton"] > button > div,
+        .st-key-kpi_c_estado_abiertos [data-testid="stButton"] > button > div,
+        .st-key-kpi_c_estado_vencidos [data-testid="stButton"] > button > div {
+            display:flex !important;
+            align-items:center !important;
+            justify-content:center !important;
+            width:100% !important;
+            max-width:none !important;
+            overflow:visible !important;
+        }
+        .st-key-kpi_ai_riesgo_alto button p,
+        .st-key-kpi_ai_riesgo_medio button p,
+        .st-key-kpi_ai_riesgo_bajo button p,
+        .st-key-kpi_ai_estado_abiertos button p,
+        .st-key-kpi_ai_estado_vencidos button p,
+        .st-key-kpi_ai_estado_sin_definir button p,
+        .st-key-kpi_c_estado_abiertos button p,
+        .st-key-kpi_c_estado_vencidos button p {
+            display:block !important;
+            width:max-content !important;
+            max-width:none !important;
+            flex:0 0 auto !important;
+            overflow:visible !important;
+            text-overflow:clip !important;
+            white-space:nowrap !important;
+        }
+
         /* Porcentajes de abiertas/vencidas como cifra simple, sin cajas ni elipsis. */
         .st-key-kpi_ai_abiertos_pct button, .st-key-kpi_ai_vencidos_pct button,
         .st-key-kpi_c_abiertos_pct button, .st-key-kpi_c_vencidos_pct button {
@@ -2397,7 +2430,7 @@ if entorno_activo == "Auditoría Interna":
     for nombre_tab_real, tab_obj in zip(pestañas_permitidas, tabs_objetos):
         with tab_obj:
             if nombre_tab_real == "Tablero":
-                col_izq, col_der = st.columns([0.92, 1.6], gap="medium")
+                col_izq, col_der = st.columns([1.10, 1.42], gap="medium")
 
                 with col_izq:
                     # TARJETAS KPI INTERACTIVAS: botones nativos con el diseño original.
@@ -3823,7 +3856,7 @@ else:
     for nombre_tab_real_c, tab_obj_c in zip(pestañas_permitidas_c, tabs_objetos_c):
         with tab_obj_c:
             if nombre_tab_real_c == "Tablero":
-                col_izq_c, col_der_c = st.columns([0.92, 1.6], gap="medium")
+                col_izq_c, col_der_c = st.columns([1.10, 1.42], gap="medium")
 
                 with col_izq_c:
                     # TARJETAS KPI DE CONTRALORÍA: mismo diseño visual e interacción de un clic.

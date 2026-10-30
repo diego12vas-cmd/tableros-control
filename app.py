@@ -1095,14 +1095,14 @@ st.markdown(
             align-items:center !important;
             justify-content:center !important;
             width:100% !important;
-            height:25px !important;
-            min-height:25px !important;
-            padding:0 3px !important;
+            height:29px !important;
+            min-height:29px !important;
+            padding:0 5px !important;
             margin:0 !important;
             border:1px solid transparent !important;
             border-radius:5px !important;
             box-shadow:none !important;
-            font-size:9.5px !important;
+            font-size:11px !important;
             font-weight:800 !important;
             white-space:nowrap !important;
             overflow:visible !important;
@@ -1117,7 +1117,7 @@ st.markdown(
         .st-key-kpi_ai_riesgo_bajo button p, .st-key-kpi_ai_estado_abiertos button p,
         .st-key-kpi_ai_estado_vencidos button p, .st-key-kpi_ai_estado_sin_definir button p,
         .st-key-kpi_c_estado_abiertos button p, .st-key-kpi_c_estado_vencidos button p {
-            font-size:9.5px !important;
+            font-size:11px !important;
             line-height:1 !important;
             font-weight:800 !important;
             white-space:nowrap !important;
@@ -2444,7 +2444,7 @@ if entorno_activo == "Auditoría Interna":
                                 st.button(f"● {r_alto} Alto", key="kpi_ai_riesgo_alto", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Riesgo: Alto"))
                             with r2:
                                 st.button(f"● {r_medio} Medio", key="kpi_ai_riesgo_medio", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Riesgo: Medio"))
-                            r3, _ = st.columns(2, gap="small")
+                            _, r3, _ = st.columns([1, 2, 1], gap="small")
                             with r3:
                                 st.button(f"● {r_bajo} Bajo", key="kpi_ai_riesgo_bajo", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Riesgo: Bajo"))
 
@@ -2464,7 +2464,7 @@ if entorno_activo == "Auditoría Interna":
                                 st.button(f"{abiertos} Abiertos", key="kpi_ai_estado_abiertos", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Abiertos"))
                             with p2:
                                 st.button(f"{vencidos} Vencidos", key="kpi_ai_estado_vencidos", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Vencidos"))
-                            p3, _ = st.columns(2, gap="small")
+                            _, p3, _ = st.columns([1, 2, 1], gap="small")
                             with p3:
                                 st.button(f"{sin_plan} Sin definir", key="kpi_ai_estado_sin_definir", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Sin definir"))
 
@@ -4812,5 +4812,4 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
-
 

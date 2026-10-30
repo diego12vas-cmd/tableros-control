@@ -640,9 +640,48 @@ if not validar_login():
     st.stop()
 
 
+def obtener_primer_punto_seleccion_plotly(evento):
+    """Devuelve el primer punto seleccionado en un gráfico Plotly de Streamlit."""
+    if evento is None:
+        return None
+    try:
+        puntos = evento.selection.points
+    except Exception:
+        try:
+            puntos = evento.get("selection", {}).get("points", [])
+        except Exception:
+            puntos = []
+    return puntos[0] if puntos else None
+
+
+def normalizar_customdata_plotly(valor):
+    """Normaliza customdata devuelto por Plotly a una lista Python."""
+    if hasattr(valor, "tolist"):
+        valor = valor.tolist()
+    if isinstance(valor, (list, tuple)):
+        return list(valor)
+    return [valor]
+
+
+def limpiar_seleccion_grafica_ai():
+    st.session_state["filtro_grafica_ai"] = None
+    st.session_state["_version_grafica_tendencia_ai"] = st.session_state.get("_version_grafica_tendencia_ai", 0) + 1
+    st.session_state["_version_grafica_top5_ai"] = st.session_state.get("_version_grafica_top5_ai", 0) + 1
+
+
+def limpiar_seleccion_grafica_contraloria():
+    st.session_state["filtro_grafica_contraloria"] = None
+    st.session_state["_version_grafica_tendencia_c"] = st.session_state.get("_version_grafica_tendencia_c", 0) + 1
+    st.session_state["_version_grafica_top5_c"] = st.session_state.get("_version_grafica_top5_c", 0) + 1
+
+
 def seleccionar_filtro_tarjeta(clave_estado, valor_filtro):
-    """Actualiza el filtro de detalle al pulsar una tarjeta KPI."""
+    """Actualiza el filtro de detalle al pulsar una tarjeta KPI y limpia selecciones de gráficas."""
     st.session_state[clave_estado] = valor_filtro
+    if clave_estado == "filtro_rapido_ai":
+        limpiar_seleccion_grafica_ai()
+    elif clave_estado == "filtro_rapido_contraloria":
+        limpiar_seleccion_grafica_contraloria()
 
 # ---------------------------------------------------------
 # ESTILOS CSS PRINCIPALES DEL TABLERO
@@ -2255,6 +2294,7 @@ if entorno_activo == "Auditoría Interna":
     data_tend_abiertos = {m: 0 for m in meses_orden}
     data_tend_vencidos = {m: 0 for m in meses_orden}
     data_tend_fin = {m: 0 for m in meses_orden}
+    registros_tendencia_ai = {}
 
     df_eval_tend = df_filtrado.copy()
 
@@ -2267,7 +2307,7 @@ if entorno_activo == "Auditoría Interna":
             dt = pd.to_datetime(valor, errors="coerce", dayfirst=True)
         return dt
 
-    for _, r in df_eval_tend.iterrows():
+    for idx_registro, r in df_eval_tend.iterrows():
         st_val = str(r[col_estado] if col_estado in r else "").strip().lower()
         es_finalizado = any(term in st_val for term in ["finaliz", "cerrad"])
         es_vencido = "vencid" in st_val
@@ -2276,7 +2316,9 @@ if entorno_activo == "Auditoría Interna":
             valor_fecha = r[col_fecha_cierre_aud] if col_fecha_cierre_aud and col_fecha_cierre_aud in r else None
             dt = _fecha_tendencia_ai(valor_fecha)
             if pd.notnull(dt) and dt.month in map_m_num:
-                data_tend_fin[map_m_num[dt.month]] += 1
+                m_lbl = map_m_num[dt.month]
+                data_tend_fin[m_lbl] += 1
+                registros_tendencia_ai.setdefault((m_lbl, "Finalizados/Cerrados"), []).append(idx_registro)
         else:
             valor_fecha = r[col_fecha_cierre] if col_fecha_cierre and col_fecha_cierre in r else None
             dt = _fecha_tendencia_ai(valor_fecha)
@@ -2284,8 +2326,10 @@ if entorno_activo == "Auditoría Interna":
                 m_lbl = map_m_num[dt.month]
                 if es_vencido:
                     data_tend_vencidos[m_lbl] += 1
+                    registros_tendencia_ai.setdefault((m_lbl, "Vencidos"), []).append(idx_registro)
                 else:
                     data_tend_abiertos[m_lbl] += 1
+                    registros_tendencia_ai.setdefault((m_lbl, "Abiertos"), []).append(idx_registro)
 
     fig_tendencia = go.Figure()
     fig_tendencia.add_trace(go.Scatter(
@@ -2295,6 +2339,7 @@ if entorno_activo == "Auditoría Interna":
         textposition='top center',
         textfont=dict(size=10, color='white'),
         mode='lines+markers+text',
+        customdata=[[m, 'Abiertos'] for m in meses_orden],
         name='Abiertos',
         line=dict(color='#F39C12', width=3, shape='spline'),
         marker=dict(size=6)
@@ -2306,6 +2351,7 @@ if entorno_activo == "Auditoría Interna":
         textposition='top center',
         textfont=dict(size=10, color='white'),
         mode='lines+markers+text',
+        customdata=[[m, 'Vencidos'] for m in meses_orden],
         name='Vencidos',
         line=dict(color='#FF5E5E', width=3, shape='spline'),
         marker=dict(size=6)
@@ -2317,6 +2363,7 @@ if entorno_activo == "Auditoría Interna":
         textposition='top center',
         textfont=dict(size=10, color='white'),
         mode='lines+markers+text',
+        customdata=[[m, 'Finalizados/Cerrados'] for m in meses_orden],
         name='Finalizados/Cerrados',
         line=dict(color='#2ECC71', width=3, shape='spline'),
         marker=dict(size=6)
@@ -2331,10 +2378,12 @@ if entorno_activo == "Auditoría Interna":
         plot_bgcolor='rgba(0,0,0,0)',
         legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center"),
         xaxis=dict(showgrid=False),
-        yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)')
+        yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)'),
+        clickmode='event+select'
     )
 
     df_pend_ai = df_activos.copy()
+    registros_top5_ai = {}
     if not df_pend_ai.empty and col_responsable in df_pend_ai.columns:
         df_pend_ai['Resp_Clean'] = df_pend_ai[col_responsable].astype(str).apply(extraer_sub_areas_individuales)
         df_exploded_ai = df_pend_ai.explode('Resp_Clean')
@@ -2348,6 +2397,11 @@ if entorno_activo == "Auditoría Interna":
             df_top5_grp = df_exploded_ai.groupby(['Resp_Clean', 'Estado_Cat']).size().reset_index(name='Cantidad')
             top_resp_names = df_exploded_ai.groupby('Resp_Clean').size().nlargest(5).index.tolist()
             df_top5_final = df_top5_grp[df_top5_grp['Resp_Clean'].isin(top_resp_names)].copy()
+            registros_top5_ai = {
+                (str(area), str(estado)): grupo.index.unique().tolist()
+                for (area, estado), grupo in df_exploded_ai.groupby(['Resp_Clean', 'Estado_Cat'])
+                if str(area) in top_resp_names
+            }
 
             fig_top5 = px.bar(
                 df_top5_final,
@@ -2357,7 +2411,8 @@ if entorno_activo == "Auditoría Interna":
                 orientation='h',
                 title="🔥 Top 5 Responsables con Pendientes por Estado",
                 color_discrete_map={'Abiertos': '#F39C12', 'Vencidos': '#FF5252'},
-                text='Cantidad'
+                text='Cantidad',
+                custom_data=['Resp_Clean', 'Estado_Cat']
             )
             fig_top5.update_traces(textposition='inside', insidetextanchor='middle')
             fig_top5.update_layout(
@@ -2579,16 +2634,68 @@ if entorno_activo == "Auditoría Interna":
 
 
                 with col_der:
-                    st.plotly_chart(fig_tendencia, use_container_width=True, key="fig_tendencia_tablero", config={'displayModeBar': False})
-                    
+                    st.session_state.setdefault("_version_grafica_tendencia_ai", 0)
+                    evento_tendencia_ai = st.plotly_chart(
+                        fig_tendencia,
+                        use_container_width=True,
+                        key=f"fig_tendencia_tablero_sel_{st.session_state['_version_grafica_tendencia_ai']}",
+                        on_select="rerun",
+                        selection_mode="points",
+                        config={'displayModeBar': False}
+                    )
+                    punto_tendencia_ai = obtener_primer_punto_seleccion_plotly(evento_tendencia_ai)
+                    if punto_tendencia_ai:
+                        custom_ai = normalizar_customdata_plotly(punto_tendencia_ai.get("customdata"))
+                        if len(custom_ai) >= 2:
+                            mes_click_ai, estado_click_ai = str(custom_ai[0]), str(custom_ai[1])
+                            indices_click_ai = registros_tendencia_ai.get((mes_click_ai, estado_click_ai), [])
+                            st.session_state["filtro_grafica_ai"] = {
+                                "tipo": "tendencia",
+                                "etiqueta": f"Tendencia mensual · {mes_click_ai} · {estado_click_ai}",
+                                "indices": indices_click_ai,
+                            }
+                            st.session_state["filtro_rapido_ai"] = "(Mostrar Todos)"
+                            st.session_state["_version_grafica_tendencia_ai"] += 1
+                            st.rerun()
+
                     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
                     
                     if fig_top5 is not None:
-                        st.plotly_chart(fig_top5, use_container_width=True, key="fig_top5_tablero", config={'displayModeBar': False})
+                        st.session_state.setdefault("_version_grafica_top5_ai", 0)
+                        evento_top5_ai = st.plotly_chart(
+                            fig_top5,
+                            use_container_width=True,
+                            key=f"fig_top5_tablero_sel_{st.session_state['_version_grafica_top5_ai']}",
+                            on_select="rerun",
+                            selection_mode="points",
+                            config={'displayModeBar': False}
+                        )
+                        punto_top5_ai = obtener_primer_punto_seleccion_plotly(evento_top5_ai)
+                        if punto_top5_ai:
+                            custom_top5_ai = normalizar_customdata_plotly(punto_top5_ai.get("customdata"))
+                            if len(custom_top5_ai) >= 2:
+                                area_click_ai, estado_click_top5_ai = str(custom_top5_ai[0]), str(custom_top5_ai[1])
+                                indices_click_top5_ai = registros_top5_ai.get((area_click_ai, estado_click_top5_ai), [])
+                                st.session_state["filtro_grafica_ai"] = {
+                                    "tipo": "top5",
+                                    "etiqueta": f"Top 5 responsables · {area_click_ai} · {estado_click_top5_ai}",
+                                    "indices": indices_click_top5_ai,
+                                }
+                                st.session_state["filtro_rapido_ai"] = "(Mostrar Todos)"
+                                st.session_state["_version_grafica_top5_ai"] += 1
+                                st.rerun()
                     else:
                         st.info("ℹ️ No hay planes de acción pendientes registrados para generar el Top 5 Responsables.")
 
                 st.markdown("---")
+
+                if st.session_state.get("filtro_grafica_ai"):
+                    seleccion_ai = st.session_state["filtro_grafica_ai"]
+                    col_msg_ai, col_clear_ai = st.columns([4, 1])
+                    with col_msg_ai:
+                        st.info(f"Selección de gráfica: **{seleccion_ai.get('etiqueta', 'Filtro seleccionado')}** · {len(seleccion_ai.get('indices', []))} registros")
+                    with col_clear_ai:
+                        st.button("Quitar selección", key="limpiar_seleccion_grafica_ai", on_click=limpiar_seleccion_grafica_ai, use_container_width=True)
 
                 col_sub, col_search_box, col_filtro_rapido = st.columns([1.8, 1.3, 1])
                 with col_sub:
@@ -2602,6 +2709,7 @@ if entorno_activo == "Auditoría Interna":
                         "⚡ Filtrar por categoría:",
                         options=opciones_rapidas,
                         key="filtro_rapido_ai",
+                        on_change=limpiar_seleccion_grafica_ai,
                     )
 
                 # Los KPIs de cumplimiento y alertas se calculan sobre conjuntos
@@ -2645,8 +2753,17 @@ if entorno_activo == "Auditoría Interna":
                         s_val = df_tabla[col_alerta_sel].fillna("").astype(str).str.strip().str.lower()
                         df_tabla = df_tabla[~s_val.isin(["nan", "none", "", "0", "0.0", "false"])]
 
+                # Una selección de gráfica prevalece sobre el filtro rápido y muestra
+                # exactamente los registros que forman el punto o segmento seleccionado.
+                seleccion_grafica_ai = st.session_state.get("filtro_grafica_ai")
+                if seleccion_grafica_ai:
+                    indices_seleccion_ai = seleccion_grafica_ai.get("indices", [])
+                    df_tabla = df_filtrado[df_filtrado.index.isin(indices_seleccion_ai)].copy()
+
                 df_tabla_vista = filtrar_solo_columnas_amarillas_ai(df_tabla)
-                if filtro_elegido != "(Mostrar Todos)":
+                if seleccion_grafica_ai:
+                    st.caption(f"Detalle de selección: **{seleccion_grafica_ai.get('etiqueta', 'Gráfica')}** · {len(df_tabla_vista)} registros encontrados.")
+                elif filtro_elegido != "(Mostrar Todos)":
                     st.caption(f"Filtro aplicado desde el tablero: **{filtro_elegido}** · {len(df_tabla_vista)} registros encontrados.")
 
                 if busqueda_texto:
@@ -3566,6 +3683,7 @@ else:
     data_tend_abiertos_c = {m: 0 for m in meses_orden_c}
     data_tend_vencidos_c = {m: 0 for m in meses_orden_c}
     data_tend_fin_c = {m: 0 for m in meses_orden_c}
+    registros_tendencia_c = {}
 
     df_eval_tend_c = df_filtrado_c.copy()
 
@@ -3577,7 +3695,7 @@ else:
             dt = pd.to_datetime(valor, errors="coerce", dayfirst=True)
         return dt
 
-    for _, r in df_eval_tend_c.iterrows():
+    for idx_registro_c, r in df_eval_tend_c.iterrows():
         st_val = str(r[col_estado_c] if col_estado_c in r else "").strip().lower()
         es_finalizado = any(term in st_val for term in ["finaliz", "cerrad"])
         es_vencido = "vencid" in st_val
@@ -3586,16 +3704,20 @@ else:
             valor_fecha = r[col_fecha_cierre_aud_c] if col_fecha_cierre_aud_c and col_fecha_cierre_aud_c in r else None
             dt = _fecha_tendencia_c(valor_fecha)
             if pd.notnull(dt) and dt.month in map_m_num_c:
-                data_tend_fin_c[map_m_num_c[dt.month]] += 1
+                m_lbl_c = map_m_num_c[dt.month]
+                data_tend_fin_c[m_lbl_c] += 1
+                registros_tendencia_c.setdefault((m_lbl_c, "Finalizados/Cerrados"), []).append(idx_registro_c)
         else:
             valor_fecha = r[col_fecha_cierre_c] if col_fecha_cierre_c and col_fecha_cierre_c in r else None
             dt = _fecha_tendencia_c(valor_fecha)
             if pd.notnull(dt) and dt.month in map_m_num_c:
-                m_lbl = map_m_num_c[dt.month]
+                m_lbl_c = map_m_num_c[dt.month]
                 if es_vencido:
-                    data_tend_vencidos_c[m_lbl] += 1
+                    data_tend_vencidos_c[m_lbl_c] += 1
+                    registros_tendencia_c.setdefault((m_lbl_c, "Vencidos"), []).append(idx_registro_c)
                 else:
-                    data_tend_abiertos_c[m_lbl] += 1
+                    data_tend_abiertos_c[m_lbl_c] += 1
+                    registros_tendencia_c.setdefault((m_lbl_c, "Abiertos"), []).append(idx_registro_c)
 
     fig_tendencia_c = go.Figure()
     fig_tendencia_c.add_trace(go.Scatter(
@@ -3605,6 +3727,7 @@ else:
         textposition='top center',
         textfont=dict(size=10, color='white'),
         mode='lines+markers+text',
+        customdata=[[m, 'Abiertos'] for m in meses_orden_c],
         name='Abiertos',
         line=dict(color='#F39C12', width=3, shape='spline'),
         marker=dict(size=6)
@@ -3616,6 +3739,7 @@ else:
         textposition='top center',
         textfont=dict(size=10, color='white'),
         mode='lines+markers+text',
+        customdata=[[m, 'Vencidos'] for m in meses_orden_c],
         name='Vencidos',
         line=dict(color='#FF5E5E', width=3, shape='spline'),
         marker=dict(size=6)
@@ -3627,6 +3751,7 @@ else:
         textposition='top center',
         textfont=dict(size=10, color='white'),
         mode='lines+markers+text',
+        customdata=[[m, 'Finalizados/Cerrados'] for m in meses_orden_c],
         name='Finalizados/Cerrados',
         line=dict(color='#2ECC71', width=3, shape='spline'),
         marker=dict(size=6)
@@ -3641,10 +3766,12 @@ else:
         plot_bgcolor='rgba(0,0,0,0)',
         legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center"),
         xaxis=dict(showgrid=False),
-        yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)')
+        yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)'),
+        clickmode='event+select'
     )
 
     df_pend_c_top = df_activos_c.copy()
+    registros_top5_c = {}
     if not df_pend_c_top.empty and col_responsable_c in df_pend_c_top.columns:
         df_pend_c_top['Resp_Clean'] = df_pend_c_top[col_responsable_c].astype(str).apply(extraer_sub_areas_individuales)
         df_exploded_c_top = df_pend_c_top.explode('Resp_Clean')
@@ -3658,6 +3785,11 @@ else:
             df_top5_grp_c = df_exploded_c_top.groupby(['Resp_Clean', 'Estado_Cat']).size().reset_index(name='Cantidad')
             top_resp_names_c = df_exploded_c_top.groupby('Resp_Clean').size().nlargest(5).index.tolist()
             df_top5_final_c = df_top5_grp_c[df_top5_grp_c['Resp_Clean'].isin(top_resp_names_c)].copy()
+            registros_top5_c = {
+                (str(area), str(estado)): grupo.index.unique().tolist()
+                for (area, estado), grupo in df_exploded_c_top.groupby(['Resp_Clean', 'Estado_Cat'])
+                if str(area) in top_resp_names_c
+            }
 
             fig_top5_c = px.bar(
                 df_top5_final_c,
@@ -3667,7 +3799,8 @@ else:
                 orientation='h',
                 title="🔥 Top 5 Responsables con Pendientes por Estado",
                 color_discrete_map={'Abiertos': '#F39C12', 'Vencidos': '#FF5252'},
-                text='Cantidad'
+                text='Cantidad',
+                custom_data=['Resp_Clean', 'Estado_Cat']
             )
             fig_top5_c.update_traces(textposition='inside', insidetextanchor='middle')
             fig_top5_c.update_layout(
@@ -3959,16 +4092,68 @@ else:
 
 
                 with col_der_c:
-                    st.plotly_chart(fig_tendencia_c, use_container_width=True, key="fig_tendencia_contraloria", config={'displayModeBar': False})
-                    
+                    st.session_state.setdefault("_version_grafica_tendencia_c", 0)
+                    evento_tendencia_c = st.plotly_chart(
+                        fig_tendencia_c,
+                        use_container_width=True,
+                        key=f"fig_tendencia_contraloria_sel_{st.session_state['_version_grafica_tendencia_c']}",
+                        on_select="rerun",
+                        selection_mode="points",
+                        config={'displayModeBar': False}
+                    )
+                    punto_tendencia_c = obtener_primer_punto_seleccion_plotly(evento_tendencia_c)
+                    if punto_tendencia_c:
+                        custom_c = normalizar_customdata_plotly(punto_tendencia_c.get("customdata"))
+                        if len(custom_c) >= 2:
+                            mes_click_c, estado_click_c = str(custom_c[0]), str(custom_c[1])
+                            indices_click_c = registros_tendencia_c.get((mes_click_c, estado_click_c), [])
+                            st.session_state["filtro_grafica_contraloria"] = {
+                                "tipo": "tendencia",
+                                "etiqueta": f"Tendencia mensual · {mes_click_c} · {estado_click_c}",
+                                "indices": indices_click_c,
+                            }
+                            st.session_state["filtro_rapido_contraloria"] = "(Mostrar Todos)"
+                            st.session_state["_version_grafica_tendencia_c"] += 1
+                            st.rerun()
+
                     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
                     
                     if fig_top5_c is not None:
-                        st.plotly_chart(fig_top5_c, use_container_width=True, key="fig_top5_contraloria", config={'displayModeBar': False})
+                        st.session_state.setdefault("_version_grafica_top5_c", 0)
+                        evento_top5_c = st.plotly_chart(
+                            fig_top5_c,
+                            use_container_width=True,
+                            key=f"fig_top5_contraloria_sel_{st.session_state['_version_grafica_top5_c']}",
+                            on_select="rerun",
+                            selection_mode="points",
+                            config={'displayModeBar': False}
+                        )
+                        punto_top5_c = obtener_primer_punto_seleccion_plotly(evento_top5_c)
+                        if punto_top5_c:
+                            custom_top5_c = normalizar_customdata_plotly(punto_top5_c.get("customdata"))
+                            if len(custom_top5_c) >= 2:
+                                area_click_c, estado_click_top5_c = str(custom_top5_c[0]), str(custom_top5_c[1])
+                                indices_click_top5_c = registros_top5_c.get((area_click_c, estado_click_top5_c), [])
+                                st.session_state["filtro_grafica_contraloria"] = {
+                                    "tipo": "top5",
+                                    "etiqueta": f"Top 5 responsables · {area_click_c} · {estado_click_top5_c}",
+                                    "indices": indices_click_top5_c,
+                                }
+                                st.session_state["filtro_rapido_contraloria"] = "(Mostrar Todos)"
+                                st.session_state["_version_grafica_top5_c"] += 1
+                                st.rerun()
                     else:
                         st.info("ℹ️ No hay planes de acción pendientes registrados en Contraloría para generar el Top 5 Responsables.")
 
                 st.markdown("---")
+
+                if st.session_state.get("filtro_grafica_contraloria"):
+                    seleccion_grafica_c = st.session_state["filtro_grafica_contraloria"]
+                    col_msg_c, col_clear_c = st.columns([4, 1])
+                    with col_msg_c:
+                        st.info(f"Selección de gráfica: **{seleccion_grafica_c.get('etiqueta', 'Filtro seleccionado')}** · {len(seleccion_grafica_c.get('indices', []))} registros")
+                    with col_clear_c:
+                        st.button("Quitar selección", key="limpiar_seleccion_grafica_contraloria", on_click=limpiar_seleccion_grafica_contraloria, use_container_width=True)
                 
                 col_c_sub, col_c_search, col_c_filtro_rapido = st.columns([1.8, 1.3, 1])
                 with col_c_sub:
@@ -3982,6 +4167,7 @@ else:
                         "⚡ Filtrar por categoría:",
                         options=opciones_rapidas_c,
                         key="filtro_rapido_contraloria",
+                        on_change=limpiar_seleccion_grafica_contraloria,
                     )
 
                 if filtro_elegido_c == "Estado: Finalizados/Cerrados":
@@ -4015,8 +4201,15 @@ else:
                         s_val_c = df_c_tabla[col_alerta_sel_c].fillna("").astype(str).str.strip().str.lower()
                         df_c_tabla = df_c_tabla[~s_val_c.isin(["nan", "none", "", "0", "0.0", "false"])]
 
+                seleccion_grafica_c = st.session_state.get("filtro_grafica_contraloria")
+                if seleccion_grafica_c:
+                    indices_seleccion_c = seleccion_grafica_c.get("indices", [])
+                    df_c_tabla = df_filtrado_c[df_filtrado_c.index.isin(indices_seleccion_c)].copy()
+
                 df_c_tabla_vista = filtrar_solo_columnas_amarillas_c(df_c_tabla)
-                if filtro_elegido_c != "(Mostrar Todos)":
+                if seleccion_grafica_c:
+                    st.caption(f"Detalle de selección: **{seleccion_grafica_c.get('etiqueta', 'Gráfica')}** · {len(df_c_tabla_vista)} registros encontrados.")
+                elif filtro_elegido_c != "(Mostrar Todos)":
                     st.caption(f"Filtro aplicado desde el tablero: **{filtro_elegido_c}** · {len(df_c_tabla_vista)} registros encontrados.")
 
                 if busqueda_texto_c:
@@ -4856,4 +5049,5 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
+
 

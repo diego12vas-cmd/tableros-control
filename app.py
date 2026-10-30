@@ -1457,6 +1457,173 @@ st.markdown(
         .st-key-kpi_c_alerta_20 button { background:linear-gradient(145deg,#13221C,#111827)!important; color:#A7F3D0!important; border:1px solid rgba(16,185,129,.25)!important; border-top:3px solid #10B981!important; }
         .st-key-kpi_c_alerta_30 button { background:linear-gradient(145deg,#141E2C,#111827)!important; color:#BFDBFE!important; border:1px solid rgba(59,130,246,.25)!important; border-top:3px solid #3B82F6!important; }
 
+
+        /* =====================================================
+           AJUSTE FINAL DE ALINEACIÓN KPI
+           Mantiene los botones nativos y sus callbacks de clic.
+           ===================================================== */
+
+        /* Subindicadores: texto, porcentaje y cantidad en columnas
+           independientes, centrados y con separación vertical. */
+        .st-key-kpi_ai_abiertos_pct,
+        .st-key-kpi_ai_vencidos_pct,
+        .st-key-kpi_c_abiertos_pct,
+        .st-key-kpi_c_vencidos_pct {
+            width: 100% !important;
+            margin-top: 4px !important;
+            margin-bottom: 3px !important;
+        }
+        .st-key-kpi_ai_abiertos_pct [data-testid="stButton"] > button,
+        .st-key-kpi_ai_vencidos_pct [data-testid="stButton"] > button,
+        .st-key-kpi_c_abiertos_pct [data-testid="stButton"] > button,
+        .st-key-kpi_c_vencidos_pct [data-testid="stButton"] > button {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+            height: 38px !important;
+            min-height: 38px !important;
+            padding: 0 !important;
+            margin: 2px 0 3px 0 !important;
+            background: transparent !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            text-align: center !important;
+            white-space: nowrap !important;
+        }
+        .st-key-kpi_ai_abiertos_pct button > div,
+        .st-key-kpi_ai_vencidos_pct button > div,
+        .st-key-kpi_c_abiertos_pct button > div,
+        .st-key-kpi_c_vencidos_pct button > div {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+        }
+        .st-key-kpi_ai_abiertos_pct button p,
+        .st-key-kpi_ai_vencidos_pct button p,
+        .st-key-kpi_c_abiertos_pct button p,
+        .st-key-kpi_c_vencidos_pct button p {
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            text-align: center !important;
+            font-size: 23px !important;
+            line-height: 1.1 !important;
+            font-weight: 800 !important;
+            white-space: nowrap !important;
+        }
+        .kpi-subtitle-green,
+        .kpi-subtitle-red {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-align: center !important;
+            min-height: 34px !important;
+            margin: 0 0 3px 0 !important;
+            line-height: 1.3 !important;
+            overflow-wrap: anywhere !important;
+        }
+        .kpi-card-count {
+            text-align: center !important;
+            margin-top: 2px !important;
+            line-height: 1.25 !important;
+            white-space: normal !important;
+        }
+
+        /* Alertas: título arriba, cifra centrada y descripción abajo.
+           El botón sigue siendo el control real de un solo clic. */
+        .st-key-kpi_ai_alerta_5,
+        .st-key-kpi_ai_alerta_10,
+        .st-key-kpi_ai_alerta_20,
+        .st-key-kpi_ai_alerta_30,
+        .st-key-kpi_c_alerta_5,
+        .st-key-kpi_c_alerta_10,
+        .st-key-kpi_c_alerta_20,
+        .st-key-kpi_c_alerta_30 {
+            width: 100% !important;
+            margin: 1px 0 2px 0 !important;
+        }
+        .st-key-kpi_ai_alerta_5 [data-testid="stButton"] > button,
+        .st-key-kpi_ai_alerta_10 [data-testid="stButton"] > button,
+        .st-key-kpi_ai_alerta_20 [data-testid="stButton"] > button,
+        .st-key-kpi_ai_alerta_30 [data-testid="stButton"] > button,
+        .st-key-kpi_c_alerta_5 [data-testid="stButton"] > button,
+        .st-key-kpi_c_alerta_10 [data-testid="stButton"] > button,
+        .st-key-kpi_c_alerta_20 [data-testid="stButton"] > button,
+        .st-key-kpi_c_alerta_30 [data-testid="stButton"] > button {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+            height: 38px !important;
+            min-height: 38px !important;
+            padding: 0 !important;
+            margin: 2px 0 3px 0 !important;
+            background: transparent !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            text-align: center !important;
+            white-space: nowrap !important;
+        }
+        .st-key-kpi_ai_alerta_5 button > div,
+        .st-key-kpi_ai_alerta_10 button > div,
+        .st-key-kpi_ai_alerta_20 button > div,
+        .st-key-kpi_ai_alerta_30 button > div,
+        .st-key-kpi_c_alerta_5 button > div,
+        .st-key-kpi_c_alerta_10 button > div,
+        .st-key-kpi_c_alerta_20 button > div,
+        .st-key-kpi_c_alerta_30 button > div {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+        }
+        .st-key-kpi_ai_alerta_5 button p,
+        .st-key-kpi_ai_alerta_10 button p,
+        .st-key-kpi_ai_alerta_20 button p,
+        .st-key-kpi_ai_alerta_30 button p,
+        .st-key-kpi_c_alerta_5 button p,
+        .st-key-kpi_c_alerta_10 button p,
+        .st-key-kpi_c_alerta_20 button p,
+        .st-key-kpi_c_alerta_30 button p {
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            text-align: center !important;
+            font-size: 27px !important;
+            line-height: 1.1 !important;
+            font-weight: 800 !important;
+            white-space: nowrap !important;
+        }
+        .kpi-alert-heading {
+            text-align: left !important;
+            margin-bottom: 3px !important;
+        }
+        .kpi-alert-footnote {
+            text-align: left !important;
+            margin-top: 1px !important;
+            line-height: 1.25 !important;
+        }
+
+        /* Espacio vertical uniforme dentro de las tarjetas de análisis
+           y alertas para que ningún valor quede pegado a otro texto. */
+        .st-key-card-ai-analysis [data-testid="stVerticalBlock"],
+        .st-key-card-c-analysis [data-testid="stVerticalBlock"],
+        .st-key-card-ai-alert-5 [data-testid="stVerticalBlock"],
+        .st-key-card-ai-alert-10 [data-testid="stVerticalBlock"],
+        .st-key-card-ai-alert-20 [data-testid="stVerticalBlock"],
+        .st-key-card-ai-alert-30 [data-testid="stVerticalBlock"],
+        .st-key-card-c-alert-5 [data-testid="stVerticalBlock"],
+        .st-key-card-c-alert-10 [data-testid="stVerticalBlock"],
+        .st-key-card-c-alert-20 [data-testid="stVerticalBlock"],
+        .st-key-card-c-alert-30 [data-testid="stVerticalBlock"] {
+            row-gap: 5px !important;
+            gap: 5px !important;
+        }
+
     </style>
 """,
     unsafe_allow_html=True,
@@ -4645,4 +4812,5 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
+
 

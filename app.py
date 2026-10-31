@@ -752,6 +752,54 @@ st.markdown(
             word-break: break-word !important;
         }
 
+        /* OPCIONES DE DESPLEGABLES: permitir leer nombres largos completos.
+           Streamlit renderiza el menú emergente fuera del contenedor del sidebar;
+           por eso estos selectores son globales y no dependen de [data-testid="stSidebar"]. */
+        div[data-baseweb="popover"] {
+            width: max-content !important;
+            min-width: min(340px, 55vw) !important;
+            max-width: min(720px, 78vw) !important;
+        }
+        div[data-baseweb="popover"] [role="listbox"],
+        div[data-baseweb="popover"] ul {
+            width: 100% !important;
+            min-width: 100% !important;
+            max-width: min(720px, 78vw) !important;
+            box-sizing: border-box !important;
+        }
+        div[data-baseweb="popover"] [role="option"],
+        div[data-baseweb="popover"] li[role="option"] {
+            height: auto !important;
+            min-height: 40px !important;
+            max-height: none !important;
+            padding: 9px 12px !important;
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            overflow-wrap: anywhere !important;
+            word-break: normal !important;
+            line-height: 1.35 !important;
+            box-sizing: border-box !important;
+        }
+        div[data-baseweb="popover"] [role="option"] *,
+        div[data-baseweb="popover"] li[role="option"] * {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            overflow-wrap: anywhere !important;
+            max-width: none !important;
+        }
+        div[data-baseweb="popover"] [role="option"]:hover,
+        div[data-baseweb="popover"] li[role="option"]:hover {
+            background: #050505 !important;
+            color: #FFFFFF !important;
+            border-radius: 6px !important;
+        }
+        div[data-baseweb="popover"] [role="option"]:hover *,
+        div[data-baseweb="popover"] li[role="option"]:hover * {
+            color: #FFFFFF !important;
+        }
+
         /* PERMITIR SALTO DE LÍNEA EN LAS ETIQUETAS SELECCIONADAS DEL MULTISELECT */
         [data-testid="stSidebar"] div[data-baseweb="tag"] {
             max-width: 100% !important;

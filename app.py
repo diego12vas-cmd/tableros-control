@@ -2188,7 +2188,7 @@ if entorno_activo == "Auditoría Interna":
     st.sidebar.markdown(f"👤 **Usuario activo:** `{st.session_state.get('usuario_actual')}`")
 
     if st.session_state.get("usuario_actual") == "admin":
-        with st.sidebar.expander("👤 Gestión de Usuarios y Permisos (Admin)"):
+        with st.sidebar.expander("👤 Gestión de Usuarios y Permisos"):
             st.caption("1. Registrar / Actualizar Usuario")
             new_u = st.text_input("Usuario", key="new_u_adm")
             new_e = st.text_input("Correo Electrónico", key="new_e_adm")

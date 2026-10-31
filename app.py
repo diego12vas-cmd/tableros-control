@@ -663,6 +663,83 @@ def normalizar_customdata_plotly(valor):
     return [valor]
 
 
+# ---------------------------------------------------------
+# SELECTOR DE FILTROS CON NOMBRES COMPLETOS
+# Reemplaza el multiselect nativo para evitar que las opciones
+# largas se trunquen en el menú desplegable.
+# ---------------------------------------------------------
+def _marcar_opciones_selector(claves, valor):
+    """Callback para seleccionar o limpiar opciones del filtro."""
+    for clave in claves:
+        st.session_state[clave] = bool(valor)
+
+
+def multiseleccion_con_nombres_completos(etiqueta, opciones, key):
+    """Selector múltiple en popover: conserva valores originales y muestra etiquetas completas."""
+    opciones = list(opciones)
+    seleccion_previa = st.session_state.get(key, [])
+    if not isinstance(seleccion_previa, (list, tuple, set)):
+        seleccion_previa = []
+
+    pares = []
+    for opcion in opciones:
+        identificador = hashlib.sha1(str(opcion).encode("utf-8")).hexdigest()[:14]
+        clave_opcion = f"_{key}_op_{identificador}"
+        if clave_opcion not in st.session_state:
+            st.session_state[clave_opcion] = opcion in seleccion_previa
+        pares.append((opcion, clave_opcion))
+
+    claves_opciones = tuple(clave for _, clave in pares)
+    seleccion_actual = [opcion for opcion, clave in pares if st.session_state.get(clave, False)]
+
+    with st.popover(
+        f"Seleccionar opciones ({len(seleccion_actual)})",
+        use_container_width=True,
+        key=f"{key}_popover_completo"
+    ):
+        st.caption(etiqueta)
+        col_todos, col_limpiar = st.columns(2)
+        with col_todos:
+            st.button(
+                "Seleccionar todos",
+                key=f"{key}_seleccionar_todos",
+                use_container_width=True,
+                on_click=_marcar_opciones_selector,
+                args=(claves_opciones, True)
+            )
+        with col_limpiar:
+            st.button(
+                "Limpiar",
+                key=f"{key}_limpiar_todos",
+                use_container_width=True,
+                on_click=_marcar_opciones_selector,
+                args=(claves_opciones, False)
+            )
+
+        busqueda = st.text_input(
+            "Buscar opción",
+            key=f"{key}_buscar_opcion",
+            placeholder="Escribe para localizar..."
+        ).strip().casefold()
+
+        opciones_visibles = [
+            (opcion, clave)
+            for opcion, clave in pares
+            if not busqueda or busqueda in str(opcion).casefold()
+        ]
+        st.caption(f"Mostrando {len(opciones_visibles)} de {len(opciones)} opciones")
+
+        for opcion, clave in opciones_visibles:
+            texto_opcion = str(opcion)
+            ayuda_opcion = texto_opcion if len(texto_opcion) > 34 else None
+            st.checkbox(texto_opcion, key=clave, help=ayuda_opcion)
+
+    seleccion_actual = [opcion for opcion, clave in pares if st.session_state.get(clave, False)]
+    # Mantiene la misma variable de selección que utilizaba el multiselect anterior.
+    st.session_state[key] = seleccion_actual
+    return seleccion_actual
+
+
 def limpiar_seleccion_grafica_ai():
     st.session_state["filtro_grafica_ai"] = None
     st.session_state["_version_grafica_tendencia_ai"] = st.session_state.get("_version_grafica_tendencia_ai", 0) + 1
@@ -752,54 +829,6 @@ st.markdown(
             word-break: break-word !important;
         }
 
-        /* OPCIONES DE DESPLEGABLES: permitir leer nombres largos completos.
-           Streamlit renderiza el menú emergente fuera del contenedor del sidebar;
-           por eso estos selectores son globales y no dependen de [data-testid="stSidebar"]. */
-        div[data-baseweb="popover"] {
-            width: max-content !important;
-            min-width: min(340px, 55vw) !important;
-            max-width: min(720px, 78vw) !important;
-        }
-        div[data-baseweb="popover"] [role="listbox"],
-        div[data-baseweb="popover"] ul {
-            width: 100% !important;
-            min-width: 100% !important;
-            max-width: min(720px, 78vw) !important;
-            box-sizing: border-box !important;
-        }
-        div[data-baseweb="popover"] [role="option"],
-        div[data-baseweb="popover"] li[role="option"] {
-            height: auto !important;
-            min-height: 40px !important;
-            max-height: none !important;
-            padding: 9px 12px !important;
-            white-space: normal !important;
-            overflow: visible !important;
-            text-overflow: clip !important;
-            overflow-wrap: anywhere !important;
-            word-break: normal !important;
-            line-height: 1.35 !important;
-            box-sizing: border-box !important;
-        }
-        div[data-baseweb="popover"] [role="option"] *,
-        div[data-baseweb="popover"] li[role="option"] * {
-            white-space: normal !important;
-            overflow: visible !important;
-            text-overflow: clip !important;
-            overflow-wrap: anywhere !important;
-            max-width: none !important;
-        }
-        div[data-baseweb="popover"] [role="option"]:hover,
-        div[data-baseweb="popover"] li[role="option"]:hover {
-            background: #050505 !important;
-            color: #FFFFFF !important;
-            border-radius: 6px !important;
-        }
-        div[data-baseweb="popover"] [role="option"]:hover *,
-        div[data-baseweb="popover"] li[role="option"]:hover * {
-            color: #FFFFFF !important;
-        }
-
         /* PERMITIR SALTO DE LÍNEA EN LAS ETIQUETAS SELECCIONADAS DEL MULTISELECT */
         [data-testid="stSidebar"] div[data-baseweb="tag"] {
             max-width: 100% !important;
@@ -811,6 +840,39 @@ st.markdown(
             white-space: normal !important;
             overflow: visible !important;
             text-overflow: clip !important;
+        }
+
+        /* Selectores personalizados: nombres largos completos y resaltado negro al pasar el cursor. */
+        div[data-testid="stPopover"] [data-testid="stCheckbox"],
+        div[data-testid="stPopover"] [data-testid="stCheckbox"] > label {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        div[data-testid="stPopover"] [data-testid="stCheckbox"] {
+            padding: 6px 8px !important;
+            margin: 2px 0 !important;
+            border-radius: 7px !important;
+            transition: background-color .12s ease-in-out !important;
+        }
+        div[data-testid="stPopover"] [data-testid="stCheckbox"]:hover {
+            background: #050505 !important;
+        }
+        div[data-testid="stPopover"] [data-testid="stCheckbox"] label,
+        div[data-testid="stPopover"] [data-testid="stCheckbox"] label p,
+        div[data-testid="stPopover"] [data-testid="stCheckbox"] label span {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            overflow-wrap: anywhere !important;
+            word-break: normal !important;
+            max-width: 100% !important;
+            line-height: 1.35 !important;
+        }
+        div[data-testid="stPopover"] [data-testid="stCheckbox"]:hover label,
+        div[data-testid="stPopover"] [data-testid="stCheckbox"]:hover label p,
+        div[data-testid="stPopover"] [data-testid="stCheckbox"]:hover label span {
+            color: #FFFFFF !important;
         }
 
         header[data-testid="stHeader"] {
@@ -2252,7 +2314,7 @@ if entorno_activo == "Auditoría Interna":
     if col_estado:
         estados_vals = sorted([e for e in df_raw[col_estado].dropna().unique() if str(e).lower() not in ["nan", "none", ""] and not re.search(r"finaliz|cerrad", str(e), re.IGNORECASE)])
         with st.sidebar.expander("📌 Estado del compromiso", expanded=False):
-            estado_sel = st.multiselect("Seleccione Estados:", options=estados_vals, default=[], key="multi_estado")
+            estado_sel = multiseleccion_con_nombres_completos("Seleccione Estados", estados_vals, key="multi_estado")
         if estado_sel:
             df_filtrado = df_filtrado[df_filtrado[col_estado].isin(estado_sel)]
 
@@ -2268,7 +2330,7 @@ if entorno_activo == "Auditoría Interna":
         resp_vals = sorted(list(resp_unicos_set))
         
         with st.sidebar.expander("👤 Responsables", expanded=False):
-            resp_sel = st.multiselect("Seleccione Responsables:", options=resp_vals, default=[], key="multi_resp")
+            resp_sel = multiseleccion_con_nombres_completos("Seleccione Responsables", resp_vals, key="multi_resp")
         if resp_sel:
             def evaluar_resp_ai(cell_val):
                 if pd.isna(cell_val):
@@ -2282,7 +2344,7 @@ if entorno_activo == "Auditoría Interna":
     if col_auditor_resp:
         aud_resp_vals = sorted(list(set([ar for ar in df_raw[col_auditor_resp].dropna().unique() if str(ar).lower() not in ["nan", "none", ""]])))
         with st.sidebar.expander("🧐 Auditor Responsable", expanded=False):
-            aud_resp_sel = st.multiselect("Seleccione Auditores:", options=aud_resp_vals, default=[], key="multi_auditor_resp")
+            aud_resp_sel = multiseleccion_con_nombres_completos("Seleccione Auditores", aud_resp_vals, key="multi_auditor_resp")
         if aud_resp_sel:
             df_filtrado = df_filtrado[df_filtrado[col_auditor_resp].isin(aud_resp_sel)]
 
@@ -2295,7 +2357,7 @@ if entorno_activo == "Auditoría Interna":
         apoyo_vals = sorted(list(set(apoyo_raw_list)))
         
         with st.sidebar.expander("👥 Apoyo Responsable", expanded=False):
-            apoyo_sel = st.multiselect("Seleccione Apoyo Responsable:", options=apoyo_vals, default=[], key="multi_apoyo_resp")
+            apoyo_sel = multiseleccion_con_nombres_completos("Seleccione Apoyo Responsable", apoyo_vals, key="multi_apoyo_resp")
         if apoyo_sel:
             mask_apoyo = df_filtrado[col_apoyo_resp].fillna("").astype(str).apply(
                 lambda x: any(sel.lower() in str(x).replace("maryury", "maryuri").replace("carloina", "carolina").lower() for sel in apoyo_sel)
@@ -2305,14 +2367,14 @@ if entorno_activo == "Auditoría Interna":
     if col_plan_filtro:
         plan_vals = sorted(list(set([p for p in df_raw[col_plan_filtro].dropna().unique() if str(p).lower() not in ["nan", "none", ""]])))
         with st.sidebar.expander("📁 Plan Auditoría / Vigencia", expanded=False):
-            plan_sel = st.multiselect("Seleccione Planes:", options=plan_vals, default=[], key="multi_plan")
+            plan_sel = multiseleccion_con_nombres_completos("Seleccione Planes", plan_vals, key="multi_plan")
         if plan_sel:
             df_filtrado = df_filtrado[df_filtrado[col_plan_filtro].isin(plan_sel)]
 
     if col_auditoria:
         aud_vals = sorted(list(set([a for a in df_raw[col_auditoria].dropna().unique() if str(a).lower() not in ["nan", "none", ""]])))
         with st.sidebar.expander("🔬 Auditoría Específica", expanded=False):
-            auditoria_sel = st.multiselect("Seleccione Auditorías:", options=aud_vals, default=[], key="multi_auditoria")
+            auditoria_sel = multiseleccion_con_nombres_completos("Seleccione Auditorías", aud_vals, key="multi_auditoria")
         if auditoria_sel:
             df_filtrado = df_filtrado[df_filtrado[col_auditoria].isin(auditoria_sel)]
 
@@ -3651,7 +3713,7 @@ else:
             if str(e).lower() not in ["nan", "none", ""] and not re.search(r"finaliz|cerrad", str(e), re.IGNORECASE)
         ])
         with st.sidebar.expander("📌 Estado del compromiso", expanded=False):
-            estado_sel_c = st.multiselect("Seleccione uno o varios Estados:", options=estados_vals_c, default=[], key="multi_estado_c")
+            estado_sel_c = multiseleccion_con_nombres_completos("Seleccione uno o varios Estados", estados_vals_c, key="multi_estado_c")
         if estado_sel_c:
             df_filtrado_c = df_filtrado_c[df_filtrado_c[col_estado_c].isin(estado_sel_c)]
 
@@ -3666,7 +3728,7 @@ else:
         resp_vals_c = sorted(list(resp_unicos_set_c))
         
         with st.sidebar.expander("👤 Responsables / Dependencias", expanded=False):
-            resp_sel_c = st.multiselect("Seleccione uno o varios Responsables:", options=resp_vals_c, default=[], key="multi_resp_c")
+            resp_sel_c = multiseleccion_con_nombres_completos("Seleccione uno o varios Responsables", resp_vals_c, key="multi_resp_c")
         if resp_sel_c:
             def evaluar_resp_c(cell_val):
                 if pd.isna(cell_val):
@@ -3680,7 +3742,7 @@ else:
     if col_auditoria_c:
         aud_vals_c = sorted(list(set([a for a in df_raw_c[col_auditoria_c].dropna().unique() if str(a).lower() not in ["nan", "none", ""]])))
         with st.sidebar.expander("🔬 Vigencia de Auditoría", expanded=False):
-            auditoria_sel_c = st.multiselect("Seleccione una o varias Vigencias:", options=aud_vals_c, default=[], key="multi_auditoria_c")
+            auditoria_sel_c = multiseleccion_con_nombres_completos("Seleccione una o varias Vigencias", aud_vals_c, key="multi_auditoria_c")
         if auditoria_sel_c:
             df_filtrado_c = df_filtrado_c[df_filtrado_c[col_auditoria_c].isin(auditoria_sel_c)]
 

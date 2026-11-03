@@ -103,31 +103,53 @@ def verificar_password(password, hashed):
     return hmac.compare_digest(hash_password(password), str(hashed).strip())
 
 def parsear_fecha_estricta(val):
+    """Convierte fechas de Excel respetando ISO (AAAA-MM-DD) y día/mes/año."""
     if pd.isna(val):
         return pd.NaT
+
     if isinstance(val, (datetime, pd.Timestamp, date)):
-        return pd.to_datetime(val)
-        
+        return pd.to_datetime(val, errors="coerce")
+
     val_str = str(val).strip().lower()
     if val_str in ["nan", "none", "nat", "", "cierre", "cierre dd/mm/a", "cierre dd/mm/aa", "inicio", "inicio dd/mm/a"]:
         return pd.NaT
 
+    # Las fechas de Excel también pueden llegar como números de serie.
     try:
         val_num = float(val_str)
         if val_num > 30000:
-            return pd.to_datetime(val_num, unit='D', origin='1899-12-30')
-    except Exception:
+            return pd.to_datetime(val_num, unit="D", origin="1899-12-30", errors="coerce")
+    except (TypeError, ValueError, OverflowError):
         pass
 
-    match = re.search(r"(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})", val_str)
-    if match:
-        d, m, y = int(match.group(1)), int(match.group(2)), int(match.group(3))
-        if y < 100:
-            y += 2000
+    # Primero reconocer el formato ISO. Sin esta prioridad, la expresión
+    # DD/MM/AAAA podía leer 2024-11-01 como 24-11-01 y producir 24/11/2001.
+    match_iso = re.match(
+        r"^\s*(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[t\s].*)?\s*$",
+        val_str,
+        flags=re.IGNORECASE,
+    )
+    if match_iso:
+        anio, mes, dia = map(int, match_iso.groups())
         try:
-            return pd.Timestamp(year=y, month=m, day=d)
-        except Exception:
-            pass
+            return pd.Timestamp(year=anio, month=mes, day=dia)
+        except (TypeError, ValueError, OverflowError):
+            return pd.NaT
+
+    # Formato habitual colombiano: DD/MM/AAAA o DD-MM-AAAA, con hora opcional.
+    match_dmy = re.match(
+        r"^\s*(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})(?:[t\s].*)?\s*$",
+        val_str,
+        flags=re.IGNORECASE,
+    )
+    if match_dmy:
+        dia, mes, anio = map(int, match_dmy.groups())
+        if anio < 100:
+            anio += 2000
+        try:
+            return pd.Timestamp(year=anio, month=mes, day=dia)
+        except (TypeError, ValueError, OverflowError):
+            return pd.NaT
 
     return pd.to_datetime(val_str, dayfirst=True, errors="coerce")
 
@@ -5151,6 +5173,7 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
+
 
 
 

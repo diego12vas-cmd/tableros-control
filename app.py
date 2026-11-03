@@ -2432,19 +2432,12 @@ if entorno_activo == "Auditoría Interna":
     # ---------------------------------------------------------
     # CONSTRUCCIÓN DE GRÁFICOS AUDITORÍA INTERNA
     # ---------------------------------------------------------
+    # Tendencia mensual segmentada por año de vencimiento o de cierre real.
+    # Así, ABR-2026 y ABR-2027 nunca se mezclan en una misma categoría.
     meses_orden = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
-    map_m_num = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
-
-    data_tend_abiertos = {m: 0 for m in meses_orden}
-    data_tend_vencidos = {m: 0 for m in meses_orden}
-    data_tend_fin = {m: 0 for m in meses_orden}
-    registros_tendencia_ai = {}
-
     df_eval_tend = df_filtrado.copy()
+    filas_tendencia_ai = []
 
-    # La tendencia se agrupa por MES de la fecha correspondiente, sin excluir
-    # vencimientos de años anteriores: así también se visualizan las acciones vencidas.
-    # Finalizados/cerrados usan fecha real de cierre; abiertos/vencidos usan fecha prevista.
     def _fecha_tendencia_ai(valor):
         dt = parsear_fecha_estricta(valor)
         if pd.isna(dt) and pd.notna(valor) and str(valor).strip():
@@ -2456,72 +2449,118 @@ if entorno_activo == "Auditoría Interna":
         es_finalizado = any(term in st_val for term in ["finaliz", "cerrad"])
         es_vencido = "vencid" in st_val
 
+        # Para planes finalizados se usa la fecha real de cierre de Auditoría.
+        # Para abiertos/vencidos se usa la fecha prevista de terminación.
         if es_finalizado:
             valor_fecha = r[col_fecha_cierre_aud] if col_fecha_cierre_aud and col_fecha_cierre_aud in r else None
-            dt = _fecha_tendencia_ai(valor_fecha)
-            if pd.notnull(dt) and dt.month in map_m_num:
-                m_lbl = map_m_num[dt.month]
-                data_tend_fin[m_lbl] += 1
-                registros_tendencia_ai.setdefault((m_lbl, "Finalizados/Cerrados"), []).append(idx_registro)
+            estado_tendencia = "Finalizados/Cerrados"
         else:
             valor_fecha = r[col_fecha_cierre] if col_fecha_cierre and col_fecha_cierre in r else None
-            dt = _fecha_tendencia_ai(valor_fecha)
-            if pd.notnull(dt) and dt.month in map_m_num:
-                m_lbl = map_m_num[dt.month]
-                if es_vencido:
-                    data_tend_vencidos[m_lbl] += 1
-                    registros_tendencia_ai.setdefault((m_lbl, "Vencidos"), []).append(idx_registro)
-                else:
-                    data_tend_abiertos[m_lbl] += 1
-                    registros_tendencia_ai.setdefault((m_lbl, "Abiertos"), []).append(idx_registro)
+            estado_tendencia = "Vencidos" if es_vencido else "Abiertos"
+
+        dt = _fecha_tendencia_ai(valor_fecha)
+        if pd.notna(dt):
+            filas_tendencia_ai.append({
+                "indice": idx_registro,
+                "periodo": pd.Period(dt, freq="M"),
+                "estado": estado_tendencia,
+            })
+
+    anios_tendencia_ai = sorted({fila["periodo"].year for fila in filas_tendencia_ai})
+    opciones_anio_ai = ["Todos"] + [str(anio) for anio in anios_tendencia_ai]
+    anio_actual_ai = str(date.today().year)
+    anio_inicial_ai = anio_actual_ai if anio_actual_ai in opciones_anio_ai else (opciones_anio_ai[-1] if len(opciones_anio_ai) > 1 else "Todos")
+    anio_seleccionado_ai = str(st.session_state.get("filtro_anio_tendencia_ai", anio_inicial_ai))
+    if anio_seleccionado_ai not in opciones_anio_ai:
+        anio_seleccionado_ai = anio_inicial_ai
+    st.session_state["filtro_anio_tendencia_ai"] = anio_seleccionado_ai
+
+    if anio_seleccionado_ai == "Todos":
+        if filas_tendencia_ai:
+            periodos_grafica_ai = pd.period_range(
+                min(f["periodo"] for f in filas_tendencia_ai),
+                max(f["periodo"] for f in filas_tendencia_ai),
+                freq="M",
+            ).tolist()
+        else:
+            periodos_grafica_ai = pd.period_range(f"{date.today().year}-01", f"{date.today().year}-12", freq="M").tolist()
+        etiquetas_tendencia_ai = [f"{meses_orden[p.month - 1]}-{str(p.year)[-2:]}" for p in periodos_grafica_ai]
+    else:
+        anio_grafica_ai = int(anio_seleccionado_ai)
+        periodos_grafica_ai = [pd.Period(f"{anio_grafica_ai}-{mes:02d}", freq="M") for mes in range(1, 13)]
+        etiquetas_tendencia_ai = meses_orden.copy()
+
+    conteos_tendencia_ai = {
+        etiqueta: {"Abiertos": 0, "Vencidos": 0, "Finalizados/Cerrados": 0}
+        for etiqueta in etiquetas_tendencia_ai
+    }
+    registros_tendencia_ai = {}
+    etiqueta_por_periodo_ai = dict(zip(periodos_grafica_ai, etiquetas_tendencia_ai))
+
+    for fila in filas_tendencia_ai:
+        periodo = fila["periodo"]
+        if anio_seleccionado_ai != "Todos" and periodo.year != int(anio_seleccionado_ai):
+            continue
+        etiqueta = etiqueta_por_periodo_ai.get(periodo)
+        if etiqueta is None:
+            continue
+        estado = fila["estado"]
+        conteos_tendencia_ai[etiqueta][estado] += 1
+        registros_tendencia_ai.setdefault((etiqueta, estado), []).append(fila["indice"])
+
+    x_tendencia_ai = etiquetas_tendencia_ai
+    data_tend_abiertos = {m: conteos_tendencia_ai[m]["Abiertos"] for m in x_tendencia_ai}
+    data_tend_vencidos = {m: conteos_tendencia_ai[m]["Vencidos"] for m in x_tendencia_ai}
+    data_tend_fin = {m: conteos_tendencia_ai[m]["Finalizados/Cerrados"] for m in x_tendencia_ai}
 
     fig_tendencia = go.Figure()
     fig_tendencia.add_trace(go.Scatter(
-        x=meses_orden, 
-        y=[data_tend_abiertos[m] for m in meses_orden],
-        text=[data_tend_abiertos[m] for m in meses_orden],
+        x=x_tendencia_ai,
+        y=[data_tend_abiertos[m] for m in x_tendencia_ai],
+        text=[data_tend_abiertos[m] for m in x_tendencia_ai],
         textposition='top center',
         textfont=dict(size=10, color='white'),
         mode='lines+markers+text',
-        customdata=[[m, 'Abiertos'] for m in meses_orden],
+        customdata=[[m, 'Abiertos'] for m in x_tendencia_ai],
         name='Abiertos',
         line=dict(color='#F39C12', width=3, shape='spline'),
         marker=dict(size=6)
     ))
     fig_tendencia.add_trace(go.Scatter(
-        x=meses_orden, 
-        y=[data_tend_vencidos[m] for m in meses_orden],
-        text=[data_tend_vencidos[m] for m in meses_orden],
+        x=x_tendencia_ai,
+        y=[data_tend_vencidos[m] for m in x_tendencia_ai],
+        text=[data_tend_vencidos[m] for m in x_tendencia_ai],
         textposition='top center',
         textfont=dict(size=10, color='white'),
         mode='lines+markers+text',
-        customdata=[[m, 'Vencidos'] for m in meses_orden],
+        customdata=[[m, 'Vencidos'] for m in x_tendencia_ai],
         name='Vencidos',
         line=dict(color='#FF5E5E', width=3, shape='spline'),
         marker=dict(size=6)
     ))
     fig_tendencia.add_trace(go.Scatter(
-        x=meses_orden, 
-        y=[data_tend_fin[m] for m in meses_orden],
-        text=[data_tend_fin[m] for m in meses_orden],
+        x=x_tendencia_ai,
+        y=[data_tend_fin[m] for m in x_tendencia_ai],
+        text=[data_tend_fin[m] for m in x_tendencia_ai],
         textposition='top center',
         textfont=dict(size=10, color='white'),
         mode='lines+markers+text',
-        customdata=[[m, 'Finalizados/Cerrados'] for m in meses_orden],
+        customdata=[[m, 'Finalizados/Cerrados'] for m in x_tendencia_ai],
         name='Finalizados/Cerrados',
         line=dict(color='#2ECC71', width=3, shape='spline'),
         marker=dict(size=6)
     ))
 
+    titulo_anio_ai = "Todos los años" if anio_seleccionado_ai == "Todos" else anio_seleccionado_ai
     fig_tendencia.update_layout(
         template='plotly_dark',
-        title=dict(text="📈 Tendencia Mensual de Planes por Estado", font=dict(size=14, color="white")),
+        title=dict(text=f"📈 Tendencia Mensual de Planes por Estado · {titulo_anio_ai}", font=dict(size=14, color="white")),
         height=345,
-        margin=dict(l=20, r=20, t=40, b=40),
+        margin=dict(l=20, r=20, t=40, b=65 if anio_seleccionado_ai == "Todos" else 40),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center"),
-        xaxis=dict(showgrid=False),
+        legend=dict(orientation="h", y=-0.30 if anio_seleccionado_ai == "Todos" else -0.25, x=0.5, xanchor="center"),
+        xaxis=dict(showgrid=False, tickangle=-45 if anio_seleccionado_ai == "Todos" else 0),
         yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)'),
         clickmode='event+select'
     )
@@ -2778,6 +2817,12 @@ if entorno_activo == "Auditoría Interna":
 
 
                 with col_der:
+                    st.selectbox(
+                        "Año de vencimiento / cierre",
+                        options=opciones_anio_ai,
+                        key="filtro_anio_tendencia_ai",
+                        format_func=lambda valor: "Todos los años" if valor == "Todos" else valor,
+                    )
                     st.session_state.setdefault("_version_grafica_tendencia_ai", 0)
                     evento_tendencia_ai = st.plotly_chart(
                         fig_tendencia,
@@ -2795,7 +2840,7 @@ if entorno_activo == "Auditoría Interna":
                             indices_click_ai = registros_tendencia_ai.get((mes_click_ai, estado_click_ai), [])
                             st.session_state["filtro_grafica_ai"] = {
                                 "tipo": "tendencia",
-                                "etiqueta": f"Tendencia mensual · {mes_click_ai} · {estado_click_ai}",
+                                "etiqueta": f"Tendencia mensual · {mes_click_ai} · {estado_click_ai}" + (f" · {anio_seleccionado_ai}" if anio_seleccionado_ai != "Todos" else ""),
                                 "indices": indices_click_ai,
                             }
                             st.session_state["filtro_rapido_ai"] = "(Mostrar Todos)"
@@ -3811,18 +3856,11 @@ else:
     # ---------------------------------------------------------
     # TENDENCIA MENSUAL CONTRALORÍA
     # ---------------------------------------------------------
+    # Tendencia mensual de Contraloría, separada por año de vencimiento o cierre real.
     meses_orden_c = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
-    map_m_num_c = {1: "ENE", 2: "FEB", 3: "MAR", 4: "ABR", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGO", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DIC"}
-
-    data_tend_abiertos_c = {m: 0 for m in meses_orden_c}
-    data_tend_vencidos_c = {m: 0 for m in meses_orden_c}
-    data_tend_fin_c = {m: 0 for m in meses_orden_c}
-    registros_tendencia_c = {}
-
     df_eval_tend_c = df_filtrado_c.copy()
+    filas_tendencia_c = []
 
-    # Agrupar por mes de vencimiento/cierre, incluyendo fechas de años anteriores.
-    # Esto evita que los planes vencidos desaparezcan por tener fecha límite pasada.
     def _fecha_tendencia_c(valor):
         dt = parsear_fecha_estricta(valor)
         if pd.isna(dt) and pd.notna(valor) and str(valor).strip():
@@ -3836,70 +3874,114 @@ else:
 
         if es_finalizado:
             valor_fecha = r[col_fecha_cierre_aud_c] if col_fecha_cierre_aud_c and col_fecha_cierre_aud_c in r else None
-            dt = _fecha_tendencia_c(valor_fecha)
-            if pd.notnull(dt) and dt.month in map_m_num_c:
-                m_lbl_c = map_m_num_c[dt.month]
-                data_tend_fin_c[m_lbl_c] += 1
-                registros_tendencia_c.setdefault((m_lbl_c, "Finalizados/Cerrados"), []).append(idx_registro_c)
+            estado_tendencia = "Finalizados/Cerrados"
         else:
             valor_fecha = r[col_fecha_cierre_c] if col_fecha_cierre_c and col_fecha_cierre_c in r else None
-            dt = _fecha_tendencia_c(valor_fecha)
-            if pd.notnull(dt) and dt.month in map_m_num_c:
-                m_lbl_c = map_m_num_c[dt.month]
-                if es_vencido:
-                    data_tend_vencidos_c[m_lbl_c] += 1
-                    registros_tendencia_c.setdefault((m_lbl_c, "Vencidos"), []).append(idx_registro_c)
-                else:
-                    data_tend_abiertos_c[m_lbl_c] += 1
-                    registros_tendencia_c.setdefault((m_lbl_c, "Abiertos"), []).append(idx_registro_c)
+            estado_tendencia = "Vencidos" if es_vencido else "Abiertos"
+
+        dt = _fecha_tendencia_c(valor_fecha)
+        if pd.notna(dt):
+            filas_tendencia_c.append({
+                "indice": idx_registro_c,
+                "periodo": pd.Period(dt, freq="M"),
+                "estado": estado_tendencia,
+            })
+
+    anios_tendencia_c = sorted({fila["periodo"].year for fila in filas_tendencia_c})
+    opciones_anio_c = ["Todos"] + [str(anio) for anio in anios_tendencia_c]
+    anio_actual_c = str(date.today().year)
+    anio_inicial_c = anio_actual_c if anio_actual_c in opciones_anio_c else (opciones_anio_c[-1] if len(opciones_anio_c) > 1 else "Todos")
+    anio_seleccionado_c = str(st.session_state.get("filtro_anio_tendencia_c", anio_inicial_c))
+    if anio_seleccionado_c not in opciones_anio_c:
+        anio_seleccionado_c = anio_inicial_c
+    st.session_state["filtro_anio_tendencia_c"] = anio_seleccionado_c
+
+    if anio_seleccionado_c == "Todos":
+        if filas_tendencia_c:
+            periodos_grafica_c = pd.period_range(
+                min(f["periodo"] for f in filas_tendencia_c),
+                max(f["periodo"] for f in filas_tendencia_c),
+                freq="M",
+            ).tolist()
+        else:
+            periodos_grafica_c = pd.period_range(f"{date.today().year}-01", f"{date.today().year}-12", freq="M").tolist()
+        etiquetas_tendencia_c = [f"{meses_orden_c[p.month - 1]}-{str(p.year)[-2:]}" for p in periodos_grafica_c]
+    else:
+        anio_grafica_c = int(anio_seleccionado_c)
+        periodos_grafica_c = [pd.Period(f"{anio_grafica_c}-{mes:02d}", freq="M") for mes in range(1, 13)]
+        etiquetas_tendencia_c = meses_orden_c.copy()
+
+    conteos_tendencia_c = {
+        etiqueta: {"Abiertos": 0, "Vencidos": 0, "Finalizados/Cerrados": 0}
+        for etiqueta in etiquetas_tendencia_c
+    }
+    registros_tendencia_c = {}
+    etiqueta_por_periodo_c = dict(zip(periodos_grafica_c, etiquetas_tendencia_c))
+
+    for fila in filas_tendencia_c:
+        periodo = fila["periodo"]
+        if anio_seleccionado_c != "Todos" and periodo.year != int(anio_seleccionado_c):
+            continue
+        etiqueta = etiqueta_por_periodo_c.get(periodo)
+        if etiqueta is None:
+            continue
+        estado = fila["estado"]
+        conteos_tendencia_c[etiqueta][estado] += 1
+        registros_tendencia_c.setdefault((etiqueta, estado), []).append(fila["indice"])
+
+    x_tendencia_c = etiquetas_tendencia_c
+    data_tend_abiertos_c = {m: conteos_tendencia_c[m]["Abiertos"] for m in x_tendencia_c}
+    data_tend_vencidos_c = {m: conteos_tendencia_c[m]["Vencidos"] for m in x_tendencia_c}
+    data_tend_fin_c = {m: conteos_tendencia_c[m]["Finalizados/Cerrados"] for m in x_tendencia_c}
 
     fig_tendencia_c = go.Figure()
     fig_tendencia_c.add_trace(go.Scatter(
-        x=meses_orden_c, 
-        y=[data_tend_abiertos_c[m] for m in meses_orden_c],
-        text=[data_tend_abiertos_c[m] for m in meses_orden_c],
+        x=x_tendencia_c,
+        y=[data_tend_abiertos_c[m] for m in x_tendencia_c],
+        text=[data_tend_abiertos_c[m] for m in x_tendencia_c],
         textposition='top center',
         textfont=dict(size=10, color='white'),
         mode='lines+markers+text',
-        customdata=[[m, 'Abiertos'] for m in meses_orden_c],
+        customdata=[[m, 'Abiertos'] for m in x_tendencia_c],
         name='Abiertos',
         line=dict(color='#F39C12', width=3, shape='spline'),
         marker=dict(size=6)
     ))
     fig_tendencia_c.add_trace(go.Scatter(
-        x=meses_orden_c, 
-        y=[data_tend_vencidos_c[m] for m in meses_orden_c],
-        text=[data_tend_vencidos_c[m] for m in meses_orden_c],
+        x=x_tendencia_c,
+        y=[data_tend_vencidos_c[m] for m in x_tendencia_c],
+        text=[data_tend_vencidos_c[m] for m in x_tendencia_c],
         textposition='top center',
         textfont=dict(size=10, color='white'),
         mode='lines+markers+text',
-        customdata=[[m, 'Vencidos'] for m in meses_orden_c],
+        customdata=[[m, 'Vencidos'] for m in x_tendencia_c],
         name='Vencidos',
         line=dict(color='#FF5E5E', width=3, shape='spline'),
         marker=dict(size=6)
     ))
     fig_tendencia_c.add_trace(go.Scatter(
-        x=meses_orden_c, 
-        y=[data_tend_fin_c[m] for m in meses_orden_c],
-        text=[data_tend_fin_c[m] for m in meses_orden_c],
+        x=x_tendencia_c,
+        y=[data_tend_fin_c[m] for m in x_tendencia_c],
+        text=[data_tend_fin_c[m] for m in x_tendencia_c],
         textposition='top center',
         textfont=dict(size=10, color='white'),
         mode='lines+markers+text',
-        customdata=[[m, 'Finalizados/Cerrados'] for m in meses_orden_c],
+        customdata=[[m, 'Finalizados/Cerrados'] for m in x_tendencia_c],
         name='Finalizados/Cerrados',
         line=dict(color='#2ECC71', width=3, shape='spline'),
         marker=dict(size=6)
     ))
 
+    titulo_anio_c = "Todos los años" if anio_seleccionado_c == "Todos" else anio_seleccionado_c
     fig_tendencia_c.update_layout(
         template='plotly_dark',
-        title=dict(text="📈 Tendencia Mensual de Planes por Estado", font=dict(size=14, color="white")),
+        title=dict(text=f"📈 Tendencia Mensual de Planes por Estado · {titulo_anio_c}", font=dict(size=14, color="white")),
         height=345,
-        margin=dict(l=20, r=20, t=40, b=40),
+        margin=dict(l=20, r=20, t=40, b=65 if anio_seleccionado_c == "Todos" else 40),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center"),
-        xaxis=dict(showgrid=False),
+        legend=dict(orientation="h", y=-0.30 if anio_seleccionado_c == "Todos" else -0.25, x=0.5, xanchor="center"),
+        xaxis=dict(showgrid=False, tickangle=-45 if anio_seleccionado_c == "Todos" else 0),
         yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)'),
         clickmode='event+select'
     )
@@ -4226,6 +4308,12 @@ else:
 
 
                 with col_der_c:
+                    st.selectbox(
+                        "Año de vencimiento / cierre",
+                        options=opciones_anio_c,
+                        key="filtro_anio_tendencia_c",
+                        format_func=lambda valor: "Todos los años" if valor == "Todos" else valor,
+                    )
                     st.session_state.setdefault("_version_grafica_tendencia_c", 0)
                     evento_tendencia_c = st.plotly_chart(
                         fig_tendencia_c,
@@ -4243,7 +4331,7 @@ else:
                             indices_click_c = registros_tendencia_c.get((mes_click_c, estado_click_c), [])
                             st.session_state["filtro_grafica_contraloria"] = {
                                 "tipo": "tendencia",
-                                "etiqueta": f"Tendencia mensual · {mes_click_c} · {estado_click_c}",
+                                "etiqueta": f"Tendencia mensual · {mes_click_c} · {estado_click_c}" + (f" · {anio_seleccionado_c}" if anio_seleccionado_c != "Todos" else ""),
                                 "indices": indices_click_c,
                             }
                             st.session_state["filtro_rapido_contraloria"] = "(Mostrar Todos)"

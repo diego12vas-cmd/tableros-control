@@ -2513,7 +2513,7 @@ if entorno_activo == "Auditoría Interna":
 
         if not df_exploded_ai.empty:
             df_exploded_ai['Estado_Cat'] = df_exploded_ai[col_estado].astype(str).apply(
-                lambda x: 'Vencidos' if 'vencid' in x.lower() else 'Abiertos'
+                lambda x: 'Vencidos' if 'vencid' in str(x).lower() else 'Abiertos'
             )
 
             df_top5_grp = df_exploded_ai.groupby(['Resp_Clean', 'Estado_Cat']).size().reset_index(name='Cantidad')
@@ -3891,7 +3891,7 @@ else:
 
         if not df_exploded_c_top.empty:
             df_exploded_c_top['Estado_Cat'] = df_exploded_c_top[col_estado_c].astype(str).apply(
-                lambda x: 'Vencidos' if 'vencid' in x.lower() else 'Abiertos'
+                lambda x: 'Vencidos' if 'vencid' in str(x).lower() else 'Abiertos'
             )
 
             df_top5_grp_c = df_exploded_c_top.groupby(['Resp_Clean', 'Estado_Cat']).size().reset_index(name='Cantidad')
@@ -5151,5 +5151,6 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
+
 
 

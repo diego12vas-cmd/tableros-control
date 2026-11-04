@@ -2088,6 +2088,55 @@ def generar_excel_formateado_c(df):
     output = io.BytesIO()
     df_export = filtrar_solo_columnas_amarillas_c(df)
 
+    # Agrega al descargable los tres campos de indicador de la matriz
+    # (columnas R, S y T), conservando su relación fila a fila con cada acción.
+    # Se agregan aquí, y no en filtrar_solo_columnas_amarillas_c, para que
+    # la tabla visible del tablero no cambie.
+    columnas_indicador_objetivo = [
+        "NOMBRE INDICADOR",
+        "FORMULA INDICADOR",
+        "VALOR META",
+    ]
+
+    def normalizar_encabezado_exportacion(nombre):
+        return " ".join(str(nombre).strip().casefold().split())
+
+    mapa_columnas_origen = {
+        normalizar_encabezado_exportacion(col): col
+        for col in df.columns
+    }
+    columnas_indicador = [
+        mapa_columnas_origen[normalizar_encabezado_exportacion(nombre)]
+        for nombre in columnas_indicador_objetivo
+        if normalizar_encabezado_exportacion(nombre) in mapa_columnas_origen
+    ]
+
+    # La función de selección conserva todas las filas y su orden.
+    # Se copian los valores por posición para mantener la correspondencia
+    # exacta con el registro/acción incluso si el índice está repetido.
+    for col_indicador in columnas_indicador:
+        if col_indicador not in df_export.columns:
+            df_export[col_indicador] = df[col_indicador].to_numpy(copy=True)
+
+    # Ubica los campos de indicador inmediatamente después de DESCRIPCIÓN ACCIÓN.
+    if columnas_indicador:
+        columnas_exportacion = list(df_export.columns)
+        pos_accion = next(
+            (
+                i + 1
+                for i, nombre in enumerate(columnas_exportacion)
+                if normalizar_encabezado_exportacion(nombre)
+                in {"descripción acción", "descripcion acción", "descripcion accion"}
+            ),
+            len(columnas_exportacion),
+        )
+        columnas_ordenadas = [
+            col for col in columnas_exportacion
+            if col not in columnas_indicador
+        ]
+        columnas_ordenadas[pos_accion:pos_accion] = columnas_indicador
+        df_export = df_export[columnas_ordenadas]
+
     for col in df_export.columns:
         if any(p in str(col).lower() for p in ["fecha", "terminacion", "cierre", "inicio", "vencimiento"]):
             def formatear_fecha_limpia(val):
@@ -5261,7 +5310,6 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
-
 
 
 

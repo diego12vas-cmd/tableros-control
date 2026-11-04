@@ -2011,6 +2011,9 @@ def filtrar_solo_columnas_amarillas_c(df):
         "CODIGO ACCION",
         "DESCRIPCIÓN HALLAZGO",
         "DESCRIPCIÓN ACCIÓN",
+        "NOMBRE INDICADOR",
+        "FORMULA INDICADOR",
+        "VALOR META",
         "AREA RESPONSABLE",
         "FECHA DE INICIO",
         "FECHA DE TERMINACIÓN",
@@ -2088,10 +2091,9 @@ def generar_excel_formateado_c(df):
     output = io.BytesIO()
     df_export = filtrar_solo_columnas_amarillas_c(df)
 
-    # Agrega al descargable los tres campos de indicador de la matriz
+    # Mantiene en el descargable los tres campos de indicador de la matriz
     # (columnas R, S y T), conservando su relación fila a fila con cada acción.
-    # Se agregan aquí, y no en filtrar_solo_columnas_amarillas_c, para que
-    # la tabla visible del tablero no cambie.
+    # Estos campos también se muestran en la tabla visible de Contraloría.
     columnas_indicador_objetivo = [
         "NOMBRE INDICADOR",
         "FORMULA INDICADOR",
@@ -5310,6 +5312,5 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
-
 
 

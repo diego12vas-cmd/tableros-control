@@ -10,6 +10,7 @@ import io
 import os
 import re
 import json
+import zipfile
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -2007,6 +2008,12 @@ def filtrar_solo_columnas_amarillas_ai(df):
         if col_m and col_m in df.columns and col_m not in cols_finales:
             cols_finales.append(col_m)
 
+    # Incluye dinámicamente todas las columnas de seguimiento (incluidas las
+    # nuevas columnas verdes y las que se agreguen para meses posteriores).
+    for c_df in df.columns:
+        if str(c_df).strip().casefold().startswith("seguimiento") and c_df not in cols_finales:
+            cols_finales.append(c_df)
+
     return df[cols_finales].copy() if cols_finales else df.copy()
 
 def filtrar_solo_columnas_amarillas_c(df):
@@ -2060,6 +2067,12 @@ def filtrar_solo_columnas_amarillas_c(df):
 
         if col_m and col_m in df.columns and col_m not in cols_finales:
             cols_finales.append(col_m)
+
+    # Incluye dinámicamente todas las columnas de seguimiento (incluidas las
+    # nuevas columnas verdes y las que se agreguen para meses posteriores).
+    for c_df in df.columns:
+        if str(c_df).strip().casefold().startswith("seguimiento") and c_df not in cols_finales:
+            cols_finales.append(c_df)
 
     return df[cols_finales].copy() if cols_finales else df.copy()
 
@@ -2183,6 +2196,48 @@ def generar_excel_formateado_c(df):
         worksheet.hide_gridlines(2)
     return output.getvalue()
 
+
+def abrir_excel_ai_compatible(ruta):
+    """
+    Abre el libro de Auditoría Interna. Si contiene metadatos de tablas
+    dinámicas incompatibles con openpyxl, lee una copia en memoria sin esos
+    metadatos. El archivo Excel original nunca se modifica.
+    """
+    try:
+        return pd.ExcelFile(ruta)
+    except Exception:
+        buffer_limpio = io.BytesIO()
+        with zipfile.ZipFile(ruta, "r") as origen, zipfile.ZipFile(buffer_limpio, "w", zipfile.ZIP_DEFLATED) as destino:
+            for item in origen.infolist():
+                nombre = item.filename
+                if nombre.startswith("xl/pivotTables/") or nombre.startswith("xl/pivotCache/"):
+                    continue
+                contenido = origen.read(nombre)
+                if nombre.startswith("xl/worksheets/_rels/") and "sheet" in nombre:
+                    texto = contenido.decode("utf-8")
+                    texto = re.sub(r'<Relationship[^>]*pivotTable[^>]*/>', '', texto)
+                    contenido = texto.encode("utf-8")
+                elif nombre.startswith("xl/worksheets/sheet") and nombre.endswith(".xml"):
+                    texto = contenido.decode("utf-8")
+                    texto = re.sub(r'<pivotTableParts[^>]*>.*?</pivotTableParts>', '', texto)
+                    contenido = texto.encode("utf-8")
+                elif nombre == "xl/workbook.xml":
+                    texto = contenido.decode("utf-8")
+                    texto = re.sub(r'<pivotCaches>.*?</pivotCaches>', '', texto)
+                    contenido = texto.encode("utf-8")
+                elif nombre == "xl/_rels/workbook.xml.rels":
+                    texto = contenido.decode("utf-8")
+                    texto = re.sub(r'<Relationship[^>]*pivotCacheDefinition[^>]*/>', '', texto)
+                    contenido = texto.encode("utf-8")
+                elif nombre == "[Content_Types].xml":
+                    texto = contenido.decode("utf-8")
+                    texto = re.sub(r'<Override[^>]*pivot(Cache|Table)[^>]*/>', '', texto)
+                    contenido = texto.encode("utf-8")
+                destino.writestr(item, contenido)
+        buffer_limpio.seek(0)
+        return pd.ExcelFile(buffer_limpio, engine="openpyxl")
+
+
 # =========================================================
 # VISTA 1: AUDITORÍA INTERNA
 # =========================================================
@@ -2193,7 +2248,7 @@ if entorno_activo == "Auditoría Interna":
             return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
         try:
-            xls = pd.ExcelFile(EXCEL_PATH_AI)
+            xls = abrir_excel_ai_compatible(EXCEL_PATH_AI)
             sheet_b = "Base de datos" if "Base de datos" in xls.sheet_names else ("Base de Datos" if "Base de Datos" in xls.sheet_names else xls.sheet_names[0])
             df_base = pd.read_excel(xls, sheet_name=sheet_b)
             df_base.columns = [str(c).strip() for c in df_base.columns]

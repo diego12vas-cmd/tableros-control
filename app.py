@@ -1976,7 +1976,13 @@ def filtrar_solo_columnas_amarillas_ai(df):
         "Alerta 10 días",
         "Alerta 20 días",
         "Alerta 30 días",
-        "Alerta 5 días"
+        "Alerta 5 días",
+        "Seguimiento Nov-2026",
+        "Seguimiento Dic-2026",
+        "Seguimiento Ene-2027",
+        "Seguimiento Feb-2027",
+        "Seguimiento Mar-2027",
+        "Seguimiento abr-2027"
     ]
 
     cols_finales = []
@@ -2022,7 +2028,13 @@ def filtrar_solo_columnas_amarillas_c(df):
         "Alerta 10",
         "Alerta 20",
         "Alerta 30",
-        "Alerta 5"
+        "Alerta 5",
+        "Seguimiento Nov-2026",
+        "Seguimiento Dic-2026",
+        "Seguimiento Ene-2027",
+        "Seguimiento Feb-2027",
+        "Seguimiento Mar-2027",
+        "Seguimiento abr-2027"
     ]
 
     cols_finales = []

@@ -1132,6 +1132,10 @@ st.markdown(
             padding:0 !important;
             line-height:1.2 !important;
         }
+        .kpi-alert-section-title-ai {
+            margin-top:-5px !important;
+            margin-bottom:4px !important;
+        }
         .kpi-alert-heading {
             font-size:11px !important;
             font-weight:800 !important;
@@ -2839,7 +2843,7 @@ if entorno_activo == "Auditoría Interna":
             fig_top5.update_layout(
                 template='plotly_dark',
                 height=320,
-                margin=dict(l=20, r=20, t=30, b=10),
+                margin=dict(l=20, r=20, t=18, b=10),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
                 yaxis=dict(type='category', autorange='reversed', title=None),
@@ -3047,7 +3051,7 @@ if entorno_activo == "Auditoría Interna":
                     val_10 = obtener_valor_alerta(col_a10)
                     val_20 = obtener_valor_alerta(col_a20)
                     val_30 = obtener_valor_alerta(col_a30)
-                    st.markdown('<div class="kpi-alert-section-title">⏳ Acciones próximas a vencer</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="kpi-alert-section-title kpi-alert-section-title-ai">⏳ Acciones próximas a vencer</div>', unsafe_allow_html=True)
                     a1, a2 = st.columns(2, gap="small")
                     with a1:
                         with st.container(key="card-ai-alert-5"):
@@ -3108,7 +3112,7 @@ if entorno_activo == "Auditoría Interna":
                             st.session_state["_version_grafica_tendencia_ai"] += 1
                             st.rerun()
 
-                    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+                    st.markdown("<div style='height:2px;'></div>", unsafe_allow_html=True)
                     
                     if fig_top5 is not None:
                         st.session_state.setdefault("_version_grafica_top5_ai", 0)

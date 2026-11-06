@@ -1156,9 +1156,19 @@ st.markdown(
         /* En Auditoría Interna, las tarjetas superiores quedan alineadas. */
         .st-key-card-ai-risk,
         .st-key-card-ai-state {
-            height:250px !important;
-            min-height:250px !important;
-            max-height:250px !important;
+            height:205px !important;
+            min-height:205px !important;
+            max-height:205px !important;
+            padding:10px 12px 8px !important;
+            margin-bottom:6px !important;
+        }
+        .st-key-card-ai-risk [data-testid="stVerticalBlock"],
+        .st-key-card-ai-state [data-testid="stVerticalBlock"] {
+            gap:4px !important;
+        }
+        .st-key-card-ai-risk [data-testid="stButton"],
+        .st-key-card-ai-state [data-testid="stButton"] {
+            margin-bottom:0 !important;
         }
         .st-key-card-ai-risk { border-top:3px solid #3B82F6 !important; }
         .st-key-card-ai-state, .st-key-card-c-state { border-top:3px solid #EF4444 !important; }
@@ -1179,10 +1189,11 @@ st.markdown(
         /* Auditoría Interna: cumplimiento y análisis con idénticas dimensiones. */
         .st-key-card-ai-compliance,
         .st-key-card-ai-analysis {
-            height:250px !important;
-            min-height:250px !important;
-            max-height:250px !important;
-            padding:12px 13px 10px !important;
+            height:210px !important;
+            min-height:210px !important;
+            max-height:210px !important;
+            padding:10px 12px 8px !important;
+            margin-bottom:6px !important;
             box-sizing:border-box !important;
         }
         .st-key-card-ai-compliance [data-testid="stVerticalBlock"],
@@ -1192,7 +1203,17 @@ st.markdown(
             display:flex !important;
             flex-direction:column !important;
             justify-content:flex-start !important;
-            gap:5px !important;
+            gap:3px !important;
+        }
+        .st-key-card-ai-compliance [data-testid="stButton"],
+        .st-key-card-ai-analysis [data-testid="stButton"] {
+            margin-top:0 !important;
+            margin-bottom:0 !important;
+        }
+        .st-key-card-ai-compliance [data-testid="stHorizontalBlock"],
+        .st-key-card-ai-analysis [data-testid="stHorizontalBlock"] {
+            gap:8px !important;
+            align-items:center !important;
         }
         /* Centra verticalmente el contenido y reparte mejor el espacio interior. */
         .st-key-card-ai-compliance .kpi-card-heading,
@@ -1216,9 +1237,9 @@ st.markdown(
             padding-top:6px !important;
         }
         .st-key-card-ai-compliance .kpi-completion-label {
-            min-height:38px !important;
-            height:38px !important;
-            margin-bottom:2px !important;
+            min-height:34px !important;
+            height:34px !important;
+            margin-bottom:1px !important;
             font-size:12px !important;
             line-height:1.2 !important;
             padding:0 5px !important;
@@ -5505,6 +5526,5 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
-
 
 

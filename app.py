@@ -2650,14 +2650,17 @@ if entorno_activo == "Auditoría Interna":
 
     for idx_registro, r in df_eval_tend.iterrows():
         st_val = str(r[col_estado] if col_estado in r else "").strip().lower()
-        es_finalizado = any(term in st_val for term in ["finaliz", "cerrad"])
-        es_vencido = "vencid" in st_val
+        estado_normalizado_tend = re.sub(r"\\s+", " ", st_val).strip()
+        es_extemporanea_tend = estado_normalizado_tend in ["finalizada extemporánea", "finalizada extemporanea"]
+        es_oportuna_tend = estado_normalizado_tend == "finalizada"
+        es_finalizado = es_extemporanea_tend or es_oportuna_tend
+        es_vencido = estado_normalizado_tend == "vencida"
 
-        # Para planes finalizados se usa la fecha real de cierre de Auditoría.
-        # Para abiertos/vencidos se usa la fecha prevista de terminación.
+        # Finalizadas oportunamente/extemporáneas: fecha real de cierre.
+        # Abiertas/vencidas: fecha prevista de terminación.
         if es_finalizado:
             valor_fecha = r[col_fecha_cierre_aud] if col_fecha_cierre_aud and col_fecha_cierre_aud in r else None
-            estado_tendencia = "Finalizados/Cerrados"
+            estado_tendencia = "Finalizadas extemporáneas" if es_extemporanea_tend else "Finalizadas oportunamente"
         else:
             valor_fecha = r[col_fecha_cierre] if col_fecha_cierre and col_fecha_cierre in r else None
             estado_tendencia = "Vencidos" if es_vencido else "Abiertos"
@@ -2695,7 +2698,12 @@ if entorno_activo == "Auditoría Interna":
         etiquetas_tendencia_ai = meses_orden.copy()
 
     conteos_tendencia_ai = {
-        etiqueta: {"Abiertos": 0, "Vencidos": 0, "Finalizados/Cerrados": 0}
+        etiqueta: {
+            "Abiertos": 0,
+            "Vencidos": 0,
+            "Finalizadas oportunamente": 0,
+            "Finalizadas extemporáneas": 0,
+        }
         for etiqueta in etiquetas_tendencia_ai
     }
     registros_tendencia_ai = {}
@@ -2715,7 +2723,8 @@ if entorno_activo == "Auditoría Interna":
     x_tendencia_ai = etiquetas_tendencia_ai
     data_tend_abiertos = {m: conteos_tendencia_ai[m]["Abiertos"] for m in x_tendencia_ai}
     data_tend_vencidos = {m: conteos_tendencia_ai[m]["Vencidos"] for m in x_tendencia_ai}
-    data_tend_fin = {m: conteos_tendencia_ai[m]["Finalizados/Cerrados"] for m in x_tendencia_ai}
+    data_tend_fin_oportunas = {m: conteos_tendencia_ai[m]["Finalizadas oportunamente"] for m in x_tendencia_ai}
+    data_tend_fin_ext = {m: conteos_tendencia_ai[m]["Finalizadas extemporáneas"] for m in x_tendencia_ai}
 
     fig_tendencia = go.Figure()
     fig_tendencia.add_trace(go.Scatter(
@@ -2744,14 +2753,26 @@ if entorno_activo == "Auditoría Interna":
     ))
     fig_tendencia.add_trace(go.Scatter(
         x=x_tendencia_ai,
-        y=[data_tend_fin[m] for m in x_tendencia_ai],
-        text=[data_tend_fin[m] for m in x_tendencia_ai],
+        y=[data_tend_fin_oportunas[m] for m in x_tendencia_ai],
+        text=[data_tend_fin_oportunas[m] for m in x_tendencia_ai],
         textposition='top center',
         textfont=dict(size=10, color='white'),
         mode='lines+markers+text',
-        customdata=[[m, 'Finalizados/Cerrados'] for m in x_tendencia_ai],
-        name='Finalizados/Cerrados',
+        customdata=[[m, 'Estado: Finalizadas oportunamente'] for m in x_tendencia_ai],
+        name='Finalizadas oportunamente',
         line=dict(color='#2ECC71', width=3, shape='spline'),
+        marker=dict(size=6)
+    ))
+    fig_tendencia.add_trace(go.Scatter(
+        x=x_tendencia_ai,
+        y=[data_tend_fin_ext[m] for m in x_tendencia_ai],
+        text=[data_tend_fin_ext[m] for m in x_tendencia_ai],
+        textposition='top center',
+        textfont=dict(size=10, color='white'),
+        mode='lines+markers+text',
+        customdata=[[m, 'Estado: Finalizadas extemporáneas'] for m in x_tendencia_ai],
+        name='Finalizadas extemporáneas',
+        line=dict(color='#F1C40F', width=3, shape='spline'),
         marker=dict(size=6)
     ))
 
@@ -2967,16 +2988,18 @@ if entorno_activo == "Auditoría Interna":
                             st.markdown(f'<div class="kpi-card-footnote">{fin_ai_cnt} cerrados de {total_hist_ai}</div>', unsafe_allow_html=True)
                             fin1, fin2 = st.columns(2, gap="small")
                             with fin1:
+                                st.markdown('<div style="color:#34D399;text-align:center;font-size:12px;font-weight:800;line-height:1.25;min-height:32px;">Finalizadas<br>oportunamente</div>', unsafe_allow_html=True)
                                 st.button(
-                                    f"Finalizadas oportunamente  ·  {finalizadas_oportunas_ai}",
+                                    f"{finalizadas_oportunas_ai}",
                                     key="kpi_ai_finalizadas_oportunas",
                                     use_container_width=True,
                                     on_click=seleccionar_filtro_tarjeta,
                                     args=("filtro_rapido_ai", "Estado: Finalizadas oportunamente"),
                                 )
                             with fin2:
+                                st.markdown('<div style="color:#FBBF24;text-align:center;font-size:12px;font-weight:800;line-height:1.25;min-height:32px;">Finalizadas<br>extemporáneas</div>', unsafe_allow_html=True)
                                 st.button(
-                                    f"Finalizadas extemporáneas  ·  {finalizadas_extemporaneas_ai}",
+                                    f"{finalizadas_extemporaneas_ai}",
                                     key="kpi_ai_finalizadas_extemporaneas",
                                     use_container_width=True,
                                     on_click=seleccionar_filtro_tarjeta,

@@ -1306,12 +1306,28 @@ st.markdown(
         .st-key-kpi_ai_estado_vencidos button { background:rgba(239,68,68,.18)!important; color:#F87171!important; }
         .st-key-kpi_ai_estado_finalizadas_oportunas button { background:rgba(16,185,129,.16)!important; color:#34D399!important; }
         .st-key-kpi_ai_estado_finalizadas_ext button { background:rgba(245,158,11,.18)!important; color:#FBBF24!important; }
+        .kpi-completion-label {
+            min-height:34px !important;
+            display:flex !important;
+            align-items:center !important;
+            justify-content:center !important;
+            text-align:center !important;
+            white-space:normal !important;
+            overflow-wrap:anywhere !important;
+            font-size:10px !important;
+            line-height:1.15 !important;
+            font-weight:800 !important;
+            padding:0 3px !important;
+        }
+        .kpi-completion-green { color:#34D399 !important; }
+        .kpi-completion-yellow { color:#FBBF24 !important; }
         .st-key-kpi_ai_estado_finalizadas_oportunas button p,
         .st-key-kpi_ai_estado_finalizadas_ext button p {
-            font-size:10px !important;
-            white-space:normal !important;
+            font-size:15px !important;
+            white-space:nowrap !important;
             line-height:1.05 !important;
             text-align:center !important;
+            font-weight:800 !important;
         }
         .st-key-kpi_ai_estado_sin_definir button { background:rgba(148,163,184,.16)!important; color:#CBD5E1!important; }
         .st-key-kpi_ai_riesgo_alto button p, .st-key-kpi_ai_riesgo_medio button p,
@@ -2515,7 +2531,13 @@ if entorno_activo == "Auditoría Interna":
     else:
         df_raw_ai_estado = df_raw.copy()
     total_hist_ai = len(df_raw_ai_estado)
-    fin_ai_cnt = df_raw_ai_estado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado else 0
+    estado_historico_ai = (
+        df_raw_ai_estado[col_estado].fillna("").astype(str).str.strip().str.casefold()
+        if col_estado else pd.Series("", index=df_raw_ai_estado.index)
+    )
+    finalizadas_oportunas_ai = int((estado_historico_ai == "finalizada").sum())
+    finalizadas_ext_ai = int((estado_historico_ai == "finalizada extemporánea").sum())
+    fin_ai_cnt = finalizadas_oportunas_ai + finalizadas_ext_ai
     pct_cumplimiento_ai = int(round((fin_ai_cnt / total_hist_ai) * 100)) if total_hist_ai > 0 else 0
 
     hoy_dt = pd.to_datetime(date.today())
@@ -2555,6 +2577,8 @@ if entorno_activo == "Auditoría Interna":
         # Para abiertos/vencidos se usa la fecha prevista de terminación.
         if es_finalizado:
             valor_fecha = r[col_fecha_cierre_aud] if col_fecha_cierre_aud and col_fecha_cierre_aud in r else None
+            if pd.isna(_fecha_tendencia_ai(valor_fecha)) and col_fecha_cierre and col_fecha_cierre in r:
+                valor_fecha = r[col_fecha_cierre]
             estado_tendencia = "Finalizadas extemporáneas" if es_extemporaneo else "Finalizadas oportunamente"
         else:
             valor_fecha = r[col_fecha_cierre] if col_fecha_cierre and col_fecha_cierre in r else None
@@ -2576,21 +2600,6 @@ if entorno_activo == "Auditoría Interna":
     if anio_seleccionado_ai not in opciones_anio_ai:
         anio_seleccionado_ai = anio_inicial_ai
     st.session_state["filtro_anio_tendencia_ai"] = anio_seleccionado_ai
-
-    # Las cifras de las tarjetas de finalización usan exactamente la misma
-    # población, fecha de cierre y año que la gráfica de tendencia.
-    filas_tendencia_ai_anio = [
-        fila for fila in filas_tendencia_ai
-        if anio_seleccionado_ai == "Todos" or fila["periodo"].year == int(anio_seleccionado_ai)
-    ]
-    finalizadas_ext_ai = sum(
-        1 for fila in filas_tendencia_ai_anio
-        if fila["estado"] == "Finalizadas extemporáneas"
-    )
-    finalizadas_oportunas_ai = sum(
-        1 for fila in filas_tendencia_ai_anio
-        if fila["estado"] == "Finalizadas oportunamente"
-    )
 
     if anio_seleccionado_ai == "Todos":
         if filas_tendencia_ai:
@@ -2891,16 +2900,24 @@ if entorno_activo == "Auditoría Interna":
                             st.markdown(f'<div class="kpi-card-footnote">{fin_ai_cnt} cerrados de {total_hist_ai}</div>', unsafe_allow_html=True)
                             p_fin_oport, p_fin_ext = st.columns(2, gap="small")
                             with p_fin_oport:
+                                st.markdown(
+                                    '<div class="kpi-completion-label kpi-completion-green">Finalizadas oportunamente</div>',
+                                    unsafe_allow_html=True,
+                                )
                                 st.button(
-                                    f"{finalizadas_oportunas_ai} Oportunas",
+                                    f"{finalizadas_oportunas_ai}",
                                     key="kpi_ai_estado_finalizadas_oportunas",
                                     use_container_width=True,
                                     on_click=seleccionar_filtro_tarjeta,
                                     args=("filtro_rapido_ai", "Estado: Finalizadas oportunamente"),
                                 )
                             with p_fin_ext:
+                                st.markdown(
+                                    '<div class="kpi-completion-label kpi-completion-yellow">Finalizadas extemporáneamente</div>',
+                                    unsafe_allow_html=True,
+                                )
                                 st.button(
-                                    f"{finalizadas_ext_ai} Extemporáneas",
+                                    f"{finalizadas_ext_ai}",
                                     key="kpi_ai_estado_finalizadas_ext",
                                     use_container_width=True,
                                     on_click=seleccionar_filtro_tarjeta,
@@ -5415,5 +5432,6 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
+
 
 

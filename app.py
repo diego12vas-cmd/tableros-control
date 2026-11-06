@@ -2645,7 +2645,16 @@ if entorno_activo == "Auditoría Interna":
     def _fecha_tendencia_ai(valor):
         dt = parsear_fecha_estricta(valor)
         if pd.isna(dt) and pd.notna(valor) and str(valor).strip():
-            dt = pd.to_datetime(valor, errors="coerce", dayfirst=True)
+            texto_fecha = str(valor).strip()
+            dt = pd.to_datetime(texto_fecha, errors="coerce", dayfirst=True)
+            # Recupera errores de digitación como 04/110/2026 (04/11/2026).
+            if pd.isna(dt):
+                coincidencia = re.fullmatch(r"(\\d{1,2})[/-](\\d{3})[/-](\\d{4})", texto_fecha)
+                if coincidencia:
+                    dia, mes_tres_digitos, anio = coincidencia.groups()
+                    mes = mes_tres_digitos[:2]
+                    if 1 <= int(mes) <= 12:
+                        dt = pd.to_datetime(f"{dia}/{mes}/{anio}", errors="coerce", dayfirst=True)
         return dt
 
     for idx_registro, r in df_eval_tend.iterrows():
@@ -2988,7 +2997,7 @@ if entorno_activo == "Auditoría Interna":
                             st.markdown(f'<div class="kpi-card-footnote">{fin_ai_cnt} cerrados de {total_hist_ai}</div>', unsafe_allow_html=True)
                             fin1, fin2 = st.columns(2, gap="small")
                             with fin1:
-                                st.markdown('<div style="color:#34D399;text-align:center;font-size:12px;font-weight:800;line-height:1.2;min-height:34px;height:34px;display:flex;align-items:center;justify-content:center;">Finalizadas<br>oportunamente</div>', unsafe_allow_html=True)
+                                st.markdown('<div style="color:#34D399;text-align:center;font-size:12px;font-weight:800;line-height:1.25;min-height:36px;height:36px;margin-bottom:7px;display:flex;align-items:center;justify-content:center;">Finalizadas<br>oportunamente</div>', unsafe_allow_html=True)
                                 st.button(
                                     f"{finalizadas_oportunas_ai}",
                                     key="kpi_ai_finalizadas_oportunas",
@@ -2997,7 +3006,7 @@ if entorno_activo == "Auditoría Interna":
                                     args=("filtro_rapido_ai", "Estado: Finalizadas oportunamente"),
                                 )
                             with fin2:
-                                st.markdown('<div style="color:#FBBF24;text-align:center;font-size:12px;font-weight:800;line-height:1.2;min-height:34px;height:34px;display:flex;align-items:center;justify-content:center;">Finalizadas<br>extemporáneas</div>', unsafe_allow_html=True)
+                                st.markdown('<div style="color:#FBBF24;text-align:center;font-size:12px;font-weight:800;line-height:1.25;min-height:36px;height:36px;margin-bottom:7px;display:flex;align-items:center;justify-content:center;">Finalizadas<br>extemporáneas</div>', unsafe_allow_html=True)
                                 st.button(
                                     f"{finalizadas_extemporaneas_ai}",
                                     key="kpi_ai_finalizadas_extemporaneas",

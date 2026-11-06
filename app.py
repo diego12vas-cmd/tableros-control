@@ -1197,15 +1197,20 @@ st.markdown(
             padding-top:6px !important;
         }
         .st-key-card-ai-compliance .kpi-completion-label {
-            min-height:34px !important;
-            height:34px !important;
+            min-height:40px !important;
+            height:40px !important;
+            margin-bottom:7px !important;
             font-size:12px !important;
-            line-height:1.12 !important;
-            padding:0 2px !important;
+            line-height:1.2 !important;
+            padding:0 5px !important;
             white-space:normal !important;
             overflow-wrap:normal !important;
             word-break:normal !important;
             hyphens:none !important;
+            flex-shrink:0 !important;
+        }
+        .st-key-card-ai-compliance [data-testid="stHorizontalBlock"] {
+            gap:12px !important;
         }
         .st-key-card-ai-compliance .st-key-kpi_ai_estado_finalizadas_oportunas button,
         .st-key-card-ai-compliance .st-key-kpi_ai_estado_finalizadas_ext button {
@@ -2961,7 +2966,7 @@ if entorno_activo == "Auditoría Interna":
                                 )
                             with p_fin_ext:
                                 st.markdown(
-                                    '<div class="kpi-completion-label kpi-completion-yellow">Finalizadas<br>extemporáneamente</div>',
+                                    '<div class="kpi-completion-label kpi-completion-yellow">Finalizadas<br>extemporáneas</div>',
                                     unsafe_allow_html=True,
                                 )
                                 st.button(

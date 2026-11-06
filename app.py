@@ -2503,11 +2503,14 @@ if entorno_activo == "Auditoría Interna":
     df_filtrado = df_raw.copy()
 
     if col_estado:
-        estados_vals = sorted([e for e in df_raw[col_estado].dropna().unique() if str(e).lower() not in ["nan", "none", ""] and not re.search(r"finaliz|cerrad", str(e), re.IGNORECASE)])
+        estados_validos_ai = ["Abierta", "Finalizada", "Finalizada Extemporánea", "Vencida"]
+        normalizar_estado_ai = lambda valor: re.sub(r"\\s+", " ", str(valor).strip()).casefold()
+        estados_vals = [e for e in estados_validos_ai if df_raw[col_estado].fillna("").astype(str).map(normalizar_estado_ai).eq(normalizar_estado_ai(e)).any()]
         with st.sidebar.expander("📌 Estado del compromiso", expanded=False):
             estado_sel = multiseleccion_con_nombres_completos("Seleccione Estados", estados_vals, key="multi_estado")
         if estado_sel:
-            df_filtrado = df_filtrado[df_filtrado[col_estado].isin(estado_sel)]
+            seleccion_norm_ai = {normalizar_estado_ai(e) for e in estado_sel}
+            df_filtrado = df_filtrado[df_filtrado[col_estado].fillna("").astype(str).map(normalizar_estado_ai).isin(seleccion_norm_ai)]
 
     if col_responsable:
         resp_unicos_set = set()
@@ -2569,11 +2572,14 @@ if entorno_activo == "Auditoría Interna":
         if auditoria_sel:
             df_filtrado = df_filtrado[df_filtrado[col_auditoria].isin(auditoria_sel)]
 
-    abiertos = df_filtrado[col_estado].astype(str).str.contains("Abiert", case=False, na=False).sum() if col_estado else 0
-    vencidos = df_filtrado[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
-    sin_plan = df_filtrado[col_estado].astype(str).str.contains("Sin plan|Sin defin", case=False, na=False).sum() if col_estado else 0
-
-    df_activos = df_filtrado[~df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else df_filtrado.copy()
+    estados_validos_ai_norm = {"abierta", "finalizada", "finalizada extemporánea", "finalizada extemporanea", "vencida"}
+    estado_filtrado_ai_norm = df_filtrado[col_estado].fillna("").astype(str).map(normalizar_estado_ai) if col_estado else pd.Series("", index=df_filtrado.index)
+    df_filtrado = df_filtrado[estado_filtrado_ai_norm.isin(estados_validos_ai_norm)].copy()
+    estado_filtrado_ai_norm = df_filtrado[col_estado].fillna("").astype(str).map(normalizar_estado_ai) if col_estado else pd.Series("", index=df_filtrado.index)
+    abiertos = int((estado_filtrado_ai_norm == "abierta").sum()) if col_estado else 0
+    vencidos = int((estado_filtrado_ai_norm == "vencida").sum()) if col_estado else 0
+    sin_plan = 0
+    df_activos = df_filtrado[estado_filtrado_ai_norm.isin(["abierta", "vencida"])].copy() if col_estado else df_filtrado.copy()
 
     total_hallazgos_unicos_pendientes = df_activos[col_hallazgo].dropna().nunique() if col_hallazgo and col_hallazgo in df_activos.columns else len(df_activos)
     total_planes_pendientes = abiertos + vencidos + sin_plan
@@ -2784,7 +2790,7 @@ if entorno_activo == "Auditoría Interna":
         fig_top5 = None
 
     df_perf = df_filtrado.copy()
-    df_perf["Estado_Normalizado"] = df_perf[col_estado].fillna("").astype(str).str.strip().apply(lambda x: "Abierta" if "abiert" in x.lower() else ("Vencida" if "vencid" in x.lower() else ("Sin plan de acción" if "sin" in x.lower() else x))) if col_estado in df_perf.columns else ""
+    df_perf["Estado_Normalizado"] = df_perf[col_estado].fillna("").astype(str).str.strip().apply(lambda x: "Abierta" if "abiert" in x.lower() else ("Vencida" if "vencid" in x.lower() else ("Finalizada Extemporánea" if "extempor" in x.lower() else x))) if col_estado in df_perf.columns else ""
 
     fig_area_horiz, total_acciones_area = None, 0
     if col_responsable in df_perf.columns:
@@ -2800,7 +2806,7 @@ if entorno_activo == "Auditoría Interna":
             df_area_grouped[col_responsable] = pd.Categorical(df_area_grouped[col_responsable], categories=df_totales_area[col_responsable], ordered=True)
             df_area_grouped["Texto_Etiqueta"] = df_area_grouped["Cantidad"].apply(lambda x: f"<b>{x}</b>" if x > 1 else "")
 
-            fig_area_horiz = px.bar(df_area_grouped, y=col_responsable, x="Cantidad", color="Estado_Normalizado", text="Texto_Etiqueta", orientation="h", barmode="stack", color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Sin plan de acción": "#F8A583"})
+            fig_area_horiz = px.bar(df_area_grouped, y=col_responsable, x="Cantidad", color="Estado_Normalizado", text="Texto_Etiqueta", orientation="h", barmode="stack", color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada Extemporánea": "#F1C40F"})
             fig_area_horiz.update_traces(textposition="inside", insidetextanchor="middle", textfont=dict(size=12, color="white", family="Arial Black"), cliponaxis=False)
 
             for _, row in df_totales_area.iterrows():
@@ -2817,7 +2823,7 @@ if entorno_activo == "Auditoría Interna":
             df_aud_grouped[col_auditoria] = pd.Categorical(df_aud_grouped[col_auditoria], categories=df_totales_aud[col_auditoria], ordered=True)
             df_aud_grouped["Texto_Etiqueta"] = df_aud_grouped["Cantidad"].apply(lambda x: f"<b>{x}</b>" if x > 1 else "")
 
-            fig_aud_horiz = px.bar(df_aud_grouped, y=col_auditoria, x="Cantidad", color="Estado_Normalizado", text="Texto_Etiqueta", orientation="h", barmode="stack", color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Sin plan de acción": "#F8A583"})
+            fig_aud_horiz = px.bar(df_aud_grouped, y=col_auditoria, x="Cantidad", color="Estado_Normalizado", text="Texto_Etiqueta", orientation="h", barmode="stack", color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada Extemporánea": "#F1C40F"})
             fig_aud_horiz.update_traces(textposition="inside", insidetextanchor="middle", textfont=dict(size=12, color="white", family="Arial Black"), cliponaxis=False)
 
             for _, row in df_totales_aud.iterrows():
@@ -2863,7 +2869,6 @@ if entorno_activo == "Auditoría Interna":
                         "Riesgo: Bajo",
                         "Estado: Abiertos",
                         "Estado: Vencidos",
-                        "Estado: Sin definir",
                         "Estado: Finalizados/Cerrados",
                     ]
                     if col_a5:
@@ -2917,9 +2922,7 @@ if entorno_activo == "Auditoría Interna":
                                 st.button(f"{vencidos} Vencidos", key="kpi_ai_estado_vencidos", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Vencidos"))
                             _, p3, _ = st.columns([1, 2, 1], gap="small")
                             with p3:
-                                st.button(f"{sin_plan} Sin definir", key="kpi_ai_estado_sin_definir", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Sin definir"))
-
-                    k3, k4 = st.columns(2, gap="small")
+                                k3, k4 = st.columns(2, gap="small")
                     with k3:
                         with st.container(key="card-ai-compliance"):
                             st.markdown('<div class="kpi-card-heading">Cumplimiento global</div>', unsafe_allow_html=True)
@@ -3342,7 +3345,7 @@ if entorno_activo == "Auditoría Interna":
                                 fig_hist_stack = px.bar(
                                     df_hist_grouped, x="Vigencia_Limpia", y="Cantidad", color=col_estado,
                                     title="Distribución de Estados por Vigencia", barmode="stack",
-                                    color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Sin plan de acción": "#F8A583"}
+                                    color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Finalizada Extemporánea": "#F1C40F"}
                                 )
                                 
                                 df_totales_por_vigencia = df_hist_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
@@ -3421,7 +3424,7 @@ if entorno_activo == "Auditoría Interna":
                                 fig_hist_hall_stack = px.bar(
                                     df_hall_st_grouped, x="Vigencia_Limpia", y="Cantidad", color=col_estado,
                                     title="Distribución de Estados por Vigencia (Hallazgos Únicos)", barmode="stack",
-                                    color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Sin plan de acción": "#F8A583"}
+                                    color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Finalizada Extemporánea": "#F1C40F"}
                                 )
 
                                 df_totales_hall_vig = df_hall_st_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
@@ -3588,10 +3591,17 @@ if entorno_activo == "Auditoría Interna":
                         col_f1, col_f2 = st.columns(2)
                         with col_f1:
                             nueva_fecha_cierre = st.date_input("Nueva Fecha de Cierre / Compromiso:", value=fecha_def_obj, key=f"in_fecha_{idx_exacto_raw}")
-                            lista_estados = ["Abierta", "Vencida", "Finalizada", "Sin plan de acción"]
-                            if est_actual_val and est_actual_val not in lista_estados:
-                                lista_estados.append(est_actual_val)
-                            idx_est_def = lista_estados.index(est_actual_val) if est_actual_val in lista_estados else 0
+                            lista_estados = ["Abierta", "Finalizada", "Finalizada Extemporánea", "Vencida"]
+                            estado_actual_norm_ai = normalizar_estado_ai(est_actual_val)
+                            equivalencias_ai = {
+                                "abierta": "Abierta",
+                                "finalizada": "Finalizada",
+                                "finalizada extemporánea": "Finalizada Extemporánea",
+                                "finalizada extemporanea": "Finalizada Extemporánea",
+                                "vencida": "Vencida",
+                            }
+                            est_actual_val = equivalencias_ai.get(estado_actual_norm_ai, "Abierta")
+                            idx_est_def = lista_estados.index(est_actual_val)
                             nuevo_estado = st.selectbox("Estado del Compromiso (Editable):", options=lista_estados, index=idx_est_def, key=f"in_estado_{idx_exacto_raw}")
                             nuevo_responsable = st.text_input("Responsable Asignado (Editable):", value=resp_actual_val, key=f"in_resp_{idx_exacto_raw}")
 
@@ -5430,8 +5440,6 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
-
-
 
 
 

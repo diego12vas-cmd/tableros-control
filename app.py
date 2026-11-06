@@ -2589,7 +2589,10 @@ if entorno_activo == "Auditoría Interna":
     r_bajo = df_activos[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False).sum() if col_riesgo else 0
 
     total_hist_ai = len(df_raw)
-    fin_ai_cnt = df_raw[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado else 0
+    estado_raw_ai_norm = df_raw[col_estado].fillna("").astype(str).map(normalizar_estado_ai) if col_estado else pd.Series("", index=df_raw.index)
+    finalizadas_oportunas_ai = int((estado_raw_ai_norm == "finalizada").sum()) if col_estado else 0
+    finalizadas_extemporaneas_ai = int(estado_raw_ai_norm.isin(["finalizada extemporánea", "finalizada extemporanea"]).sum()) if col_estado else 0
+    fin_ai_cnt = finalizadas_oportunas_ai + finalizadas_extemporaneas_ai
     pct_cumplimiento_ai = int(round((fin_ai_cnt / total_hist_ai) * 100)) if total_hist_ai > 0 else 0
 
     hoy_dt = pd.to_datetime(date.today())
@@ -2920,9 +2923,9 @@ if entorno_activo == "Auditoría Interna":
                                 st.button(f"{abiertos} Abiertos", key="kpi_ai_estado_abiertos", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Abiertos"))
                             with p2:
                                 st.button(f"{vencidos} Vencidos", key="kpi_ai_estado_vencidos", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Vencidos"))
-                            _, p3, _ = st.columns([1, 2, 1], gap="small")
-                            with p3:
-                                k3, k4 = st.columns(2, gap="small")
+                    # Segunda fila de tarjetas: columnas hermanas de la primera fila.
+                    # No deben crearse dentro de una subcolumna de la tarjeta de estados.
+                    k3, k4 = st.columns(2, gap="small")
                     with k3:
                         with st.container(key="card-ai-compliance"):
                             st.markdown('<div class="kpi-card-heading">Cumplimiento global</div>', unsafe_allow_html=True)
@@ -2934,6 +2937,17 @@ if entorno_activo == "Auditoría Interna":
                                 args=("filtro_rapido_ai", "Estado: Finalizados/Cerrados"),
                             )
                             st.markdown(f'<div class="kpi-card-footnote">{fin_ai_cnt} cerrados de {total_hist_ai}</div>', unsafe_allow_html=True)
+                            fin1, fin2 = st.columns(2, gap="small")
+                            with fin1:
+                                st.markdown(
+                                    f'<div style="background:rgba(16,185,129,.18);color:#34D399;border-radius:7px;padding:7px 5px;text-align:center;font-size:12px;font-weight:800;line-height:1.25;">Finalizadas<br>oportunamente<br><span style="font-size:14px;">{finalizadas_oportunas_ai}</span></div>',
+                                    unsafe_allow_html=True,
+                                )
+                            with fin2:
+                                st.markdown(
+                                    f'<div style="background:rgba(245,158,11,.18);color:#FBBF24;border-radius:7px;padding:7px 5px;text-align:center;font-size:12px;font-weight:800;line-height:1.25;">Finalizadas<br>extemporáneas<br><span style="font-size:14px;">{finalizadas_extemporaneas_ai}</span></div>',
+                                    unsafe_allow_html=True,
+                                )
 
                     with k4:
                         with st.container(key="card-ai-analysis"):
@@ -5440,6 +5454,7 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
+
 
 
 

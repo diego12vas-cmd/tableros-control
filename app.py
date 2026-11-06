@@ -489,7 +489,68 @@ def validar_login():
                         background-color: #689E00 !important;
                         color: #FFFFFF !important;
                     }
-                </style>
+            
+        /* Ajuste final Auditoría Interna: evitar que el contenido se distribuya
+           fuera de las tarjetas o quede recortado por alturas fijas. */
+        .st-key-card-ai-compliance,
+        .st-key-card-ai-analysis {
+            height:auto !important;
+            min-height:245px !important;
+            max-height:none !important;
+            padding:12px 13px 12px !important;
+            box-sizing:border-box !important;
+            overflow:visible !important;
+        }
+        .st-key-card-ai-compliance [data-testid="stVerticalBlock"],
+        .st-key-card-ai-analysis [data-testid="stVerticalBlock"] {
+            height:auto !important;
+            min-height:0 !important;
+            max-height:none !important;
+            display:flex !important;
+            flex-direction:column !important;
+            justify-content:flex-start !important;
+            align-content:flex-start !important;
+            gap:8px !important;
+            padding:0 !important;
+            overflow:visible !important;
+        }
+        .st-key-card-ai-compliance [data-testid="stVerticalBlock"] > *,
+        .st-key-card-ai-analysis [data-testid="stVerticalBlock"] > * {
+            flex:0 0 auto !important;
+            min-height:0 !important;
+            margin-top:0 !important;
+            margin-bottom:0 !important;
+        }
+        .st-key-card-ai-compliance .kpi-card-footnote,
+        .st-key-card-ai-analysis .kpi-card-footnote {
+            margin:0 !important;
+            padding-top:3px !important;
+            line-height:1.25 !important;
+        }
+        .st-key-card-ai-compliance .kpi-completion-label {
+            min-height:38px !important;
+            height:auto !important;
+            font-size:12px !important;
+            line-height:1.2 !important;
+            margin:0 !important;
+            padding:0 4px !important;
+            white-space:normal !important;
+            overflow-wrap:normal !important;
+            word-break:normal !important;
+        }
+        .st-key-card-ai-compliance [data-testid="stHorizontalBlock"],
+        .st-key-card-ai-analysis [data-testid="stHorizontalBlock"] {
+            width:100% !important;
+            gap:10px !important;
+            align-items:center !important;
+        }
+        .st-key-card-ai-compliance .st-key-kpi_ai_estado_finalizadas_oportunas button,
+        .st-key-card-ai-compliance .st-key-kpi_ai_estado_finalizadas_ext button {
+            min-height:32px !important;
+            height:32px !important;
+            padding:0 4px !important;
+        }
+    </style>
                 """,
                 unsafe_allow_html=True,
             )

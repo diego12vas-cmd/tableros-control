@@ -2797,11 +2797,11 @@ if entorno_activo == "Auditoría Interna":
     fig_tendencia.update_layout(
         template='plotly_dark',
         title=dict(text=f"📈 Tendencia Mensual de Planes por Estado · {titulo_anio_ai}", font=dict(size=14, color="white")),
-        height=345,
-        margin=dict(l=20, r=20, t=40, b=65 if anio_seleccionado_ai == "Todos" else 40),
+        height=300,
+        margin=dict(l=20, r=20, t=35, b=48 if anio_seleccionado_ai == "Todos" else 28),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        legend=dict(orientation="h", y=-0.30 if anio_seleccionado_ai == "Todos" else -0.25, x=0.5, xanchor="center"),
+        legend=dict(orientation="h", y=-0.26 if anio_seleccionado_ai == "Todos" else -0.20, x=0.5, xanchor="center"),
         xaxis=dict(showgrid=False, tickangle=-45 if anio_seleccionado_ai == "Todos" else 0),
         yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)'),
         clickmode='event+select'

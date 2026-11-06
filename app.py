@@ -1126,7 +1126,11 @@ st.markdown(
             font-weight:800 !important;
             color:#E2E8F0 !important;
             text-transform:uppercase !important;
-            margin:5px 0 8px !important;
+            /* Reduce aproximadamente a la mitad el espacio antes y después
+               del encabezado de acciones próximas a vencer. */
+            margin:2px 0 4px !important;
+            padding:0 !important;
+            line-height:1.2 !important;
         }
         .kpi-alert-heading {
             font-size:11px !important;
@@ -2649,7 +2653,7 @@ if entorno_activo == "Auditoría Interna":
             dt = pd.to_datetime(texto_fecha, errors="coerce", dayfirst=True)
             # Recupera errores de digitación como 04/110/2026 (04/11/2026).
             if pd.isna(dt):
-                coincidencia = re.fullmatch(r"(\\d{1,2})[/-](\\d{3})[/-](\\d{4})", texto_fecha)
+                coincidencia = re.fullmatch(r"(\d{1,2})[/-](\d{3})[/-](\d{4})", texto_fecha)
                 if coincidencia:
                     dia, mes_tres_digitos, anio = coincidencia.groups()
                     mes = mes_tres_digitos[:2]

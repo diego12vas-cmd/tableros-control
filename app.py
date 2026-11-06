@@ -3094,7 +3094,11 @@ if entorno_activo == "Auditoría Interna":
                         custom_ai = normalizar_customdata_plotly(punto_tendencia_ai.get("customdata"))
                         if len(custom_ai) >= 2:
                             mes_click_ai, estado_click_ai = str(custom_ai[0]), str(custom_ai[1])
-                            indices_click_ai = registros_tendencia_ai.get((mes_click_ai, estado_click_ai), [])
+                            # Los customdata de las series finalizadas llevan el prefijo
+                            # "Estado: ", pero el índice mensual usa nombres sin prefijo.
+                            # Unificar ambas claves antes de recuperar los registros.
+                            estado_clave_ai = re.sub(r"^Estado:\s*", "", estado_click_ai, flags=re.IGNORECASE).strip()
+                            indices_click_ai = registros_tendencia_ai.get((mes_click_ai, estado_clave_ai), [])
                             st.session_state["filtro_grafica_ai"] = {
                                 "tipo": "tendencia",
                                 "etiqueta": f"Tendencia mensual · {mes_click_ai} · {estado_click_ai}" + (f" · {anio_seleccionado_ai}" if anio_seleccionado_ai != "Todos" else ""),

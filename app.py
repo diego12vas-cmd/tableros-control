@@ -1280,7 +1280,8 @@ st.markdown(
         /* Etiquetas pequeñas: dos columnas y segunda línea cuando haga falta. */
         .st-key-kpi_ai_riesgo_alto button, .st-key-kpi_ai_riesgo_medio button,
         .st-key-kpi_ai_riesgo_bajo button, .st-key-kpi_ai_estado_abiertos button,
-        .st-key-kpi_ai_estado_vencidos button, .st-key-kpi_ai_estado_sin_definir button,
+        .st-key-kpi_ai_estado_vencidos button, .st-key-kpi_ai_estado_finalizadas_oportunas button,
+        .st-key-kpi_ai_estado_finalizadas_ext button, .st-key-kpi_ai_estado_sin_definir button,
         .st-key-kpi_c_estado_abiertos button, .st-key-kpi_c_estado_vencidos button {
             display:flex !important;
             align-items:center !important;
@@ -1303,10 +1304,13 @@ st.markdown(
         .st-key-kpi_ai_riesgo_bajo button { background:rgba(16,185,129,.16)!important; color:#6EE7B7!important; }
         .st-key-kpi_ai_estado_abiertos button, .st-key-kpi_c_estado_abiertos button { background:rgba(16,185,129,.16)!important; color:#34D399!important; }
         .st-key-kpi_ai_estado_vencidos button { background:rgba(239,68,68,.18)!important; color:#F87171!important; }
+        .st-key-kpi_ai_estado_finalizadas_oportunas button { background:rgba(16,185,129,.16)!important; color:#34D399!important; }
+        .st-key-kpi_ai_estado_finalizadas_ext button { background:rgba(245,158,11,.18)!important; color:#FBBF24!important; }
         .st-key-kpi_ai_estado_sin_definir button { background:rgba(148,163,184,.16)!important; color:#CBD5E1!important; }
         .st-key-kpi_ai_riesgo_alto button p, .st-key-kpi_ai_riesgo_medio button p,
         .st-key-kpi_ai_riesgo_bajo button p, .st-key-kpi_ai_estado_abiertos button p,
-        .st-key-kpi_ai_estado_vencidos button p, .st-key-kpi_ai_estado_sin_definir button p,
+        .st-key-kpi_ai_estado_vencidos button p, .st-key-kpi_ai_estado_finalizadas_oportunas button p,
+        .st-key-kpi_ai_estado_finalizadas_ext button p, .st-key-kpi_ai_estado_sin_definir button p,
         .st-key-kpi_c_estado_abiertos button p, .st-key-kpi_c_estado_vencidos button p {
             font-size:11px !important;
             line-height:1 !important;
@@ -2566,6 +2570,21 @@ if entorno_activo == "Auditoría Interna":
         anio_seleccionado_ai = anio_inicial_ai
     st.session_state["filtro_anio_tendencia_ai"] = anio_seleccionado_ai
 
+    # Las cifras de las tarjetas de finalización usan exactamente la misma
+    # población, fecha de cierre y año que la gráfica de tendencia.
+    filas_tendencia_ai_anio = [
+        fila for fila in filas_tendencia_ai
+        if anio_seleccionado_ai == "Todos" or fila["periodo"].year == int(anio_seleccionado_ai)
+    ]
+    finalizadas_ext_ai = sum(
+        1 for fila in filas_tendencia_ai_anio
+        if fila["estado"] == "Finalizadas extemporáneas"
+    )
+    finalizadas_oportunas_ai = sum(
+        1 for fila in filas_tendencia_ai_anio
+        if fila["estado"] == "Finalizadas oportunamente"
+    )
+
     if anio_seleccionado_ai == "Todos":
         if filas_tendencia_ai:
             periodos_grafica_ai = pd.period_range(
@@ -2849,11 +2868,6 @@ if entorno_activo == "Auditoría Interna":
                                 st.button(f"{abiertos} Abiertos", key="kpi_ai_estado_abiertos", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Abiertos"))
                             with p2:
                                 st.button(f"{vencidos} Vencidos", key="kpi_ai_estado_vencidos", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Vencidos"))
-                            p3, p4 = st.columns(2, gap="small")
-                            with p3:
-                                st.button(f"{finalizadas_oportunas_ai} Finalizadas", key="kpi_ai_estado_finalizadas_oportunas", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Finalizadas oportunamente"))
-                            with p4:
-                                st.button(f"{finalizadas_ext_ai} Extemporáneas", key="kpi_ai_estado_finalizadas_ext", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Finalizadas extemporáneas"))
 
                     k3, k4 = st.columns(2, gap="small")
                     with k3:
@@ -2867,6 +2881,23 @@ if entorno_activo == "Auditoría Interna":
                                 args=("filtro_rapido_ai", "Estado: Finalizados/Cerrados"),
                             )
                             st.markdown(f'<div class="kpi-card-footnote">{fin_ai_cnt} cerrados de {total_hist_ai}</div>', unsafe_allow_html=True)
+                            p_fin_oport, p_fin_ext = st.columns(2, gap="small")
+                            with p_fin_oport:
+                                st.button(
+                                    f"{finalizadas_oportunas_ai} Finalizadas",
+                                    key="kpi_ai_estado_finalizadas_oportunas",
+                                    use_container_width=True,
+                                    on_click=seleccionar_filtro_tarjeta,
+                                    args=("filtro_rapido_ai", "Estado: Finalizadas oportunamente"),
+                                )
+                            with p_fin_ext:
+                                st.button(
+                                    f"{finalizadas_ext_ai} Extemporáneas",
+                                    key="kpi_ai_estado_finalizadas_ext",
+                                    use_container_width=True,
+                                    on_click=seleccionar_filtro_tarjeta,
+                                    args=("filtro_rapido_ai", "Estado: Finalizadas extemporáneas"),
+                                )
 
                     with k4:
                         with st.container(key="card-ai-analysis"):

@@ -1198,12 +1198,24 @@ st.markdown(
         }
         .st-key-card-ai-compliance [data-testid="stVerticalBlock"],
         .st-key-card-ai-analysis [data-testid="stVerticalBlock"] {
-            height:auto !important;
-            min-height:0 !important;
+            height:100% !important;
+            min-height:188px !important;
+            box-sizing:border-box !important;
             display:flex !important;
             flex-direction:column !important;
-            justify-content:flex-start !important;
-            gap:3px !important;
+            justify-content:space-between !important;
+            gap:0 !important;
+            padding-bottom:5px !important;
+        }
+        /* Los bloques internos ocupan el ancho disponible y no se encogen. */
+        .st-key-card-ai-compliance [data-testid="stVerticalBlock"] > *,
+        .st-key-card-ai-analysis [data-testid="stVerticalBlock"] > * {
+            flex-shrink:0 !important;
+        }
+        .st-key-card-ai-compliance [data-testid="stHorizontalBlock"],
+        .st-key-card-ai-analysis [data-testid="stHorizontalBlock"] {
+            width:100% !important;
+            align-items:center !important;
         }
         .st-key-card-ai-compliance [data-testid="stButton"],
         .st-key-card-ai-analysis [data-testid="stButton"] {
@@ -1219,7 +1231,7 @@ st.markdown(
         .st-key-card-ai-compliance .kpi-card-heading,
         .st-key-card-ai-analysis .kpi-card-heading {
             text-align:left !important;
-            margin-bottom:2px !important;
+            margin-bottom:0 !important;
         }
         .st-key-card-ai-compliance .st-key-kpi_ai_cumplimiento,
         .st-key-card-ai-analysis .st-key-kpi_ai_abiertos_pct,
@@ -1234,7 +1246,7 @@ st.markdown(
         }
         .st-key-card-ai-compliance .kpi-card-footnote {
             margin-top:0 !important;
-            padding-top:6px !important;
+            padding-top:3px !important;
         }
         .st-key-card-ai-compliance .kpi-completion-label {
             min-height:34px !important;
@@ -1259,8 +1271,8 @@ st.markdown(
             padding:0 4px !important;
         }
         .st-key-card-ai-analysis .kpi-card-footnote {
-            margin-top:3px !important;
-            padding-top:4px !important;
+            margin-top:0 !important;
+            padding-top:3px !important;
         }
 
         .st-key-card-ai-alert-5, .st-key-card-ai-alert-10,

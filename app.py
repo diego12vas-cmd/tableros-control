@@ -3080,6 +3080,7 @@ if entorno_activo == "Auditoría Interna":
                         format_func=lambda valor: "Todos los años" if valor == "Todos" else valor,
                     )
                     st.session_state.setdefault("_version_grafica_tendencia_ai", 0)
+                    st.caption("Haz clic sobre un punto de la gráfica para filtrar el detalle por mes y estado.")
                     evento_tendencia_ai = st.plotly_chart(
                         fig_tendencia,
                         use_container_width=True,
@@ -3208,7 +3209,10 @@ if entorno_activo == "Auditoría Interna":
                 seleccion_grafica_ai = st.session_state.get("filtro_grafica_ai")
                 if seleccion_grafica_ai:
                     indices_seleccion_ai = seleccion_grafica_ai.get("indices", [])
-                    df_tabla = df_filtrado[df_filtrado.index.isin(indices_seleccion_ai)].copy()
+                    # La tendencia se construye desde df_raw (incluye abiertas,
+                    # vencidas y ambas clases de finalizadas). Filtrar contra
+                    # df_filtrado excluía registros cerrados y rompía la selección.
+                    df_tabla = df_raw[df_raw.index.isin(indices_seleccion_ai)].copy()
 
                 df_tabla_vista = filtrar_solo_columnas_amarillas_ai(df_tabla)
                 if seleccion_grafica_ai:

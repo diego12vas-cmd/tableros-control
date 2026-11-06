@@ -489,68 +489,7 @@ def validar_login():
                         background-color: #689E00 !important;
                         color: #FFFFFF !important;
                     }
-            
-        /* Ajuste final Auditoría Interna: evitar que el contenido se distribuya
-           fuera de las tarjetas o quede recortado por alturas fijas. */
-        .st-key-card-ai-compliance,
-        .st-key-card-ai-analysis {
-            height:auto !important;
-            min-height:245px !important;
-            max-height:none !important;
-            padding:12px 13px 12px !important;
-            box-sizing:border-box !important;
-            overflow:visible !important;
-        }
-        .st-key-card-ai-compliance [data-testid="stVerticalBlock"],
-        .st-key-card-ai-analysis [data-testid="stVerticalBlock"] {
-            height:auto !important;
-            min-height:0 !important;
-            max-height:none !important;
-            display:flex !important;
-            flex-direction:column !important;
-            justify-content:flex-start !important;
-            align-content:flex-start !important;
-            gap:8px !important;
-            padding:0 !important;
-            overflow:visible !important;
-        }
-        .st-key-card-ai-compliance [data-testid="stVerticalBlock"] > *,
-        .st-key-card-ai-analysis [data-testid="stVerticalBlock"] > * {
-            flex:0 0 auto !important;
-            min-height:0 !important;
-            margin-top:0 !important;
-            margin-bottom:0 !important;
-        }
-        .st-key-card-ai-compliance .kpi-card-footnote,
-        .st-key-card-ai-analysis .kpi-card-footnote {
-            margin:0 !important;
-            padding-top:3px !important;
-            line-height:1.25 !important;
-        }
-        .st-key-card-ai-compliance .kpi-completion-label {
-            min-height:38px !important;
-            height:auto !important;
-            font-size:12px !important;
-            line-height:1.2 !important;
-            margin:0 !important;
-            padding:0 4px !important;
-            white-space:normal !important;
-            overflow-wrap:normal !important;
-            word-break:normal !important;
-        }
-        .st-key-card-ai-compliance [data-testid="stHorizontalBlock"],
-        .st-key-card-ai-analysis [data-testid="stHorizontalBlock"] {
-            width:100% !important;
-            gap:10px !important;
-            align-items:center !important;
-        }
-        .st-key-card-ai-compliance .st-key-kpi_ai_estado_finalizadas_oportunas button,
-        .st-key-card-ai-compliance .st-key-kpi_ai_estado_finalizadas_ext button {
-            min-height:32px !important;
-            height:32px !important;
-            padding:0 4px !important;
-        }
-    </style>
+                </style>
                 """,
                 unsafe_allow_html=True,
             )
@@ -1214,23 +1153,6 @@ st.markdown(
             box-sizing:border-box !important;
             margin-bottom:10px !important;
         }
-        /* En Auditoría Interna, las tarjetas superiores quedan alineadas. */
-        .st-key-card-ai-risk,
-        .st-key-card-ai-state {
-            height:205px !important;
-            min-height:205px !important;
-            max-height:205px !important;
-            padding:10px 12px 8px !important;
-            margin-bottom:6px !important;
-        }
-        .st-key-card-ai-risk [data-testid="stVerticalBlock"],
-        .st-key-card-ai-state [data-testid="stVerticalBlock"] {
-            gap:4px !important;
-        }
-        .st-key-card-ai-risk [data-testid="stButton"],
-        .st-key-card-ai-state [data-testid="stButton"] {
-            margin-bottom:0 !important;
-        }
         .st-key-card-ai-risk { border-top:3px solid #3B82F6 !important; }
         .st-key-card-ai-state, .st-key-card-c-state { border-top:3px solid #EF4444 !important; }
         .st-key-card-c-hallazgos { border-top:3px solid #3B82F6 !important; }
@@ -1247,95 +1169,6 @@ st.markdown(
         }
         .st-key-card-ai-compliance, .st-key-card-c-compliance { border-top:3px solid #10B981 !important; }
         .st-key-card-ai-analysis, .st-key-card-c-analysis { border-top:3px solid #F59E0B !important; }
-        /* Auditoría Interna: cumplimiento y análisis con idénticas dimensiones. */
-        .st-key-card-ai-compliance,
-        .st-key-card-ai-analysis {
-            height:210px !important;
-            min-height:210px !important;
-            max-height:210px !important;
-            padding:10px 12px 8px !important;
-            margin-bottom:6px !important;
-            box-sizing:border-box !important;
-        }
-        .st-key-card-ai-compliance [data-testid="stVerticalBlock"],
-        .st-key-card-ai-analysis [data-testid="stVerticalBlock"] {
-            height:100% !important;
-            min-height:188px !important;
-            box-sizing:border-box !important;
-            display:flex !important;
-            flex-direction:column !important;
-            justify-content:space-between !important;
-            gap:0 !important;
-            padding-bottom:5px !important;
-        }
-        /* Los bloques internos ocupan el ancho disponible y no se encogen. */
-        .st-key-card-ai-compliance [data-testid="stVerticalBlock"] > *,
-        .st-key-card-ai-analysis [data-testid="stVerticalBlock"] > * {
-            flex-shrink:0 !important;
-        }
-        .st-key-card-ai-compliance [data-testid="stHorizontalBlock"],
-        .st-key-card-ai-analysis [data-testid="stHorizontalBlock"] {
-            width:100% !important;
-            align-items:center !important;
-        }
-        .st-key-card-ai-compliance [data-testid="stButton"],
-        .st-key-card-ai-analysis [data-testid="stButton"] {
-            margin-top:0 !important;
-            margin-bottom:0 !important;
-        }
-        .st-key-card-ai-compliance [data-testid="stHorizontalBlock"],
-        .st-key-card-ai-analysis [data-testid="stHorizontalBlock"] {
-            gap:8px !important;
-            align-items:center !important;
-        }
-        /* Centra verticalmente el contenido y reparte mejor el espacio interior. */
-        .st-key-card-ai-compliance .kpi-card-heading,
-        .st-key-card-ai-analysis .kpi-card-heading {
-            text-align:left !important;
-            margin-bottom:0 !important;
-        }
-        .st-key-card-ai-compliance .st-key-kpi_ai_cumplimiento,
-        .st-key-card-ai-analysis .st-key-kpi_ai_abiertos_pct,
-        .st-key-card-ai-analysis .st-key-kpi_ai_vencidos_pct {
-            margin-top:1px !important;
-            margin-bottom:1px !important;
-        }
-        .st-key-card-ai-compliance .kpi-card-heading,
-        .st-key-card-ai-analysis .kpi-card-heading {
-            min-height:18px !important;
-            margin-bottom:0 !important;
-        }
-        .st-key-card-ai-compliance .kpi-card-footnote {
-            margin-top:0 !important;
-            padding-top:3px !important;
-        }
-        .st-key-card-ai-compliance .kpi-completion-label {
-            min-height:34px !important;
-            height:34px !important;
-            margin-bottom:1px !important;
-            font-size:12px !important;
-            line-height:1.2 !important;
-            padding:0 5px !important;
-            white-space:normal !important;
-            overflow-wrap:normal !important;
-            word-break:normal !important;
-            hyphens:none !important;
-            flex-shrink:0 !important;
-        }
-        .st-key-card-ai-compliance [data-testid="stHorizontalBlock"] {
-            gap:12px !important;
-        }
-        .st-key-card-ai-compliance .st-key-kpi_ai_estado_finalizadas_oportunas button,
-        .st-key-card-ai-compliance .st-key-kpi_ai_estado_finalizadas_ext button {
-            height:30px !important;
-            min-height:30px !important;
-            padding:0 4px !important;
-        }
-        .st-key-card-ai-analysis .kpi-card-footnote {
-            margin-top:0 !important;
-            padding-top:3px !important;
-        }
-
         .st-key-card-ai-alert-5, .st-key-card-ai-alert-10,
         .st-key-card-ai-alert-20, .st-key-card-ai-alert-30,
         .st-key-card-c-alert-5, .st-key-card-c-alert-10,
@@ -1447,8 +1280,7 @@ st.markdown(
         /* Etiquetas pequeñas: dos columnas y segunda línea cuando haga falta. */
         .st-key-kpi_ai_riesgo_alto button, .st-key-kpi_ai_riesgo_medio button,
         .st-key-kpi_ai_riesgo_bajo button, .st-key-kpi_ai_estado_abiertos button,
-        .st-key-kpi_ai_estado_vencidos button, .st-key-kpi_ai_estado_finalizadas_oportunas button,
-        .st-key-kpi_ai_estado_finalizadas_ext button, .st-key-kpi_ai_estado_sin_definir button,
+        .st-key-kpi_ai_estado_vencidos button, .st-key-kpi_ai_estado_sin_definir button,
         .st-key-kpi_c_estado_abiertos button, .st-key-kpi_c_estado_vencidos button {
             display:flex !important;
             align-items:center !important;
@@ -1471,36 +1303,10 @@ st.markdown(
         .st-key-kpi_ai_riesgo_bajo button { background:rgba(16,185,129,.16)!important; color:#6EE7B7!important; }
         .st-key-kpi_ai_estado_abiertos button, .st-key-kpi_c_estado_abiertos button { background:rgba(16,185,129,.16)!important; color:#34D399!important; }
         .st-key-kpi_ai_estado_vencidos button { background:rgba(239,68,68,.18)!important; color:#F87171!important; }
-        .st-key-kpi_ai_estado_finalizadas_oportunas button { background:rgba(16,185,129,.16)!important; color:#34D399!important; }
-        .st-key-kpi_ai_estado_finalizadas_ext button { background:rgba(245,158,11,.18)!important; color:#FBBF24!important; }
-        .kpi-completion-label {
-            min-height:34px !important;
-            display:flex !important;
-            align-items:center !important;
-            justify-content:center !important;
-            text-align:center !important;
-            white-space:normal !important;
-            overflow-wrap:anywhere !important;
-            font-size:10px !important;
-            line-height:1.15 !important;
-            font-weight:800 !important;
-            padding:0 3px !important;
-        }
-        .kpi-completion-green { color:#34D399 !important; }
-        .kpi-completion-yellow { color:#FBBF24 !important; }
-        .st-key-kpi_ai_estado_finalizadas_oportunas button p,
-        .st-key-kpi_ai_estado_finalizadas_ext button p {
-            font-size:15px !important;
-            white-space:nowrap !important;
-            line-height:1.05 !important;
-            text-align:center !important;
-            font-weight:800 !important;
-        }
         .st-key-kpi_ai_estado_sin_definir button { background:rgba(148,163,184,.16)!important; color:#CBD5E1!important; }
         .st-key-kpi_ai_riesgo_alto button p, .st-key-kpi_ai_riesgo_medio button p,
         .st-key-kpi_ai_riesgo_bajo button p, .st-key-kpi_ai_estado_abiertos button p,
-        .st-key-kpi_ai_estado_vencidos button p, .st-key-kpi_ai_estado_finalizadas_oportunas button p,
-        .st-key-kpi_ai_estado_finalizadas_ext button p, .st-key-kpi_ai_estado_sin_definir button p,
+        .st-key-kpi_ai_estado_vencidos button p, .st-key-kpi_ai_estado_sin_definir button p,
         .st-key-kpi_c_estado_abiertos button p, .st-key-kpi_c_estado_vencidos button p {
             font-size:11px !important;
             line-height:1 !important;
@@ -2045,6 +1851,75 @@ st.markdown(
         /* Los gráficos ocupan todo el ancho disponible de su columna. */
         div[data-testid="stPlotlyChart"] { width: 100% !important; }
 
+
+        /* AJUSTE FINAL DE DISTRIBUCIÓN KPI: conserva las tarjetas y reparte
+           el contenido en toda su altura, evitando que quede amontonado arriba. */
+        .st-key-card-ai-compliance > [data-testid="stVerticalBlock"],
+        .st-key-card-c-compliance > [data-testid="stVerticalBlock"],
+        .st-key-card-ai-analysis > [data-testid="stVerticalBlock"],
+        .st-key-card-c-analysis > [data-testid="stVerticalBlock"] {
+            height: 100% !important;
+            min-height: 150px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            gap: 7px !important;
+        }
+        .st-key-card-ai-compliance [data-testid="stElementContainer"],
+        .st-key-card-c-compliance [data-testid="stElementContainer"],
+        .st-key-card-ai-analysis [data-testid="stElementContainer"],
+        .st-key-card-c-analysis [data-testid="stElementContainer"] {
+            flex: 0 0 auto !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+        }
+        .st-key-card-ai-compliance .kpi-card-heading,
+        .st-key-card-c-compliance .kpi-card-heading,
+        .st-key-card-ai-analysis .kpi-card-heading,
+        .st-key-card-c-analysis .kpi-card-heading {
+            margin-bottom: 2px !important;
+        }
+        .st-key-card-ai-compliance .kpi-card-footnote,
+        .st-key-card-c-compliance .kpi-card-footnote,
+        .st-key-card-ai-analysis .kpi-card-footnote,
+        .st-key-card-c-analysis .kpi-card-footnote {
+            margin-top: 0 !important;
+            padding-top: 5px !important;
+        }
+        .st-key-card-ai-analysis [data-testid="stHorizontalBlock"],
+        .st-key-card-c-analysis [data-testid="stHorizontalBlock"] {
+            align-items: center !important;
+            gap: 10px !important;
+        }
+        .st-key-card-ai-analysis [data-testid="stVerticalBlockBorderWrapper"],
+        .st-key-card-c-analysis [data-testid="stVerticalBlockBorderWrapper"] {
+            min-width: 0 !important;
+        }
+        .st-key-card-ai-analysis .kpi-subtitle-green,
+        .st-key-card-ai-analysis .kpi-subtitle-red,
+        .st-key-card-c-analysis .kpi-subtitle-green,
+        .st-key-card-c-analysis .kpi-subtitle-red {
+            min-height: 28px !important;
+            margin-bottom: 0 !important;
+            text-align: center !important;
+        }
+        .st-key-card-ai-analysis .kpi-card-count,
+        .st-key-card-c-analysis .kpi-card-count {
+            margin-top: 0 !important;
+            text-align: center !important;
+        }
+        .st-key-card-ai-compliance button,
+        .st-key-card-c-compliance button {
+            margin: 0 !important;
+        }
+        /* Evita espacios verticales automáticos entre bloques de las tarjetas. */
+        .st-key-card-ai-compliance [data-testid="stVerticalBlock"],
+        .st-key-card-c-compliance [data-testid="stVerticalBlock"],
+        .st-key-card-ai-analysis [data-testid="stVerticalBlock"],
+        .st-key-card-c-analysis [data-testid="stVerticalBlock"] {
+            row-gap: 5px !important;
+        }
+
     </style>
 """,
     unsafe_allow_html=True,
@@ -2096,14 +1971,20 @@ def buscar_excel_inteligente():
     dir_padre = os.path.dirname(dir_script)
     nombres_posibles = ["TABLERO_PA_AI.xlsm", "TABLERO_PA_AI.xlsx", "TABLERO_PA_I.xlsm", "TABLERO_PA_I.xlsx"]
 
-    for nombre in nombres_posibles:
-        ruta = os.path.join(dir_script, nombre)
-        if os.path.exists(ruta):
-            return ruta
-    for nombre in nombres_posibles:
-        ruta = os.path.join(dir_padre, nombre)
-        if os.path.exists(ruta):
-            return ruta
+    for carpeta in (dir_script, dir_padre):
+        for nombre in nombres_posibles:
+            ruta = os.path.join(carpeta, nombre)
+            if os.path.isfile(ruta):
+                return ruta
+    # Compatibilidad con archivos versionados que llegan con sufijos (4), (5), etc.
+    candidatos = []
+    for carpeta in (dir_script, dir_padre):
+        if os.path.isdir(carpeta):
+            for nombre in os.listdir(carpeta):
+                if re.match(r"^TABLERO_PA_AI(?:\s*\(\d+\))?\.(?:xlsm|xlsx)$", nombre, flags=re.IGNORECASE):
+                    candidatos.append(os.path.join(carpeta, nombre))
+    if candidatos:
+        return max(candidatos, key=lambda ruta: (ruta.lower().endswith(".xlsm"), os.path.getmtime(ruta)))
 
     return os.path.join(dir_script, "TABLERO_PA_AI.xlsx")
 
@@ -2138,10 +2019,29 @@ def buscar_excel_contraloria():
         except Exception:
             continue
 
+    # Compatibilidad con nombres versionados recibidos como TABLERO_PA_C(10).xlsx.
+    candidatos = []
+    for carpeta in (dir_script, dir_padre):
+        if os.path.isdir(carpeta):
+            for nombre in os.listdir(carpeta):
+                if re.match(r"^TABLERO_PA_C(?:\s*\(\d+\))?\.(?:xlsm|xlsx)$", nombre, flags=re.IGNORECASE):
+                    ruta = os.path.join(carpeta, nombre)
+                    if os.path.isfile(ruta) and ruta not in candidatos:
+                        candidatos.append(ruta)
+    for ruta in candidatos:
+        try:
+            with pd.ExcelFile(ruta) as libro:
+                if any(str(hoja).strip().lower() == "seguimiento informes" for hoja in libro.sheet_names):
+                    return ruta
+        except Exception:
+            continue
+
     # Compatibilidad: si aún no existe la hoja, conserva el libro estándar para las demás vistas.
-    for ruta in rutas:
+    for ruta in rutas + candidatos:
         if os.path.basename(ruta).lower() in ("tablero_pa_c.xlsx", "tablero_pa_c.xlsm"):
             return ruta
+    if candidatos:
+        return max(candidatos, key=os.path.getmtime)
     return os.path.join(dir_script, "TABLERO_PA_C.xlsx")
 
 EXCEL_PATH_C = buscar_excel_contraloria()
@@ -2669,46 +2569,25 @@ if entorno_activo == "Auditoría Interna":
         if auditoria_sel:
             df_filtrado = df_filtrado[df_filtrado[col_auditoria].isin(auditoria_sel)]
 
-    # Clasificación de estados exclusiva de Auditoría Interna.
-    # "Sin plan de acción" deja de ser un estado válido para los indicadores.
-    estado_ai = df_filtrado[col_estado].fillna("").astype(str).str.strip() if col_estado else pd.Series("", index=df_filtrado.index)
-    mascara_sin_plan_ai = estado_ai.str.contains("Sin plan|Sin defin", case=False, na=False)
-    df_filtrado_ai_estado = df_filtrado[~mascara_sin_plan_ai].copy()
-    estado_ai_valido = df_filtrado_ai_estado[col_estado].fillna("").astype(str).str.strip() if col_estado else pd.Series("", index=df_filtrado_ai_estado.index)
+    abiertos = df_filtrado[col_estado].astype(str).str.contains("Abiert", case=False, na=False).sum() if col_estado else 0
+    vencidos = df_filtrado[col_estado].astype(str).str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
+    sin_plan = df_filtrado[col_estado].astype(str).str.contains("Sin plan|Sin defin", case=False, na=False).sum() if col_estado else 0
 
-    abiertos = estado_ai_valido.str.contains("Abiert", case=False, na=False).sum() if col_estado else 0
-    vencidos = estado_ai_valido.str.contains("Vencid", case=False, na=False).sum() if col_estado else 0
-    finalizadas_ext_ai = estado_ai_valido.str.contains("Finalizada\\s*Extemporánea|Finalizada\\s*Extemporanea", case=False, na=False).sum() if col_estado else 0
-    finalizadas_ai = estado_ai_valido.str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado else 0
-    finalizadas_oportunas_ai = max(0, finalizadas_ai - finalizadas_ext_ai)
-
-    df_activos = df_filtrado_ai_estado[~df_filtrado_ai_estado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else df_filtrado_ai_estado.copy()
+    df_activos = df_filtrado[~df_filtrado[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)].copy() if col_estado else df_filtrado.copy()
 
     total_hallazgos_unicos_pendientes = df_activos[col_hallazgo].dropna().nunique() if col_hallazgo and col_hallazgo in df_activos.columns else len(df_activos)
-    total_planes_pendientes = abiertos + vencidos
+    total_planes_pendientes = abiertos + vencidos + sin_plan
 
     r_alto = df_activos[col_riesgo].astype(str).str.contains("Alto", case=False, na=False).sum() if col_riesgo else 0
     r_medio = df_activos[col_riesgo].astype(str).str.contains("Medio", case=False, na=False).sum() if col_riesgo else 0
     r_bajo = df_activos[col_riesgo].astype(str).str.contains("Bajo", case=False, na=False).sum() if col_riesgo else 0
 
-    # El denominador de cumplimiento excluye registros heredados con estado "Sin plan".
-    if col_estado:
-        estado_raw_ai = df_raw[col_estado].fillna("").astype(str).str.strip()
-        df_raw_ai_estado = df_raw[~estado_raw_ai.str.contains("Sin plan|Sin defin", case=False, na=False)].copy()
-    else:
-        df_raw_ai_estado = df_raw.copy()
-    total_hist_ai = len(df_raw_ai_estado)
-    estado_historico_ai = (
-        df_raw_ai_estado[col_estado].fillna("").astype(str).str.strip().str.casefold()
-        if col_estado else pd.Series("", index=df_raw_ai_estado.index)
-    )
-    finalizadas_oportunas_ai = int((estado_historico_ai == "finalizada").sum())
-    finalizadas_ext_ai = int((estado_historico_ai == "finalizada extemporánea").sum())
-    fin_ai_cnt = finalizadas_oportunas_ai + finalizadas_ext_ai
+    total_hist_ai = len(df_raw)
+    fin_ai_cnt = df_raw[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False).sum() if col_estado else 0
     pct_cumplimiento_ai = int(round((fin_ai_cnt / total_hist_ai) * 100)) if total_hist_ai > 0 else 0
 
     hoy_dt = pd.to_datetime(date.today())
-    df_raw_venc_ai = df_raw_ai_estado[df_raw_ai_estado[col_estado].astype(str).str.contains("Vencid", case=False, na=False)].copy() if col_estado else pd.DataFrame()
+    df_raw_venc_ai = df_raw[df_raw[col_estado].astype(str).str.contains("Vencid", case=False, na=False)].copy() if col_estado else pd.DataFrame()
     if not df_raw_venc_ai.empty and col_fecha_cierre in df_raw_venc_ai.columns:
         fechas_ai_parsed = df_raw_venc_ai[col_fecha_cierre].apply(parsear_fecha_estricta)
         dias_mora_ai_series = (hoy_dt - fechas_ai_parsed).dt.days.dropna()
@@ -2725,7 +2604,7 @@ if entorno_activo == "Auditoría Interna":
     # Tendencia mensual segmentada por año de vencimiento o de cierre real.
     # Así, ABR-2026 y ABR-2027 nunca se mezclan en una misma categoría.
     meses_orden = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
-    df_eval_tend = df_filtrado_ai_estado.copy()
+    df_eval_tend = df_filtrado.copy()
     filas_tendencia_ai = []
 
     def _fecha_tendencia_ai(valor):
@@ -2737,16 +2616,13 @@ if entorno_activo == "Auditoría Interna":
     for idx_registro, r in df_eval_tend.iterrows():
         st_val = str(r[col_estado] if col_estado in r else "").strip().lower()
         es_finalizado = any(term in st_val for term in ["finaliz", "cerrad"])
-        es_extemporaneo = "extempor" in st_val
         es_vencido = "vencid" in st_val
 
         # Para planes finalizados se usa la fecha real de cierre de Auditoría.
         # Para abiertos/vencidos se usa la fecha prevista de terminación.
         if es_finalizado:
             valor_fecha = r[col_fecha_cierre_aud] if col_fecha_cierre_aud and col_fecha_cierre_aud in r else None
-            if pd.isna(_fecha_tendencia_ai(valor_fecha)) and col_fecha_cierre and col_fecha_cierre in r:
-                valor_fecha = r[col_fecha_cierre]
-            estado_tendencia = "Finalizadas extemporáneas" if es_extemporaneo else "Finalizadas oportunamente"
+            estado_tendencia = "Finalizados/Cerrados"
         else:
             valor_fecha = r[col_fecha_cierre] if col_fecha_cierre and col_fecha_cierre in r else None
             estado_tendencia = "Vencidos" if es_vencido else "Abiertos"
@@ -2784,7 +2660,7 @@ if entorno_activo == "Auditoría Interna":
         etiquetas_tendencia_ai = meses_orden.copy()
 
     conteos_tendencia_ai = {
-        etiqueta: {"Abiertos": 0, "Vencidos": 0, "Finalizadas oportunamente": 0, "Finalizadas extemporáneas": 0}
+        etiqueta: {"Abiertos": 0, "Vencidos": 0, "Finalizados/Cerrados": 0}
         for etiqueta in etiquetas_tendencia_ai
     }
     registros_tendencia_ai = {}
@@ -2804,8 +2680,7 @@ if entorno_activo == "Auditoría Interna":
     x_tendencia_ai = etiquetas_tendencia_ai
     data_tend_abiertos = {m: conteos_tendencia_ai[m]["Abiertos"] for m in x_tendencia_ai}
     data_tend_vencidos = {m: conteos_tendencia_ai[m]["Vencidos"] for m in x_tendencia_ai}
-    data_tend_fin = {m: conteos_tendencia_ai[m]["Finalizadas oportunamente"] for m in x_tendencia_ai}
-    data_tend_ext = {m: conteos_tendencia_ai[m]["Finalizadas extemporáneas"] for m in x_tendencia_ai}
+    data_tend_fin = {m: conteos_tendencia_ai[m]["Finalizados/Cerrados"] for m in x_tendencia_ai}
 
     fig_tendencia = go.Figure()
     fig_tendencia.add_trace(go.Scatter(
@@ -2839,21 +2714,9 @@ if entorno_activo == "Auditoría Interna":
         textposition='top center',
         textfont=dict(size=10, color='white'),
         mode='lines+markers+text',
-        customdata=[[m, 'Finalizadas oportunamente'] for m in x_tendencia_ai],
-        name='Finalizadas oportunamente',
+        customdata=[[m, 'Finalizados/Cerrados'] for m in x_tendencia_ai],
+        name='Finalizados/Cerrados',
         line=dict(color='#2ECC71', width=3, shape='spline'),
-        marker=dict(size=6)
-    ))
-    fig_tendencia.add_trace(go.Scatter(
-        x=x_tendencia_ai,
-        y=[data_tend_ext[m] for m in x_tendencia_ai],
-        text=[data_tend_ext[m] for m in x_tendencia_ai],
-        textposition='top center',
-        textfont=dict(size=10, color='white'),
-        mode='lines+markers+text',
-        customdata=[[m, 'Finalizadas extemporáneas'] for m in x_tendencia_ai],
-        name='Finalizadas extemporáneas',
-        line=dict(color='#F1C40F', width=3, shape='spline'),
         marker=dict(size=6)
     ))
 
@@ -2868,8 +2731,7 @@ if entorno_activo == "Auditoría Interna":
         legend=dict(orientation="h", y=-0.30 if anio_seleccionado_ai == "Todos" else -0.25, x=0.5, xanchor="center"),
         xaxis=dict(showgrid=False, tickangle=-45 if anio_seleccionado_ai == "Todos" else 0),
         yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)'),
-        clickmode='event+select',
-        uirevision=f"tendencia_ai_{anio_seleccionado_ai}"
+        clickmode='event+select'
     )
 
     df_pend_ai = df_activos.copy()
@@ -2921,8 +2783,8 @@ if entorno_activo == "Auditoría Interna":
     else:
         fig_top5 = None
 
-    df_perf = df_filtrado_ai_estado.copy()
-    df_perf["Estado_Normalizado"] = df_perf[col_estado].fillna("").astype(str).str.strip().apply(lambda x: "Abierta" if "abiert" in x.lower() else ("Vencida" if "vencid" in x.lower() else x)) if col_estado in df_perf.columns else ""
+    df_perf = df_filtrado.copy()
+    df_perf["Estado_Normalizado"] = df_perf[col_estado].fillna("").astype(str).str.strip().apply(lambda x: "Abierta" if "abiert" in x.lower() else ("Vencida" if "vencid" in x.lower() else ("Sin plan de acción" if "sin" in x.lower() else x))) if col_estado in df_perf.columns else ""
 
     fig_area_horiz, total_acciones_area = None, 0
     if col_responsable in df_perf.columns:
@@ -2938,7 +2800,7 @@ if entorno_activo == "Auditoría Interna":
             df_area_grouped[col_responsable] = pd.Categorical(df_area_grouped[col_responsable], categories=df_totales_area[col_responsable], ordered=True)
             df_area_grouped["Texto_Etiqueta"] = df_area_grouped["Cantidad"].apply(lambda x: f"<b>{x}</b>" if x > 1 else "")
 
-            fig_area_horiz = px.bar(df_area_grouped, y=col_responsable, x="Cantidad", color="Estado_Normalizado", text="Texto_Etiqueta", orientation="h", barmode="stack", color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252"})
+            fig_area_horiz = px.bar(df_area_grouped, y=col_responsable, x="Cantidad", color="Estado_Normalizado", text="Texto_Etiqueta", orientation="h", barmode="stack", color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Sin plan de acción": "#F8A583"})
             fig_area_horiz.update_traces(textposition="inside", insidetextanchor="middle", textfont=dict(size=12, color="white", family="Arial Black"), cliponaxis=False)
 
             for _, row in df_totales_area.iterrows():
@@ -2955,7 +2817,7 @@ if entorno_activo == "Auditoría Interna":
             df_aud_grouped[col_auditoria] = pd.Categorical(df_aud_grouped[col_auditoria], categories=df_totales_aud[col_auditoria], ordered=True)
             df_aud_grouped["Texto_Etiqueta"] = df_aud_grouped["Cantidad"].apply(lambda x: f"<b>{x}</b>" if x > 1 else "")
 
-            fig_aud_horiz = px.bar(df_aud_grouped, y=col_auditoria, x="Cantidad", color="Estado_Normalizado", text="Texto_Etiqueta", orientation="h", barmode="stack", color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252"})
+            fig_aud_horiz = px.bar(df_aud_grouped, y=col_auditoria, x="Cantidad", color="Estado_Normalizado", text="Texto_Etiqueta", orientation="h", barmode="stack", color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Sin plan de acción": "#F8A583"})
             fig_aud_horiz.update_traces(textposition="inside", insidetextanchor="middle", textfont=dict(size=12, color="white", family="Arial Black"), cliponaxis=False)
 
             for _, row in df_totales_aud.iterrows():
@@ -3001,6 +2863,7 @@ if entorno_activo == "Auditoría Interna":
                         "Riesgo: Bajo",
                         "Estado: Abiertos",
                         "Estado: Vencidos",
+                        "Estado: Sin definir",
                         "Estado: Finalizados/Cerrados",
                     ]
                     if col_a5:
@@ -3052,6 +2915,9 @@ if entorno_activo == "Auditoría Interna":
                                 st.button(f"{abiertos} Abiertos", key="kpi_ai_estado_abiertos", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Abiertos"))
                             with p2:
                                 st.button(f"{vencidos} Vencidos", key="kpi_ai_estado_vencidos", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Vencidos"))
+                            _, p3, _ = st.columns([1, 2, 1], gap="small")
+                            with p3:
+                                st.button(f"{sin_plan} Sin definir", key="kpi_ai_estado_sin_definir", use_container_width=True, on_click=seleccionar_filtro_tarjeta, args=("filtro_rapido_ai", "Estado: Sin definir"))
 
                     k3, k4 = st.columns(2, gap="small")
                     with k3:
@@ -3065,31 +2931,6 @@ if entorno_activo == "Auditoría Interna":
                                 args=("filtro_rapido_ai", "Estado: Finalizados/Cerrados"),
                             )
                             st.markdown(f'<div class="kpi-card-footnote">{fin_ai_cnt} cerrados de {total_hist_ai}</div>', unsafe_allow_html=True)
-                            p_fin_oport, p_fin_ext = st.columns(2, gap="small")
-                            with p_fin_oport:
-                                st.markdown(
-                                    '<div class="kpi-completion-label kpi-completion-green">Finalizadas<br>oportunamente</div>',
-                                    unsafe_allow_html=True,
-                                )
-                                st.button(
-                                    f"{finalizadas_oportunas_ai}",
-                                    key="kpi_ai_estado_finalizadas_oportunas",
-                                    use_container_width=True,
-                                    on_click=seleccionar_filtro_tarjeta,
-                                    args=("filtro_rapido_ai", "Estado: Finalizadas oportunamente"),
-                                )
-                            with p_fin_ext:
-                                st.markdown(
-                                    '<div class="kpi-completion-label kpi-completion-yellow">Finalizadas<br>extemporáneas</div>',
-                                    unsafe_allow_html=True,
-                                )
-                                st.button(
-                                    f"{finalizadas_ext_ai}",
-                                    key="kpi_ai_estado_finalizadas_ext",
-                                    use_container_width=True,
-                                    on_click=seleccionar_filtro_tarjeta,
-                                    args=("filtro_rapido_ai", "Estado: Finalizadas extemporáneas"),
-                                )
 
                     with k4:
                         with st.container(key="card-ai-analysis"):
@@ -3239,7 +3080,7 @@ if entorno_activo == "Auditoría Interna":
                     valores_h = df_tabla[col_hallazgo].fillna("").astype(str).str.strip()
                     df_tabla = df_tabla[~valores_h.str.lower().isin(["", "nan", "none", "0"])]
                 elif filtro_elegido == "Planes pendientes" and col_estado:
-                    df_tabla = df_tabla[df_tabla[col_estado].astype(str).str.contains("Abiert|Vencid", case=False, na=False)]
+                    df_tabla = df_tabla[df_tabla[col_estado].astype(str).str.contains("Abiert|Vencid|Sin plan|Sin defin", case=False, na=False)]
                 elif filtro_elegido == "Riesgo: Alto" and col_riesgo:
                     df_tabla = df_tabla[df_tabla[col_riesgo].astype(str).str.contains("Alto", case=False, na=False)]
                 elif filtro_elegido == "Riesgo: Medio" and col_riesgo:
@@ -3250,16 +3091,8 @@ if entorno_activo == "Auditoría Interna":
                     df_tabla = df_tabla[df_tabla[col_estado].astype(str).str.contains("Abiert", case=False, na=False)]
                 elif filtro_elegido == "Estado: Vencidos" and col_estado:
                     df_tabla = df_tabla[df_tabla[col_estado].astype(str).str.contains("Vencid", case=False, na=False)]
-                elif filtro_elegido == "Estado: Finalizadas oportunamente" and col_estado:
-                    estado_tabla_ai = df_tabla[col_estado].fillna("").astype(str)
-                    df_tabla = df_tabla[estado_tabla_ai.str.contains("Finaliz|Cerrad", case=False, na=False) & ~estado_tabla_ai.str.contains("Extempor", case=False, na=False)]
-                elif filtro_elegido == "Estado: Finalizadas extemporáneas" and col_estado:
-                    df_tabla = df_tabla[df_tabla[col_estado].astype(str).str.contains("Extempor", case=False, na=False)]
-                elif filtro_elegido == "Estado: Finalizadas oportunamente" and col_estado:
-                    estado_tabla_ai = df_tabla[col_estado].fillna("").astype(str)
-                    df_tabla = df_tabla[estado_tabla_ai.str.contains("Finaliz|Cerrad", case=False, na=False) & ~estado_tabla_ai.str.contains("Extempor", case=False, na=False)]
-                elif filtro_elegido == "Estado: Finalizadas extemporáneas" and col_estado:
-                    df_tabla = df_tabla[df_tabla[col_estado].astype(str).str.contains("Extempor", case=False, na=False)]
+                elif filtro_elegido == "Estado: Sin definir" and col_estado:
+                    df_tabla = df_tabla[df_tabla[col_estado].astype(str).str.contains("Sin plan|Sin defin", case=False, na=False)]
                 elif filtro_elegido == "Estado: Finalizados/Cerrados" and col_estado:
                     df_tabla = df_tabla[df_tabla[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)]
                 elif filtro_elegido.startswith("Alerta:"):
@@ -3509,7 +3342,7 @@ if entorno_activo == "Auditoría Interna":
                                 fig_hist_stack = px.bar(
                                     df_hist_grouped, x="Vigencia_Limpia", y="Cantidad", color=col_estado,
                                     title="Distribución de Estados por Vigencia", barmode="stack",
-                                    color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB"}
+                                    color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Sin plan de acción": "#F8A583"}
                                 )
                                 
                                 df_totales_por_vigencia = df_hist_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
@@ -3588,7 +3421,7 @@ if entorno_activo == "Auditoría Interna":
                                 fig_hist_hall_stack = px.bar(
                                     df_hall_st_grouped, x="Vigencia_Limpia", y="Cantidad", color=col_estado,
                                     title="Distribución de Estados por Vigencia (Hallazgos Únicos)", barmode="stack",
-                                    color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB"}
+                                    color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Sin plan de acción": "#F8A583"}
                                 )
 
                                 df_totales_hall_vig = df_hall_st_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
@@ -3755,10 +3588,8 @@ if entorno_activo == "Auditoría Interna":
                         col_f1, col_f2 = st.columns(2)
                         with col_f1:
                             nueva_fecha_cierre = st.date_input("Nueva Fecha de Cierre / Compromiso:", value=fecha_def_obj, key=f"in_fecha_{idx_exacto_raw}")
-                            lista_estados = ["Abierta", "Vencida", "Finalizada", "Finalizada Extemporánea"]
-                            if "sin plan" in est_actual_val.lower() or "sin defin" in est_actual_val.lower():
-                                est_actual_val = "Abierta"
-                            elif est_actual_val and est_actual_val not in lista_estados:
+                            lista_estados = ["Abierta", "Vencida", "Finalizada", "Sin plan de acción"]
+                            if est_actual_val and est_actual_val not in lista_estados:
                                 lista_estados.append(est_actual_val)
                             idx_est_def = lista_estados.index(est_actual_val) if est_actual_val in lista_estados else 0
                             nuevo_estado = st.selectbox("Estado del Compromiso (Editable):", options=lista_estados, index=idx_est_def, key=f"in_estado_{idx_exacto_raw}")
@@ -4924,7 +4755,7 @@ else:
                                 fig_hist_stack = px.bar(
                                     df_hist_grouped, x="Vigencia_Limpia", y="Cantidad", color=col_estado_c,
                                     title="Distribución de Estados por Vigencia", barmode="stack",
-                                    color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB"}
+                                    color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Sin plan de acción": "#F8A583"}
                                 )
                                 
                                 df_totales_por_vigencia = df_hist_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
@@ -5003,7 +4834,7 @@ else:
                                 fig_hist_hall_stack = px.bar(
                                     df_hall_st_grouped, x="Vigencia_Limpia", y="Cantidad", color=col_estado_c,
                                     title="Distribución de Estados por Vigencia (Hallazgos Únicos)", barmode="stack",
-                                    color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB"}
+                                    color_discrete_map={"Abierta": "#58C57A", "Vencida": "#FF5252", "Finalizada": "#4B92DB", "Sin plan de acción": "#F8A583"}
                                 )
 
                                 df_totales_hall_vig = df_hall_st_grouped.groupby("Vigencia_Limpia")["Cantidad"].sum().reset_index()
@@ -5599,5 +5430,8 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
+
+
+
 
 

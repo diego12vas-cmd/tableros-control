@@ -1303,6 +1303,32 @@ st.markdown(
         .st-key-kpi_ai_riesgo_bajo button { background:rgba(16,185,129,.16)!important; color:#6EE7B7!important; }
         .st-key-kpi_ai_estado_abiertos button, .st-key-kpi_c_estado_abiertos button { background:rgba(16,185,129,.16)!important; color:#34D399!important; }
         .st-key-kpi_ai_estado_vencidos button { background:rgba(239,68,68,.18)!important; color:#F87171!important; }
+        .st-key-kpi_ai_finalizadas_oportunas button {
+            background:rgba(16,185,129,.18)!important;
+            color:#34D399!important;
+            border:1px solid rgba(16,185,129,.25)!important;
+            border-radius:7px!important;
+            min-height:52px!important;
+            height:auto!important;
+            padding:6px 5px!important;
+            white-space:normal!important;
+            line-height:1.2!important;
+            font-size:11px!important;
+            font-weight:800!important;
+        }
+        .st-key-kpi_ai_finalizadas_extemporaneas button {
+            background:rgba(245,158,11,.18)!important;
+            color:#FBBF24!important;
+            border:1px solid rgba(245,158,11,.25)!important;
+            border-radius:7px!important;
+            min-height:52px!important;
+            height:auto!important;
+            padding:6px 5px!important;
+            white-space:normal!important;
+            line-height:1.2!important;
+            font-size:11px!important;
+            font-weight:800!important;
+        }
         .st-key-kpi_ai_estado_sin_definir button { background:rgba(148,163,184,.16)!important; color:#CBD5E1!important; }
         .st-key-kpi_ai_riesgo_alto button p, .st-key-kpi_ai_riesgo_medio button p,
         .st-key-kpi_ai_riesgo_bajo button p, .st-key-kpi_ai_estado_abiertos button p,
@@ -2873,6 +2899,8 @@ if entorno_activo == "Auditoría Interna":
                         "Estado: Abiertos",
                         "Estado: Vencidos",
                         "Estado: Finalizados/Cerrados",
+                        "Estado: Finalizadas oportunamente",
+                        "Estado: Finalizadas extemporáneas",
                     ]
                     if col_a5:
                         opciones_rapidas.append("Alerta: Próximos a 5 días")
@@ -2939,14 +2967,20 @@ if entorno_activo == "Auditoría Interna":
                             st.markdown(f'<div class="kpi-card-footnote">{fin_ai_cnt} cerrados de {total_hist_ai}</div>', unsafe_allow_html=True)
                             fin1, fin2 = st.columns(2, gap="small")
                             with fin1:
-                                st.markdown(
-                                    f'<div style="background:rgba(16,185,129,.18);color:#34D399;border-radius:7px;padding:7px 5px;text-align:center;font-size:12px;font-weight:800;line-height:1.25;">Finalizadas<br>oportunamente<br><span style="font-size:14px;">{finalizadas_oportunas_ai}</span></div>',
-                                    unsafe_allow_html=True,
+                                st.button(
+                                    f"Finalizadas oportunamente  ·  {finalizadas_oportunas_ai}",
+                                    key="kpi_ai_finalizadas_oportunas",
+                                    use_container_width=True,
+                                    on_click=seleccionar_filtro_tarjeta,
+                                    args=("filtro_rapido_ai", "Estado: Finalizadas oportunamente"),
                                 )
                             with fin2:
-                                st.markdown(
-                                    f'<div style="background:rgba(245,158,11,.18);color:#FBBF24;border-radius:7px;padding:7px 5px;text-align:center;font-size:12px;font-weight:800;line-height:1.25;">Finalizadas<br>extemporáneas<br><span style="font-size:14px;">{finalizadas_extemporaneas_ai}</span></div>',
-                                    unsafe_allow_html=True,
+                                st.button(
+                                    f"Finalizadas extemporáneas  ·  {finalizadas_extemporaneas_ai}",
+                                    key="kpi_ai_finalizadas_extemporaneas",
+                                    use_container_width=True,
+                                    on_click=seleccionar_filtro_tarjeta,
+                                    args=("filtro_rapido_ai", "Estado: Finalizadas extemporáneas"),
                                 )
 
                     with k4:
@@ -3088,6 +3122,8 @@ if entorno_activo == "Auditoría Interna":
                 # distintos; al pulsarlos se consulta exactamente su población.
                 if filtro_elegido == "Estado: Finalizados/Cerrados":
                     df_tabla = df_raw.copy()
+                elif filtro_elegido in ["Estado: Finalizadas oportunamente", "Estado: Finalizadas extemporáneas"]:
+                    df_tabla = df_raw.copy()
                 elif filtro_elegido.startswith("Alerta:"):
                     df_tabla = df_filtrado.copy()
                 else:
@@ -3112,6 +3148,12 @@ if entorno_activo == "Auditoría Interna":
                     df_tabla = df_tabla[df_tabla[col_estado].astype(str).str.contains("Sin plan|Sin defin", case=False, na=False)]
                 elif filtro_elegido == "Estado: Finalizados/Cerrados" and col_estado:
                     df_tabla = df_tabla[df_tabla[col_estado].astype(str).str.contains("Finaliz|Cerrad", case=False, na=False)]
+                elif filtro_elegido == "Estado: Finalizadas oportunamente" and col_estado:
+                    estado_tabla_norm = df_tabla[col_estado].fillna("").astype(str).map(normalizar_estado_ai)
+                    df_tabla = df_tabla[estado_tabla_norm == "finalizada"]
+                elif filtro_elegido == "Estado: Finalizadas extemporáneas" and col_estado:
+                    estado_tabla_norm = df_tabla[col_estado].fillna("").astype(str).map(normalizar_estado_ai)
+                    df_tabla = df_tabla[estado_tabla_norm.isin(["finalizada extemporánea", "finalizada extemporanea"])]
                 elif filtro_elegido.startswith("Alerta:"):
                     if "5 días" in filtro_elegido:
                         col_alerta_sel = col_a5
@@ -5454,7 +5496,6 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
-
 
 
 

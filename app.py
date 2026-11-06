@@ -1306,6 +1306,13 @@ st.markdown(
         .st-key-kpi_ai_estado_vencidos button { background:rgba(239,68,68,.18)!important; color:#F87171!important; }
         .st-key-kpi_ai_estado_finalizadas_oportunas button { background:rgba(16,185,129,.16)!important; color:#34D399!important; }
         .st-key-kpi_ai_estado_finalizadas_ext button { background:rgba(245,158,11,.18)!important; color:#FBBF24!important; }
+        .st-key-kpi_ai_estado_finalizadas_oportunas button p,
+        .st-key-kpi_ai_estado_finalizadas_ext button p {
+            font-size:10px !important;
+            white-space:normal !important;
+            line-height:1.05 !important;
+            text-align:center !important;
+        }
         .st-key-kpi_ai_estado_sin_definir button { background:rgba(148,163,184,.16)!important; color:#CBD5E1!important; }
         .st-key-kpi_ai_riesgo_alto button p, .st-key-kpi_ai_riesgo_medio button p,
         .st-key-kpi_ai_riesgo_bajo button p, .st-key-kpi_ai_estado_abiertos button p,
@@ -2656,8 +2663,8 @@ if entorno_activo == "Auditoría Interna":
         textposition='top center',
         textfont=dict(size=10, color='white'),
         mode='lines+markers+text',
-        customdata=[[m, 'Finalizados/Cerrados'] for m in x_tendencia_ai],
-        name='Finalizados/Cerrados',
+        customdata=[[m, 'Finalizadas oportunamente'] for m in x_tendencia_ai],
+        name='Finalizadas oportunamente',
         line=dict(color='#2ECC71', width=3, shape='spline'),
         marker=dict(size=6)
     ))
@@ -2685,7 +2692,8 @@ if entorno_activo == "Auditoría Interna":
         legend=dict(orientation="h", y=-0.30 if anio_seleccionado_ai == "Todos" else -0.25, x=0.5, xanchor="center"),
         xaxis=dict(showgrid=False, tickangle=-45 if anio_seleccionado_ai == "Todos" else 0),
         yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)'),
-        clickmode='event+select'
+        clickmode='event+select',
+        uirevision=f"tendencia_ai_{anio_seleccionado_ai}"
     )
 
     df_pend_ai = df_activos.copy()
@@ -2884,7 +2892,7 @@ if entorno_activo == "Auditoría Interna":
                             p_fin_oport, p_fin_ext = st.columns(2, gap="small")
                             with p_fin_oport:
                                 st.button(
-                                    f"{finalizadas_oportunas_ai} Finalizadas",
+                                    f"{finalizadas_oportunas_ai} Oportunas",
                                     key="kpi_ai_estado_finalizadas_oportunas",
                                     use_container_width=True,
                                     on_click=seleccionar_filtro_tarjeta,

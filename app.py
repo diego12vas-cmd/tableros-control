@@ -1308,12 +1308,12 @@ st.markdown(
             color:#34D399!important;
             border:1px solid rgba(16,185,129,.25)!important;
             border-radius:7px!important;
-            min-height:52px!important;
-            height:auto!important;
-            padding:6px 5px!important;
-            white-space:normal!important;
+            min-height:38px!important;
+            height:38px!important;
+            padding:4px 5px!important;
+            white-space:nowrap!important;
             line-height:1.2!important;
-            font-size:11px!important;
+            font-size:14px!important;
             font-weight:800!important;
         }
         .st-key-kpi_ai_finalizadas_extemporaneas button {
@@ -1321,12 +1321,12 @@ st.markdown(
             color:#FBBF24!important;
             border:1px solid rgba(245,158,11,.25)!important;
             border-radius:7px!important;
-            min-height:52px!important;
-            height:auto!important;
-            padding:6px 5px!important;
-            white-space:normal!important;
+            min-height:38px!important;
+            height:38px!important;
+            padding:4px 5px!important;
+            white-space:nowrap!important;
             line-height:1.2!important;
-            font-size:11px!important;
+            font-size:14px!important;
             font-weight:800!important;
         }
         .st-key-kpi_ai_estado_sin_definir button { background:rgba(148,163,184,.16)!important; color:#CBD5E1!important; }
@@ -2639,7 +2639,7 @@ if entorno_activo == "Auditoría Interna":
     # Tendencia mensual segmentada por año de vencimiento o de cierre real.
     # Así, ABR-2026 y ABR-2027 nunca se mezclan en una misma categoría.
     meses_orden = ["ENE", "FEB", "MAR", "ABR", "MAYO", "JUNIO", "JULIO", "AGO", "SEP", "OCT", "NOV", "DIC"]
-    df_eval_tend = df_filtrado.copy()
+    df_eval_tend = df_raw.copy()
     filas_tendencia_ai = []
 
     def _fecha_tendencia_ai(valor):
@@ -2650,7 +2650,7 @@ if entorno_activo == "Auditoría Interna":
 
     for idx_registro, r in df_eval_tend.iterrows():
         st_val = str(r[col_estado] if col_estado in r else "").strip().lower()
-        estado_normalizado_tend = re.sub(r"\\s+", " ", st_val).strip()
+        estado_normalizado_tend = re.sub(r"\s+", " ", st_val).strip()
         es_extemporanea_tend = estado_normalizado_tend in ["finalizada extemporánea", "finalizada extemporanea"]
         es_oportuna_tend = estado_normalizado_tend == "finalizada"
         es_finalizado = es_extemporanea_tend or es_oportuna_tend
@@ -2988,7 +2988,7 @@ if entorno_activo == "Auditoría Interna":
                             st.markdown(f'<div class="kpi-card-footnote">{fin_ai_cnt} cerrados de {total_hist_ai}</div>', unsafe_allow_html=True)
                             fin1, fin2 = st.columns(2, gap="small")
                             with fin1:
-                                st.markdown('<div style="color:#34D399;text-align:center;font-size:12px;font-weight:800;line-height:1.25;min-height:32px;">Finalizadas<br>oportunamente</div>', unsafe_allow_html=True)
+                                st.markdown('<div style="color:#34D399;text-align:center;font-size:12px;font-weight:800;line-height:1.2;min-height:34px;height:34px;display:flex;align-items:center;justify-content:center;">Finalizadas<br>oportunamente</div>', unsafe_allow_html=True)
                                 st.button(
                                     f"{finalizadas_oportunas_ai}",
                                     key="kpi_ai_finalizadas_oportunas",
@@ -2997,7 +2997,7 @@ if entorno_activo == "Auditoría Interna":
                                     args=("filtro_rapido_ai", "Estado: Finalizadas oportunamente"),
                                 )
                             with fin2:
-                                st.markdown('<div style="color:#FBBF24;text-align:center;font-size:12px;font-weight:800;line-height:1.25;min-height:32px;">Finalizadas<br>extemporáneas</div>', unsafe_allow_html=True)
+                                st.markdown('<div style="color:#FBBF24;text-align:center;font-size:12px;font-weight:800;line-height:1.2;min-height:34px;height:34px;display:flex;align-items:center;justify-content:center;">Finalizadas<br>extemporáneas</div>', unsafe_allow_html=True)
                                 st.button(
                                     f"{finalizadas_extemporaneas_ai}",
                                     key="kpi_ai_finalizadas_extemporaneas",

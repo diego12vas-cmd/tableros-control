@@ -1169,6 +1169,54 @@ st.markdown(
         }
         .st-key-card-ai-compliance, .st-key-card-c-compliance { border-top:3px solid #10B981 !important; }
         .st-key-card-ai-analysis, .st-key-card-c-analysis { border-top:3px solid #F59E0B !important; }
+        /* Auditoría Interna: cumplimiento y análisis con idénticas dimensiones. */
+        .st-key-card-ai-compliance,
+        .st-key-card-ai-analysis {
+            height:224px !important;
+            min-height:224px !important;
+            max-height:224px !important;
+            padding:13px 13px 12px !important;
+            box-sizing:border-box !important;
+        }
+        .st-key-card-ai-compliance [data-testid="stVerticalBlock"],
+        .st-key-card-ai-analysis [data-testid="stVerticalBlock"] {
+            height:100% !important;
+            min-height:0 !important;
+            display:flex !important;
+            flex-direction:column !important;
+            justify-content:space-between !important;
+            gap:6px !important;
+        }
+        .st-key-card-ai-compliance .kpi-card-heading,
+        .st-key-card-ai-analysis .kpi-card-heading {
+            min-height:18px !important;
+            margin-bottom:0 !important;
+        }
+        .st-key-card-ai-compliance .kpi-card-footnote {
+            margin-top:0 !important;
+            padding-top:6px !important;
+        }
+        .st-key-card-ai-compliance .kpi-completion-label {
+            min-height:38px !important;
+            height:38px !important;
+            font-size:9px !important;
+            line-height:1.12 !important;
+            padding:0 2px !important;
+            white-space:normal !important;
+            overflow-wrap:normal !important;
+            word-break:normal !important;
+            hyphens:none !important;
+        }
+        .st-key-card-ai-compliance .st-key-kpi_ai_estado_finalizadas_oportunas button,
+        .st-key-card-ai-compliance .st-key-kpi_ai_estado_finalizadas_ext button {
+            height:34px !important;
+            min-height:34px !important;
+            padding:0 4px !important;
+        }
+        .st-key-card-ai-analysis .kpi-card-footnote {
+            margin-top:auto !important;
+        }
+
         .st-key-card-ai-alert-5, .st-key-card-ai-alert-10,
         .st-key-card-ai-alert-20, .st-key-card-ai-alert-30,
         .st-key-card-c-alert-5, .st-key-card-c-alert-10,
@@ -2901,7 +2949,7 @@ if entorno_activo == "Auditoría Interna":
                             p_fin_oport, p_fin_ext = st.columns(2, gap="small")
                             with p_fin_oport:
                                 st.markdown(
-                                    '<div class="kpi-completion-label kpi-completion-green">Finalizadas oportunamente</div>',
+                                    '<div class="kpi-completion-label kpi-completion-green">Finalizadas<br>oportunamente</div>',
                                     unsafe_allow_html=True,
                                 )
                                 st.button(
@@ -2913,7 +2961,7 @@ if entorno_activo == "Auditoría Interna":
                                 )
                             with p_fin_ext:
                                 st.markdown(
-                                    '<div class="kpi-completion-label kpi-completion-yellow">Finalizadas extemporáneamente</div>',
+                                    '<div class="kpi-completion-label kpi-completion-yellow">Finalizadas<br>extemporáneamente</div>',
                                     unsafe_allow_html=True,
                                 )
                                 st.button(
@@ -5432,6 +5480,5 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
-
 
 

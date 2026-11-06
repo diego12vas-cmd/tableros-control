@@ -1172,20 +1172,20 @@ st.markdown(
         /* Auditoría Interna: cumplimiento y análisis con idénticas dimensiones. */
         .st-key-card-ai-compliance,
         .st-key-card-ai-analysis {
-            height:224px !important;
-            min-height:224px !important;
-            max-height:224px !important;
-            padding:13px 13px 12px !important;
+            height:202px !important;
+            min-height:202px !important;
+            max-height:202px !important;
+            padding:12px 13px 10px !important;
             box-sizing:border-box !important;
         }
         .st-key-card-ai-compliance [data-testid="stVerticalBlock"],
         .st-key-card-ai-analysis [data-testid="stVerticalBlock"] {
-            height:100% !important;
+            height:auto !important;
             min-height:0 !important;
             display:flex !important;
             flex-direction:column !important;
-            justify-content:space-between !important;
-            gap:6px !important;
+            justify-content:flex-start !important;
+            gap:4px !important;
         }
         .st-key-card-ai-compliance .kpi-card-heading,
         .st-key-card-ai-analysis .kpi-card-heading {
@@ -1197,9 +1197,9 @@ st.markdown(
             padding-top:6px !important;
         }
         .st-key-card-ai-compliance .kpi-completion-label {
-            min-height:38px !important;
-            height:38px !important;
-            font-size:9px !important;
+            min-height:34px !important;
+            height:34px !important;
+            font-size:12px !important;
             line-height:1.12 !important;
             padding:0 2px !important;
             white-space:normal !important;
@@ -1209,12 +1209,12 @@ st.markdown(
         }
         .st-key-card-ai-compliance .st-key-kpi_ai_estado_finalizadas_oportunas button,
         .st-key-card-ai-compliance .st-key-kpi_ai_estado_finalizadas_ext button {
-            height:34px !important;
-            min-height:34px !important;
+            height:30px !important;
+            min-height:30px !important;
             padding:0 4px !important;
         }
         .st-key-card-ai-analysis .kpi-card-footnote {
-            margin-top:auto !important;
+            margin-top:2px !important;
         }
 
         .st-key-card-ai-alert-5, .st-key-card-ai-alert-10,
@@ -5480,5 +5480,6 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
+
 
 

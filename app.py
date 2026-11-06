@@ -1180,12 +1180,24 @@ st.markdown(
         }
         .st-key-card-ai-compliance [data-testid="stVerticalBlock"],
         .st-key-card-ai-analysis [data-testid="stVerticalBlock"] {
-            height:auto !important;
-            min-height:0 !important;
+            height:100% !important;
+            min-height:174px !important;
             display:flex !important;
             flex-direction:column !important;
-            justify-content:flex-start !important;
-            gap:4px !important;
+            justify-content:center !important;
+            gap:7px !important;
+        }
+        /* Centra verticalmente el contenido y reparte mejor el espacio interior. */
+        .st-key-card-ai-compliance .kpi-card-heading,
+        .st-key-card-ai-analysis .kpi-card-heading {
+            text-align:left !important;
+            margin-bottom:2px !important;
+        }
+        .st-key-card-ai-compliance .st-key-kpi_ai_cumplimiento,
+        .st-key-card-ai-analysis .st-key-kpi_ai_abiertos_pct,
+        .st-key-card-ai-analysis .st-key-kpi_ai_vencidos_pct {
+            margin-top:1px !important;
+            margin-bottom:1px !important;
         }
         .st-key-card-ai-compliance .kpi-card-heading,
         .st-key-card-ai-analysis .kpi-card-heading {
@@ -5485,6 +5497,5 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
-
 
 

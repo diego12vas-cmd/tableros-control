@@ -1153,6 +1153,13 @@ st.markdown(
             box-sizing:border-box !important;
             margin-bottom:10px !important;
         }
+        /* En Auditoría Interna, las tarjetas superiores quedan alineadas. */
+        .st-key-card-ai-risk,
+        .st-key-card-ai-state {
+            height:250px !important;
+            min-height:250px !important;
+            max-height:250px !important;
+        }
         .st-key-card-ai-risk { border-top:3px solid #3B82F6 !important; }
         .st-key-card-ai-state, .st-key-card-c-state { border-top:3px solid #EF4444 !important; }
         .st-key-card-c-hallazgos { border-top:3px solid #3B82F6 !important; }
@@ -1172,20 +1179,20 @@ st.markdown(
         /* Auditoría Interna: cumplimiento y análisis con idénticas dimensiones. */
         .st-key-card-ai-compliance,
         .st-key-card-ai-analysis {
-            height:202px !important;
-            min-height:202px !important;
-            max-height:202px !important;
+            height:250px !important;
+            min-height:250px !important;
+            max-height:250px !important;
             padding:12px 13px 10px !important;
             box-sizing:border-box !important;
         }
         .st-key-card-ai-compliance [data-testid="stVerticalBlock"],
         .st-key-card-ai-analysis [data-testid="stVerticalBlock"] {
-            height:100% !important;
-            min-height:174px !important;
+            height:auto !important;
+            min-height:0 !important;
             display:flex !important;
             flex-direction:column !important;
-            justify-content:center !important;
-            gap:7px !important;
+            justify-content:flex-start !important;
+            gap:5px !important;
         }
         /* Centra verticalmente el contenido y reparte mejor el espacio interior. */
         .st-key-card-ai-compliance .kpi-card-heading,
@@ -1209,9 +1216,9 @@ st.markdown(
             padding-top:6px !important;
         }
         .st-key-card-ai-compliance .kpi-completion-label {
-            min-height:40px !important;
-            height:40px !important;
-            margin-bottom:7px !important;
+            min-height:38px !important;
+            height:38px !important;
+            margin-bottom:2px !important;
             font-size:12px !important;
             line-height:1.2 !important;
             padding:0 5px !important;
@@ -1231,7 +1238,8 @@ st.markdown(
             padding:0 4px !important;
         }
         .st-key-card-ai-analysis .kpi-card-footnote {
-            margin-top:2px !important;
+            margin-top:3px !important;
+            padding-top:4px !important;
         }
 
         .st-key-card-ai-alert-5, .st-key-card-ai-alert-10,
@@ -5497,5 +5505,6 @@ else:
                     )
                 else:
                     st.warning("No se encontraron registros en la hoja de informes del archivo de Contraloría.")
+
 
 
